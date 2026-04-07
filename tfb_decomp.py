@@ -182,18 +182,24 @@ def readTFBScript(data):
         instructions.append(
             readInstruction(buf)
         )
+        
+    print(stringTable3)
     
     for inst in instructions:
         if inst["opcode"] != 255:
-            print(stringTable1[inst["opcode"]], inst["a"], inst["b"], inst["c"], inst["d"], inst["payload"].hex())
+            stringOpcode = stringTable1[inst["opcode"]]
+            if (stringOpcode == "comment:::op-code"):
+                print("COMMENT:", inst["payload"].decode("utf-8", errors="ignore").strip())
+            else:
+                print(stringTable1[inst["opcode"]], inst["a"], inst["b"], inst["c"], inst["d"], inst["payload"].hex())
         else:
             print("OPCODE_255", inst["a"], inst["b"], inst["c"], inst["d"], inst["payload"].hex())
 
 ME_Hint = "ENG_KoNY_LPA/702_ME_Hint.ai"
 ME_Zoo_Gates = "ENG_KoNY_LPA/704_ME_Zoo_Gates.ai"
+RW_Balloon = "ENG_KoNY_LPA/556_RW_Balloon.ai"
 
 with open(ME_Zoo_Gates, "rb") as f:
     f.seek(0)
     data = f.read()
     readTFBScript(data)
-    

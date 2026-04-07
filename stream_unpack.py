@@ -123,15 +123,15 @@ def main(in_file, out_dir):
 
                 print(f"INDEX: {Index} RWID: {rwID}")
 
-                if rwID == "rwID_TEXDICTIONARY":
+                if rwID == "rwID_TEXDICTIONARY": # Done
                     fName = remove_ext(fName, ".txd")
                     fName = remove_ext(fName, ".TXD")
                     fName += ".txd"
-                elif rwID == "rwaID_WAVEDICT":
+                elif rwID == "rwaID_WAVEDICT": # TODO
                     fName = remove_ext(fName, ".rws")
                     fName = remove_ext(fName, ".RWS")
                     fName += ".rws"
-                elif rwID == "rwID_WORLD":
+                elif rwID == "rwID_WORLD": # Done, in editor
                     fName = remove_ext(fName, ".bsp")
                     fName = remove_ext(fName, ".BSP")
                     fName += ".bsp"
@@ -139,15 +139,15 @@ def main(in_file, out_dir):
                     fName = remove_ext(fName, ".txl")
                     fName = remove_ext(fName, ".TXL")
                     fName += ".txl"
-                elif rwID == "rwID_CLUMP":
+                elif rwID == "rwID_CLUMP": # Done, in editor
                     fName = remove_ext(fName, ".dff")
                     fName = remove_ext(fName, ".DFF")
                     fName += ".dff"
-                elif rwID == "rwID_HANIMANIMATION":
+                elif rwID == "rwID_HANIMANIMATION": # Partially Done
                     fName = remove_ext(fName, ".anm")
                     fName = remove_ext(fName, ".ANM")
                     fName += ".anm"
-                elif rwID == "SCRIPT":
+                elif rwID == "SCRIPT": # TFBScript
                     fName = remove_ext(fName, ".ai")
                     fName = remove_ext(fName, ".AI")
                     fName += ".ai"
@@ -157,7 +157,7 @@ def main(in_file, out_dir):
                     fName = remove_ext(fName, ".fnt")
                     fName = remove_ext(fName, ".FNT")
                     fName += ".fnt"
-                elif rwID == "KFset":
+                elif rwID == "KFset":   #DONE
                     fName = remove_ext(fName, ".lpa")
                     fName = remove_ext(fName, ".LPA")
                     fName += ".lpa"

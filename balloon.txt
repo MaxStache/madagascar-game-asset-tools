@@ -1,0 +1,83 @@
+['create variable::op-code', 'set value::op-code', 'check value::op-code', 'comment:::op-code', 'check message::op-code', 'set reference::op-code', 'send message::op-code', 'set behavior::op-code', 'teleport to::op-code', 'displace::op-code', 'find variable::op-code', 'inc value::op-code', 'if/else::op-code', 'play sound::op-code', 'spawn actor::op-code', 'slide value::op-code', 'print::op-code', 'remove::op-code']
+['I_Spawned_You::message', 'message senders::set::actor', 'I_Know_Who_My_Spawner_Is::message', 'Remote_Activated::user::value', 'BalloonsPopped::user::value', 'PenguingFishingSegmentController::actor', 'Ballon Counter::sprite', 'Ballon Counter Icon::sprite', 'introcs_done::user::value', 'BalloonPop::sound', 'Coin_Splode::particle', 'Script Time::value', 'WhatAmIDoing::user::value']
+['startup::behavior', 'WaitToGetPopped::behavior', 'MySpawnerLetMeGo::behavior', 'Pop::behavior', 'Remote_Activated::user::value', 'Timer::user::value', 'MyColor::user::value', 'Death TImer::user::value', 'Slide Timer::user::value', 'My Splode::user::particle', 'MySpawner::user::actor', 'my::actor']
+OPCODE_255 9 184 0 0 
+OPCODE_255 9 168 0 0 
+create variable::op-code 1 0 0 0 004004ff
+set value::op-code 1 0 0 0 004004ff0000000000
+create variable::op-code 1 0 0 0 008004ff
+create variable::op-code 1 0 0 0 00c004ff
+set value::op-code 1 0 0 0 00f1ffff0001000000
+set value::op-code 1 0 0 0 00c004ff0104000000
+check value::op-code 9 16 0 0 00c004ff000001000000
+COMMENT: Blue
+set value::op-code 1 0 0 0 00f7ffff203145ffff
+check value::op-code 9 16 0 0 00c004ff010002000000
+COMMENT: red
+set value::op-code 1 0 0 0 00f7ffff20ef2c00ff
+check value::op-code 9 16 0 0 00c004ff010003000000
+COMMENT: Green
+set value::op-code 1 0 0 0 00f7ffff205afb63ff
+check value::op-code 9 16 0 0 00c004ff010004000000
+COMMENT: Purple
+set value::op-code 1 0 0 0 00f7ffff208400e7ff
+create variable::op-code 1 0 0 0 000005ff
+create variable::op-code 1 0 0 0 004005ff
+create variable::op-code 1 0 0 0 008005ff
+OPCODE_255 1 0 0 0 
+OPCODE_255 9 48 0 0 
+COMMENT: 3Message-trading goes on here to ascertain ownership
+check message::op-code 9 32 0 0 0000000000400000000014000000
+create variable::op-code 1 0 0 0 00c005ff
+set reference::op-code 1 0 0 0 00c005ff00c0feff
+send message::op-code 1 0 0 0 0080000000c005ff000014000000
+set behavior::op-code 1 0 0 0 008003ff
+OPCODE_255 9 248 0 0 
+teleport to::op-code 1 0 0 0 00c005ff0000000000000000000000
+displace::op-code 1 0 0 0 00c0ffff000000000000005a0000000004000000
+check value::op-code 9 184 0 0 004004ff010001000000
+find variable::op-code 8 168 0 0 00c0000000c005ff
+set value::op-code 1 0 0 0 0080feff0002000000
+find variable::op-code 9 8 0 0 0000010000400100
+inc value::op-code 1 0 0 0 0080feff
+if/else::op-code 136 136 0 0 
+check value::op-code 9 0 0 0 000005ff040000000000
+set value::op-code 65 0 0 0 008701000001000000
+set value::op-code 65 0 0 0 00c701000001000000
+check value::op-code 9 8 0 0 0000020005002d000000
+play sound::op-code 1 0 0 0 00400200
+set value::op-code 1 0 0 0 04f7ffff0000000000
+spawn actor::op-code 9 32 0 0 0080020000c0ffff0000000000
+displace::op-code 1 0 0 0 00c0ffff000000000000005a0000000005000000
+set value::op-code 1 0 0 0 00c3ffff10cdcccc3e
+set value::op-code 1 0 0 0 00c1ffff001e000000
+set reference::op-code 1 0 0 0 008005ff00c0ffff
+set value::op-code 1 0 0 0 000005ff0200c0020000109a99993e
+set value::op-code 1 0 0 0 004005ff0200c00200000003000000
+inc value::op-code 65 0 0 0 00810100
+slide value::op-code 73 0 0 0 02c2010000f4010000100000003f0000000000000000
+slide value::op-code 73 0 0 0 0282010000ae010000100000003f0000000000000000
+set behavior::op-code 1 0 0 0 000004ff
+print::op-code 1 0 0 0 00c0ffff2349276d206869742c206275742049206469646e27742072656d6f7665206d7973656c66
+check value::op-code 9 32 0 0 004004ff010002000000
+find variable::op-code 9 8 0 0 00c0000000c005ff
+set value::op-code 1 0 0 0 0080feff0002000000
+set behavior::op-code 1 0 0 0 00c003ff
+set value::op-code 1 0 0 0 008004ff0200c00200000000000000
+OPCODE_255 9 72 0 0 
+COMMENT: Start rising up
+displace::op-code 1 0 0 0 00c0ffff000000000000005a000000100000803e
+check value::op-code 9 48 0 0 00c002000202008004ff000003000000
+find variable::op-code 9 24 0 0 0000030000400100
+check value::op-code 9 16 0 0 0080feff010003000000
+find variable::op-code 9 8 0 0 0000010000400100
+inc value::op-code 1 0 0 0 0080feff
+play sound::op-code 1 0 0 0 00400200
+remove::op-code 1 0 0 0 00c0ffff
+OPCODE_255 9 48 0 0 
+check value::op-code 9 16 0 0 000005ff030200c00200000000000000
+remove::op-code 1 0 0 0 008005ff
+remove::op-code 1 0 0 0 00c0ffff
+check value::op-code 73 16 0 0 004005ff000200c00200000000000000
+slide value::op-code 73 0 0 0 028201000044020000100000003f0000000000000000
+slide value::op-code 73 0 0 0 02c20100008a020000100000003f0000000000000000

@@ -183,6 +183,8 @@ def readTFBScript(data):
             readInstruction(buf)
         )
         
+    print(stringTable1)
+    print(stringTable2)
     print(stringTable3)
     
     for inst in instructions:
@@ -199,7 +201,7 @@ ME_Hint = "ENG_KoNY_LPA/702_ME_Hint.ai"
 ME_Zoo_Gates = "ENG_KoNY_LPA/704_ME_Zoo_Gates.ai"
 RW_Balloon = "ENG_KoNY_LPA/556_RW_Balloon.ai"
 
-with open(ME_Zoo_Gates, "rb") as f:
+with open(RW_Balloon, "rb") as f:
     f.seek(0)
     data = f.read()
     readTFBScript(data)

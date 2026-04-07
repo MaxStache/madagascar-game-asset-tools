@@ -203,3 +203,7 @@ with open(ME_Zoo_Gates, "rb") as f:
     f.seek(0)
     data = f.read()
     readTFBScript(data)
+    
+hexData = "00 C0 FF FF 00 00 02 00"
+data = bytes.fromhex(''.join(hexData.split()))
+buf = Parser(data, endian="little")

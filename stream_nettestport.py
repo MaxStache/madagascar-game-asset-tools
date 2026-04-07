@@ -583,7 +583,7 @@ def ReadStreamContents(data):
         print(f"    {key}: {value}")
 
 
-with open("MADAGASCAR.mem", "rb") as f:
+with open("../Madagascar_ENG/Game/Levels/kingofny.stream", "rb") as f:
     f.seek(0)
     data = f.read()
 

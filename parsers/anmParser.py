@@ -1,9 +1,8 @@
 import struct
 import uuid
-from os import SEEK_SET, SEEK_CUR, SEEK_END 
+from os import SEEK_SET, SEEK_END 
 from enum import IntEnum
 import numpy as np
-import quaternion
 import tkinter as tk
 from tkinter import ttk
 import sys

@@ -34,6 +34,7 @@ import struct
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Union
+from enum import Enum
 
 try:
     from PIL import Image
@@ -265,6 +266,51 @@ def _write_fixed_string(f, s: str, length: int):
 
 def _write_header(f, chunk_type: int, size: int, stamp: int = DEFAULT_VERSION_STAMP):
     f.write(struct.pack("<III", chunk_type, size, stamp))
+
+class FilterMode(Enum):
+    FILTER_NONE = 0x00
+    FILTER_NEAREST = 0x01
+    FILTER_LINEAR = 0x02
+    FILTER_MIP_NEAREST = 0x03
+    FILTER_MIP_LINEAR = 0x04
+    FILTER_LINEAR_MIP_NEAREST = 0x05
+    FILTER_LINEAR_MIP_LINEAR = 0x06
+
+
+class AddressingMode(Enum):
+    WRAP_NONE = 0x00
+    WRAP_WRAP = 0x01
+    WRAP_MIRROR = 0x02
+    WRAP_CLAMP = 0x03
+
+def assemble_filter_mode(
+    filterMode: FilterMode, uAddressing: AddressingMode, vAddressing: AddressingMode
+) -> int:
+    # validate ranges
+    if not (0 <= filterMode < 2**8):
+        raise ValueError("filterMode must fit in 8 bits (0-255)")
+    if not (0 <= uAddressing < 2**4):
+        raise ValueError("uAddressing must fit in 4 bits (0-15)")
+    if not (0 <= vAddressing < 2**4):
+        raise ValueError("vAddressing must fit in 4 bits (0-15)")
+
+    value = (
+        (filterMode) | (uAddressing << 8) | (vAddressing << 12)
+        # pad is 0, so no shift needed
+    )
+
+    return value
+def disassemble_filter_mode(value: int) -> tuple[int, int, int]:
+    # validate 16-bit range if desired
+    if not (0 <= value < 2**16):
+        raise ValueError("value must fit in 16 bits (0-65535)")
+
+    filterMode = value & 0xFF          # 8 bits
+    uAddressing = (value >> 8) & 0xF   # next 4 bits
+    vAddressing = (value >> 12) & 0xF  # next 4 bits
+
+    return filterMode, uAddressing, vAddressing
+
 
 
 # ═══════════════════════════════════════════════════════
@@ -648,11 +694,11 @@ def _read_xbox_texture(f) -> NativeTexture:
 
     tex.version_stamp = native_header.library_id_stamp
     struct_header = RWHeader.read(f)
-    struct_start = f.tell()
+    struct_start = f.tell()  # noqa: F841
 
     # Store entire raw struct data for byte-perfect round-trip
     tex._raw_struct_data = f.read(struct_header.size)
-    struct_end = f.tell()
+    struct_end = f.tell() # noqa: F841
 
     # Now parse the fields from the raw data
     r = io.BytesIO(tex._raw_struct_data)
@@ -724,7 +770,7 @@ def _read_d3d_texture(f) -> NativeTexture:
     native_header = RWHeader.read(f)
     tex.version_stamp = native_header.library_id_stamp
     struct_header = RWHeader.read(f)
-    struct_start = f.tell()
+    struct_start = f.tell() # noqa: F841
 
     # Store raw struct data for byte-perfect round-trip
     tex._raw_struct_data = f.read(struct_header.size)
@@ -1039,7 +1085,7 @@ def save(txd: TextureDictionary, filepath: Union[str, Path]):
 
 def dumps(txd: TextureDictionary) -> bytes:
     """Serialize a TextureDictionary to bytes."""
-    buf = io.BytesIO()
+    buf = io.BytesIO() # noqa: F841
     # Build in memory using same logic as save()
     stamp = txd.version_stamp
 

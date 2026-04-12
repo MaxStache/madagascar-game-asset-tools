@@ -1,6 +1,6 @@
 import struct
 import uuid
-
+import os
 
 class Parser:
     def __init__(self, data: bytes, endian: str = "little"):
@@ -183,18 +183,20 @@ def readTFBScript(data):
             readInstruction(buf)
         )
         
-    print(stringTable1)
-    print(stringTable2)
-    print(stringTable3)
+    #print(stringTable1)
+    #print(stringTable2)
+    #print(stringTable3)
     
     for inst in instructions:
         if inst["opcode"] != 255:
             stringOpcode = stringTable1[inst["opcode"]]
             if (stringOpcode == "comment:::op-code"):
-                print("COMMENT:", inst["payload"].decode("utf-8", errors="ignore").strip())
+                print("COMMENT:", inst["payload"][1:].decode("utf-8", errors="ignore").strip())
             else:
+                
                 print(stringTable1[inst["opcode"]], inst["a"], inst["b"], inst["c"], inst["d"], inst["payload"].hex())
         else:
+            
             print("OPCODE_255", inst["a"], inst["b"], inst["c"], inst["d"], inst["payload"].hex())
 
 ME_Hint = "ENG_KoNY_LPA/702_ME_Hint.ai"

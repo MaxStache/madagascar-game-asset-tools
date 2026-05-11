@@ -35,3 +35,5 @@ parsers/*/*.png
 parsed_bsps/*.mtl
 parsed_bsps/*.obj
 parsed_bsps/*/*.png
+
+Levels/*

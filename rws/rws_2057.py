@@ -34,18 +34,18 @@ def read_file_header_chunk(parser: Parser):
 def read_stream_chunk_header(parser: Parser):
     rwHeader = parser.readRWChunkHeader()
 
-    _unk1 = parser.readUint32()
+    _unk1 = parser.readUint32() # Always 15
     sample_rate = parser.readUint32()
-    _unk2 = parser.readUint32()
+    _unk2 = parser.readUint32() # Always 4568152
     stream_size = parser.readUint32()
     bit_depth = parser.readUint8()
     channels = parser.readUint8()
 
-    _pad1 = parser.readUint16()
+    _pad1 = parser.readUint16() # Always 18
 
-    _unk_misc_off = parser.readUint32()
+    _unk_misc_off = parser.readUint32() 
     misc_data_size = parser.readUint32()
-    _unk3 = parser.readUint32()
+    _unk3 = parser.readUint32() # Always 0
 
     codec_uuid = read_codec_uuid(parser)
     codec_uuid_rest = parser.readBytes(12)
@@ -172,33 +172,4 @@ if __name__ == "__main__":
 
     # write_stream_to_file(stream, "output.wav")
 
-    root = tk.Tk()
-    root.title("Tkinter Table Example")
-
-    # Create Treeview
-    tree = ttk.Treeview(root, columns=("Name", "SampleRate"), show="headings")
-
-    # Define headings
-    tree.heading("Name", text="Name")
-    tree.heading("SampleRate", text="Sample Rate")
-    
-    # Define column widths
-    tree.column("Name", width=150)
-    tree.column("SampleRate", width=50, anchor="center")
-
-    # Insert data
-    data = [
-    ]
-    
-    for stream in file["file_data"]["streams"]:
-        header = stream["stream_header"]
-        name = header["stream_name"]
-        sample_rate = header["sample_rate"]
-        data.append((name, sample_rate, ""))
-
-    for row in data:
-        tree.insert("", tk.END, values=row)
-
-    tree.pack(fill="both", expand=True)
-
-    root.mainloop()
+ 

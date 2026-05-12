@@ -186,12 +186,18 @@ def readTFBScript(data):
     print(stringTable1)
     print(stringTable2)
     print(stringTable3)
+
+    stringTableCombined = stringTable1 + stringTable2 + stringTable3
+    print(stringTableCombined[32])
+    print(len(stringTableCombined))
     
     for inst in instructions:
         if inst["opcode"] != 255:
             stringOpcode = stringTable1[inst["opcode"]]
             if (stringOpcode == "comment:::op-code"):
-                print("COMMENT:", inst["payload"].decode("utf-8", errors="ignore").strip())
+                print("---------------------", "COMMENT:",inst["a"], inst["b"], inst["c"], inst["d"], inst["payload"][1:].decode("utf-8", errors="ignore").strip(), "---------------------")
+            elif (stringOpcode == "print::op-code"):
+                print( stringTable1[inst["opcode"]],inst["a"], inst["b"], inst["c"], inst["d"], inst["payload"][1:].decode("utf-8", errors="ignore").strip(), )
             else:
                 print(stringTable1[inst["opcode"]], inst["a"], inst["b"], inst["c"], inst["d"], inst["payload"].hex())
         else:

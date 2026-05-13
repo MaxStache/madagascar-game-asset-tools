@@ -41,5 +41,5 @@ if __name__ == "__main__":
     for filename in os.listdir(BATCH_INPUT_FOLDER):
         if filename.lower().endswith(".bsp"):
             file_path = os.path.join(BATCH_INPUT_FOLDER, filename)
-            print(f"Parsing BSP: {file_path}")
+            print(f"\n\n\nParsing BSP: {file_path}")
             parseBSP(file_path, OUT_FOLDER, MAKE_OBJ, TEXTURE_PREFIX)

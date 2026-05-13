@@ -4,6 +4,7 @@ import struct
 from typing import Any, Dict, Optional
 import random
 
+
 class BinaryReader:
     """Helper class to read binary data with offset tracking."""
 
@@ -182,7 +183,8 @@ def parse_material_list(reader: BinaryReader) -> Dict[str, Any]:
 
 
 def parse_atomic_sector(
-    reader: BinaryReader, is_collision: bool = False,
+    reader: BinaryReader,
+    is_collision: bool = False,
 ) -> Dict[str, Any]:
     """Parse an AtomicSector section (0x0009)."""
     atomic = {}
@@ -198,41 +200,41 @@ def parse_atomic_sector(
     start_struct_position = reader.offset
 
     # AtomicSectorStruct Data
-    atomic["matListWindowBase"] = reader.read_int32()
-    num_triangles = reader.read_int32()
-    num_vertices = reader.read_int32()
+    atomic["matListWindowBase"] = reader.read_int32()  # 1
+    num_triangles = reader.read_int32()  # 2
+    num_vertices = reader.read_int32()  # 3
     atomic["numTriangles"] = num_triangles
     atomic["numVertices"] = num_vertices
     atomic["boxMax"] = {
-        "x": reader.read_float32(),
-        "y": reader.read_float32(),
-        "z": reader.read_float32(),
+        "x": reader.read_float32(),  # 4
+        "y": reader.read_float32(),  # 5
+        "z": reader.read_float32(),  # 6
     }
     atomic["boxMin"] = {
-        "x": reader.read_float32(),
-        "y": reader.read_float32(),
-        "z": reader.read_float32(),
+        "x": reader.read_float32(),  # 7
+        "y": reader.read_float32(),  # 8
+        "z": reader.read_float32(),  # 9
     }
-    atomic["collSectorPresent"] = reader.read_int32()
-    atomic["unused"] = reader.read_int32()
+    atomic["collSectorPresent"] = reader.read_int32()  # 10
+    atomic["unused"] = reader.read_int32()  # 11
 
     # Check for native data (data stored elsewhere, struct only contains header)
     header_size = 11 * 4  # 11 int32/float32 fields
-    if reader.offset == start_struct_position + struct_size:
-        if num_vertices != 0 and num_triangles != 0:
-            atomic["isNativeData"] = True
-            # Skip to extension
-            ext_header = parse_section_header(reader)
-            atomic["extensionHeader"] = ext_header
-            atomic["extensionData"] = reader.read_bytes(ext_header["size"]).hex()
-            return atomic
+    # if reader.offset == start_struct_position + struct_size:
+    #    if num_vertices != 0 and num_triangles != 0:
+    #        atomic["isNativeData"] = True
+    #        # Skip to extension
+    #        ext_header = parse_section_header(reader)
+    #        atomic["extensionHeader"] = ext_header
+    #        atomic["extensionData"] = reader.read_bytes(ext_header["size"]).hex()
+    #        return atomic
 
     atomic["isNativeData"] = False
 
     # Reset to after header and read vertex data
-    reader.offset = start_struct_position + header_size
+    # reader.offset = start_struct_position + header_size
 
-    # Vertex Data 
+    # Vertex Data
     atomic["vertices"] = [
         {
             "x": reader.read_float32(),
@@ -245,31 +247,31 @@ def parse_atomic_sector(
     if not is_collision:
         # Check for two vertex color arrays
         # Expected size: header(44) + vertices(12*n) + colors(4*n) + uvs(8*n) + triangles(8*t)
-        supposed_total_length = (
-            header_size + (12 + 4 + 8) * num_vertices + 8 * num_triangles
-        )
-        two_vcolor_arrays = False
+        # supposed_total_length = (
+        #    header_size + (12 + 4 + 8) * num_vertices + 8 * num_triangles
+        # )
+        # two_vcolor_arrays = False
 
-        extra_size = struct_size - supposed_total_length
-        if extra_size == num_vertices * 4:
-            two_vcolor_arrays = True
-        elif extra_size == num_vertices * 12:
-            two_vcolor_arrays = True
+        # extra_size = struct_size - supposed_total_length
+        # if extra_size == num_vertices * 4:
+        #    two_vcolor_arrays = True
+        # elif extra_size == num_vertices * 12:
+        #    two_vcolor_arrays = True
 
-        atomic["twoColorArrays"] = two_vcolor_arrays
+        # atomic["twoColorArrays"] = two_vcolor_arrays
 
         # Skip first color array if there are two
-        if two_vcolor_arrays:
-            reader.offset += 4 * num_vertices
+        # if two_vcolor_arrays:
+        #    reader.offset += 4 * num_vertices
 
         # Color Data
         atomic["colors"] = [reader.read_color32() for _ in range(num_vertices)]
 
         # Reset position for UV data
-        if two_vcolor_arrays:
-            reader.offset = start_struct_position + header_size + 20 * num_vertices
-        else:
-            reader.offset = start_struct_position + header_size + 16 * num_vertices
+        # if two_vcolor_arrays:
+        #    reader.offset = start_struct_position + header_size + 20 * num_vertices
+        # else:
+        reader.offset = start_struct_position + header_size + 16 * num_vertices
 
         # UV Data
         atomic["uvs"] = [
@@ -281,7 +283,13 @@ def parse_atomic_sector(
         atomic["uvs"] = []
 
     # Triangle data is at the end of the struct
-    reader.offset = start_struct_position + struct_size - 8 * num_triangles
+    target_offset = start_struct_position + struct_size - 8 * num_triangles
+    if not target_offset == reader.offset:
+        print(
+            "Skipping to triangle data, this can happen in collision mode, the diffrence between current and target offset is:",
+            target_offset - reader.offset,
+        )
+    reader.offset = target_offset
 
     # Triangle Data - order differs between shadow and heroes format
     atomic["triangles"] = [
@@ -295,7 +303,11 @@ def parse_atomic_sector(
     ]
 
     # Ensure we're at the end of struct
-    reader.offset = start_struct_position + struct_size
+    if reader.offset != start_struct_position + struct_size:
+        print(
+            f"Warning: did not reach end of AtomicSector struct, at offset {reader.offset}, expected {start_struct_position + struct_size}"
+        )
+        reader.offset = start_struct_position + struct_size
 
     # AtomicSector Extension Header
     ext_header = parse_section_header(reader)
@@ -322,10 +334,12 @@ def parse_plane_sector(
     # PlaneStruct Data
     plane["type"] = reader.read_int32()
     plane["value"] = reader.read_float32()
+
     left_is_atomic = reader.read_int32()
     right_is_atomic = reader.read_int32()
     plane["leftIsAtomic"] = left_is_atomic
     plane["rightIsAtomic"] = right_is_atomic
+
     plane["leftValue"] = reader.read_float32()
     plane["rightValue"] = reader.read_float32()
 
@@ -401,9 +415,7 @@ def parse_world_chunk(
     return None
 
 
-def parse(
-    data: bytes, is_collision: bool = False
-) -> Dict[str, Any]:
+def parse(data: bytes, is_collision: bool = False) -> Dict[str, Any]:
     """
     Parse binary World (0x000B) data.
 
@@ -485,6 +497,7 @@ def parse(
     )
 
     # World Extension Header (0x0003)
+    # TODO
     result["worldExtIdentifier"] = reader.read_uint32()
     world_ext_size = reader.read_int32()
     result["worldExtSize"] = world_ext_size
@@ -494,9 +507,7 @@ def parse(
     return result
 
 
-def parse_file(
-    filepath: str, is_collision: bool = False
-) -> Dict[str, Any]:
+def parse_file(filepath: str, is_collision: bool = False) -> Dict[str, Any]:
     """
     Parse a binary file.
 
@@ -528,7 +539,9 @@ def collect_atomic_sectors(chunk: Optional[Dict[str, Any]]) -> list:
     return sectors
 
 
-def write_mtl(filepath: str, materials: list, texture_prefix: str = "", mat_suffix: str = ""):
+def write_mtl(
+    filepath: str, materials: list, texture_prefix: str = "", mat_suffix: str = ""
+):
     """Write materials to MTL file."""
     with open(filepath, "w") as f:
         for i, mat in enumerate(materials):
@@ -562,10 +575,16 @@ def write_mtl(filepath: str, materials: list, texture_prefix: str = "", mat_suff
             f.write("\n")
 
 
-def write_obj(output_path: str, filename: str, world_data: dict, texture_prefix: str = "", scale: float = 1.0):
+def write_obj(
+    output_path: str,
+    filename: str,
+    world_data: dict,
+    texture_prefix: str = "",
+    scale: float = 1.0,
+):
     """Write parsed world data to OBJ file, optionally scaling geometry."""
     import os
-    
+
     mat_suffix = str(random.randint(1000, 9999))
 
     sectors = collect_atomic_sectors(world_data.get("worldChunk", []))
@@ -604,7 +623,9 @@ def write_obj(output_path: str, filename: str, world_data: dict, texture_prefix:
 
             # Write vertices with scaling
             for v in vertices:
-                f.write(f"v {v['x']*scale:.6f} {v['y']*scale:.6f} {v['z']*scale:.6f}\n")
+                f.write(
+                    f"v {v['x'] * scale:.6f} {v['y'] * scale:.6f} {v['z'] * scale:.6f}\n"
+                )
 
             # Write UVs (V flipped)
             for uv in uvs:

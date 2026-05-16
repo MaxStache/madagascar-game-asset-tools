@@ -1,11 +1,8 @@
 other/ai.html
 other/ai.txt
 
-parsed_bsps/textures/*.[pP][nN][gG]
-parsed_bsps/textures/*.png
-parsed_bsps/textures/*.PNG
-
 env/
+.venv/
 
 banquet/
 map/
@@ -37,3 +34,5 @@ parsed_bsps/*.obj
 parsed_bsps/*/*.png
 
 Levels/*
+
+__pycache__/*

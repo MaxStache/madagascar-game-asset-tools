@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            margin: 0;
+        }
+    </style>
+
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.184.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.184.0/examples/jsm/"
+      }
+    }
+    </script>
+</head>
+
+<body>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+        import { MTLLoader } from 'three/addons/loaders/MTLLoader.js';
+
+        THREE.Material.prototype.side = THREE.DoubleSide;
+
+        const scene = new THREE.Scene();
+
+        const camera = new THREE.PerspectiveCamera(
+            75,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        camera.position.z = 5;
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = false;
+
+        // LIGHT (important for most OBJ materials)
+        const light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(5, 5, 5);
+        scene.add(light);
+
+        const ambient = new THREE.AmbientLight(0xffffff, 0.3);
+        scene.add(ambient);
+
+        const objs = [
+            "8_KingofNY9_Combined188_Sky.obj",
+            //"9_KingofNY9_Combined188_Col.obj",
+            "15_KingofNY9_Combined188_Opaque.obj",
+            "16_KingofNY9_Combined188_Trans.obj",
+            "18_KingofNY9_Combined188_YonIgnore.obj",
+            "19_KingofNY9_Combined188_NoShadow.obj",
+        ];
+        const mtls = [
+            "8_KingofNY9_Combined188_Sky.mtl",
+            //"9_KingofNY9_Combined188_Col.mtl",
+            "15_KingofNY9_Combined188_Opaque.mtl",
+            "16_KingofNY9_Combined188_Trans.mtl",
+            "18_KingofNY9_Combined188_YonIgnore.mtl",
+            "19_KingofNY9_Combined188_NoShadow.mtl",
+        ];
+
+        const mtlLoader = new MTLLoader();
+        mtlLoader.setPath("/parsed_bsps/"); // folder where your .mtl is
+
+        for (let i = 0; i < objs.length; i++) {
+            mtlLoader.load(mtls[i], (materials) => {
+                materials.preload();
+
+                const objLoader = new OBJLoader();
+                objLoader.setMaterials(materials);
+                objLoader.setPath('/parsed_bsps/'); // folder where your .obj is
+
+                objLoader.load(
+                    objs[i],
+                    (object) => {
+                        object.traverse((child) => {
+                            if (child.isMesh) {
+                                child.material.side = THREE.DoubleSide;
+                            }
+                        });
+
+                        scene.add(object);
+                        object.scale.set(0.01, 0.01, 0.01); // scale down if needed
+                    },
+                    (xhr) => {
+                        console.log('OBJ:', (xhr.loaded / xhr.total) * 100 + '% loaded');
+                    },
+                    (err) => {
+                        console.error('OBJ error:', err);
+                    }
+                );
+            });
+        }
+        function animate() {
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        renderer.setAnimationLoop(animate);
+
+        window.addEventListener("resize", () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+
+</html>

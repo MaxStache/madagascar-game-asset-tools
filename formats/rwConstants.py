@@ -1,0 +1,225 @@
+from enum import Enum
+
+
+class RWSectionType(Enum):
+    rwID_NAOBJECT = 0x0000
+    rwID_STRUCT = 0x0001
+    rwID_STRING = 0x0002
+    rwID_EXTENSION = 0x0003
+    rwID_CAMERA = 0x0005
+    rwID_TEXTURE = 0x0006
+    rwID_MATERIAL = 0x0007
+    rwID_MATLIST = 0x0008
+    rwID_ATOMICSECT = 0x0009
+    rwID_PLANESECT = 0x000A
+    rwID_WORLD = 0x000B
+    rwID_SPLINE = 0x000C
+    rwID_MATRIX = 0x000D
+    rwID_FRAMELIST = 0x000E
+    rwID_GEOMETRY = 0x000F
+    rwID_CLUMP = 0x0010
+    rwID_LIGHT = 0x0012
+    rwID_UNICODESTRING = 0x0013
+    rwID_ATOMIC = 0x0014
+    rwID_TEXTURENATIVE = 0x0015
+    rwID_TEXDICTIONARY = 0x0016
+    rwID_ANIMDATABASE = 0x0017
+    rwID_IMAGE = 0x0018
+    rwID_SKINANIMATION = 0x0019
+    rwID_GEOMETRYLIST = 0x001A
+    rwID_ANIMANIMATION = 0x001B
+    rwID_TEAM = 0x001C
+    rwID_CROWD = 0x001D
+    rwID_DMORPHANIMATION = 0x001E
+    rwID_RIGHTTORENDER = 0x001F
+    rwID_MTEFFECTNATIVE = 0x0020
+    rwID_MTEFFECTDICT = 0x0021
+    rwID_TEAMDICTIONARY = 0x0022
+    rwID_PITEXDICTIONARY = 0x0023
+    rwID_TOC = 0x0024
+    rwID_PRTSTDGLOBALDATA = 0x0025
+    rwID_ALTPIPE = 0x0026
+    rwID_PIPEDS = 0x0027
+    rwID_PATCHMESH = 0x0028
+    rwID_CHUNKGROUPSTART = 0x0029
+    rwID_CHUNKGROUPEND = 0x002A
+    rwID_UVANIMDICT = 0x002B
+    rwID_COLLTREE = 0x002C
+    rwID_METRICSPLUGIN = 0x0101
+    rwID_SPLINEPLUGIN = 0x0102
+    rwID_STEREOPLUGIN = 0x0103
+    rwID_VRMLPLUGIN = 0x0104
+    rwID_MORPHPLUGIN = 0x0105
+    rwID_PVSPLUGIN = 0x0106
+    rwID_MEMLEAKPLUGIN = 0x0107
+    rwID_ANIMPLUGIN = 0x0108
+    rwID_GLOSSPLUGIN = 0x0109
+    rwID_LOGOPLUGIN = 0x010A
+    rwID_MEMINFOPLUGIN = 0x010B
+    rwID_RANDOMPLUGIN = 0x010C
+    rwID_PNGIMAGEPLUGIN = 0x010D
+    rwID_BONEPLUGIN = 0x010E
+    rwID_VRMLANIMPLUGIN = 0x010F
+    rwID_SKYMIPMAPVAL = 0x0110
+    rwID_MRMPLUGIN = 0x0111
+    rwID_LODATMPLUGIN = 0x0112
+    rwID_MEPLUGIN = 0x0113
+    rwID_LTMAPPLUGIN = 0x0114
+    rwID_REFINEPLUGIN = 0x0115
+    rwID_SKINPLUGIN = 0x0116
+    rwID_LABELPLUGIN = 0x0117
+    rwID_PARTICLESPLUGIN = 0x0118
+    rwID_GEOMTXPLUGIN = 0x0119
+    rwID_SYNTHCOREPLUGIN = 0x011A
+    rwID_STQPPPLUGIN = 0x011B
+    rwID_PARTPPPLUGIN = 0x011C
+    rwID_COLLISPLUGIN = 0x011D
+    rwID_HANIMPLUGIN = 0x011E
+    rwID_USERDATAPLUGIN = 0x011F
+    rwID_MATERIALEFFECTSPLUGIN = 0x0120
+    rwID_PARTICLESYSTEMPLUGIN = 0x0121
+    rwID_DMORPHPLUGIN = 0x0122
+    rwID_PATCHPLUGIN = 0x0123
+    rwID_TEAMPLUGIN = 0x0124
+    rwID_CROWDPPPLUGIN = 0x0125
+    rwID_MIPSPLITPLUGIN = 0x0126
+    rwID_ANISOTPLUGIN = 0x0127
+    rwID_GCNMATPLUGIN = 0x0129
+    rwID_GPVSPLUGIN = 0x012A
+    rwID_XBOXMATPLUGIN = 0x012B
+    rwID_MULTITEXPLUGIN = 0x012C
+    rwID_CHAINPLUGIN = 0x012D
+    rwID_TOONPLUGIN = 0x012E
+    rwID_PTANKPLUGIN = 0x012F
+    rwID_PRTSTDPLUGIN = 0x0130
+    rwID_PDSPLUGIN = 0x0131
+    rwID_PRTADVPLUGIN = 0x0132
+    rwID_NORMMAPPLUGIN = 0x0133
+    rwID_ADCPLUGIN = 0x0134
+    rwID_UVANIMPLUGIN = 0x0135
+    rwID_CHARSEPLUGIN = 0x0180
+    rwID_NOHSWORLDPLUGIN = 0x0181
+    rwID_IMPUTILPLUGIN = 0x0182
+    rwID_SLERPPLUGIN = 0x0183
+    rwID_OPTIMPLUGIN = 0x0184
+    rwID_TLWORLDPLUGIN = 0x0185
+    rwID_DATABASEPLUGIN = 0x0186
+    rwID_RAYTRACEPLUGIN = 0x0187
+    rwID_RAYPLUGIN = 0x0188
+    rwID_LIBRARYPLUGIN = 0x0189
+    rwID_2DPLUGIN = 0x0190
+    rwID_TILERENDPLUGIN = 0x0191
+    rwID_JPEGIMAGEPLUGIN = 0x0192
+    rwID_TGAIMAGEPLUGIN = 0x0193
+    rwID_GIFIMAGEPLUGIN = 0x0194
+    rwID_QUATPLUGIN = 0x0195
+    rwID_SPLINEPVSPLUGIN = 0x0196
+    rwID_MIPMAPPLUGIN = 0x0197
+    rwID_MIPMAPKPLUGIN = 0x0198
+    rwID_2DFONT = 0x0199
+    rwID_INTSECPLUGIN = 0x019A
+    rwID_TIFFIMAGEPLUGIN = 0x019B
+    rwID_PICKPLUGIN = 0x019C
+    rwID_BMPIMAGEPLUGIN = 0x019D
+    rwID_RASIMAGEPLUGIN = 0x019E
+    rwID_SKINFXPLUGIN = 0x019F
+    rwID_VCATPLUGIN = 0x01A0
+    rwID_2DPATH = 0x01A1
+    rwID_2DBRUSH = 0x01A2
+    rwID_2DOBJECT = 0x01A3
+    rwID_2DSHAPE = 0x01A4
+    rwID_2DSCENE = 0x01A5
+    rwID_2DPICKREGION = 0x01A6
+    rwID_2DOBJECTSTRING = 0x01A7
+    rwID_2DANIMPLUGIN = 0x01A8
+    rwID_2DANIM = 0x01A9
+    rwID_2DKEYFRAME = 0x01B0
+    rwID_2DMAESTRO = 0x01B1
+    rwID_BARYCENTRIC = 0x01B2
+    rwID_PITEXDICTIONARYTK = 0x01B3
+    rwID_TOCTOOLKIT = 0x01B4
+    rwID_TPLTOOLKIT = 0x01B5
+    rwID_ALTPIPETOOLKIT = 0x01B6
+    rwID_ANIMTOOLKIT = 0x01B7
+    rwID_SKINSPLITTOOKIT = 0x01B8
+    rwID_CMPKEYTOOLKIT = 0x01B9
+    rwID_GEOMCONDPLUGIN = 0x01BA
+    rwID_WINGPLUGIN = 0x01BB
+    rwID_GENCPIPETOOLKIT = 0x01BC
+    rwID_LTMAPCNVTOOLKIT = 0x01BD
+    rwID_FILESYSTEMPLUGIN = 0x01BE
+    rwID_DICTTOOLKIT = 0x01BF
+    rwID_UVANIMLINEAR = 0x01C0
+    rwID_UVANIMPARAM = 0x01C1
+    rwID_BINMESHPLUGIN = 0x050E
+    rwID_NATIVEDATAPLUGIN = 0x0510
+    
+    # other
+    rwID_ZModelerLock = 0xF21E
+    rwID_Frame = 0x0253F2FE
+    
+
+class strfunc_func(Enum):
+    sf_VersionNumber = -1
+
+    sf_Reset = 0
+
+    sf_Reserved1 = 1
+    sf_Reserved2 = 2
+
+    sf_SetDirectorsCameraMatrix = 3
+
+    sf_CreateEntity = 4
+    sf_UpdateEntityAttributes = 5
+
+    sf_SetFrozenMode = 6
+    sf_SetRunningMode = 7
+
+    sf_EnableDirectorsCamera = 8
+    sf_DisableDirectorsCamera = 9
+
+    sf_TextComment = 10
+
+    sf_StartSystem = 11
+    sf_StopSystem = 12
+
+    sf_DeleteEntity = 13
+    sf_DeleteAllEntities = 14
+
+    sf_UnLoadAsset = 15
+
+    sf_Shutdown = 16
+    sf_CloseConnection = 17
+    sf_SendTestEvent = 18
+
+    sf_Reserved3 = 19
+    sf_Reserved3b = 20
+
+    sf_LoadAsset = 21
+
+    sf_LoadEmbeddedAsset = 22
+
+    sf_Reserved4 = 23
+
+    sf_GetEntityMatrix = 24
+
+    sf_CustomData = 25
+
+    sf_FunctionProfiler = 26
+
+    sf_ResetEntity = 27
+
+    sf_PlacementNew = 28
+
+    sf_Initialize = 29
+
+    sf_UpdateAsset = 30
+
+    sf_DynamicSequence = 31
+
+
+def MAKECHUNKID(vendorID, chunkID):
+    return ((vendorID & 0xFFFFFF) << 8) | (chunkID & 0xFF)
+
+rwVENDORID_CORE = 0x000000
+rwVENDORID_CRITERIONRM = 0x000007

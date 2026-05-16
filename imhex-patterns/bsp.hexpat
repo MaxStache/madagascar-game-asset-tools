@@ -6,8 +6,8 @@ import type.byte;
 
 struct ChunkHeader {
     u32 id;
-    u32     payload_size;
-    u32     version;
+    u32 payload_size;
+    u32 version;
 };
 
 struct Vector3 {

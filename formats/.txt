@@ -1,0 +1,692 @@
+Launching NetTest on port 5607 (Little Endian)
+Read a stream
+strfunc_Initialize
+strfunc_DisableDirectorsCamera
+strfunc_StopSystem
+strfunc_SetFrozenMode
+strfunc_VersionNumber:    0x100
+Read a stream
+strfunc_LoadEmbeddedAsset:
+    Header size:    188
+    Data size:    16
+    Name:    
+    ID:    {3B8147B3-0711-4D1A-A493-EA00C6D3887F}
+    Type:    rwID_TEXDICTIONARY
+    File:    c:\dokumente und einstellungen\lauritz\desktop\game\build output\local pc - directx\texture dictionary\rws_globalfolder.txd
+    Dependencies:    
+Read a stream
+strFunc_PlacementNew
+    FPSRender    Count: 1
+    FPSPlayer    Count: 1
+    CWin32Keyboard    Count: 3
+    FPSDoor    Count: 2
+strfunc_LoadEmbeddedAsset:
+    Header size:    212
+    Data size:    758628
+    Name:    
+    ID:    {0174DD9E-8816-4E83-BE64-9DA9A2E804BE}
+    Type:    rwID_TEXDICTIONARY
+    File:    c:\dokumente und einstellungen\lauritz\desktop\game\build output\local pc - directx\texture dictionary\{66542100-563e-4fa1-ae9e-461ae75f4b65}.txd
+    Dependencies:    
+strfunc_LoadEmbeddedAsset:
+    Header size:    212
+    Data size:    903280
+    Name:    
+    ID:    {A8D78DFF-03C1-4E96-96A3-669F0C0D6C19}
+    Type:    rwID_WORLD
+    File:    C:\Dokumente und Einstellungen\Lauritz\Desktop\game\Build Output\Local PC - DirectX\Target Resources\{A8D78DFF-03C1-4E96-96A3-669F0C0D6C19}.bsp
+    Dependencies:    Models\Textures
+strfunc_CreateEntity:
+    Behaviour:    FPSRender
+    Entity ID:    {CB1396F1-47A5-4682-B2DF-5A1709C28484}
+    Class:    CSystemCommands
+        Attach asset, ID:    {A8D78DFF-03C1-4E96-96A3-669F0C0D6C19}
+    Class:    FPSRender
+        Attribute   0: [               ][FF FF FF FF]
+        Attribute   1: [               ][00 00 00 00]
+        Attribute   2: [render         ][72 65 6E 64 65 72 00 BF]
+        Attribute   3: [               ][00 BF BF BF]
+        Attribute   4: [               ][FF FF 00 00]
+        Attribute   5: [               ][FF FF FF FF]
+        Attribute   6: [               ][FF FF FF FF]
+        Attribute   7: [               ][01 00 00 00]
+        Attribute   8: [               ][04 00 00 00]
+        Attribute   9: [               ][05 00 00 00]
+        Attribute  10: [               ][00 00 00 00]
+        Attribute  11: [               ][FF FF FF FF]
+        Attribute  12: [               ][FF FF FF FF]
+        Attribute  13: [               ][00 00 00 00]
+        Attribute  14: [               ][00 00 00 00]
+        Attribute  15: [               ][FF FF FF FF]
+        Attribute  16: [               ][03 00 00 00]
+        Attribute  17: [               ][00 00 00 00]
+        Attribute  18: [               ][00 00 B6 A9]
+        Attribute  19: [               ][00 00 00 00]
+        Attribute  20: [               ][00 00 00 00]
+        Attribute  21: [               ][00 00 00 00]
+        Attribute  22: [               ][FF FF FF FF]
+        Attribute  23: [               ][FF FF FF FF]
+        Attribute  24: [               ][FF FF FF FF]
+        Attribute  25: [               ][00 00 00 3F]
+        Attribute  26: [   B           ][00 00 C8 42]
+    Class:    CAttributeHandler
+        Attribute   0: [               ][00 00 00 00]
+    Class:    CSystemCommands
+        Attribute   1: [               ][00 00 80 3F 00 00 00 00 00 00 00 00 00 00 00]
+        Attribute   2: [               ][FF FF FF FF]
+        Attribute   3: [               ][FF FF FF FF]
+        Attribute   4: [               ][00 00 00 00]
+    Global Flag:    FALSE
+strfunc_LoadEmbeddedAsset:
+    Header size:    212
+    Data size:    1428
+    Name:    
+    ID:    {A47A94D1-05CE-47CD-A67D-2AE7358BA995}
+    Type:    rwID_CLUMP
+    File:    C:\Dokumente und Einstellungen\Lauritz\Desktop\game\Build Output\Local PC - DirectX\Target Resources\{A47A94D1-05CE-47CD-A67D-2AE7358BA995}.dff
+    Dependencies:    Models\Textures
+strfunc_CreateEntity:
+    Behaviour:    FPSPlayer
+    Entity ID:    {A3ACF703-7FA9-4796-87E8-DE656C402427}
+    Class:    CSystemCommands
+        Attach asset, ID:    {A47A94D1-05CE-47CD-A67D-2AE7358BA995}
+    Class:    FPSPlayer
+        Attribute   0: [               ][00 BF BF BF]
+        Attribute   1: [iMsgDoRender   ][69 4D 73 67 44 6F 52 65 6E 64 65 72 00 BF BF]
+        Attribute   2: [               ][FF FF 00 00]
+        Attribute   3: [render         ][72 65 6E 64 65 72 00 BF]
+        Attribute   4: [   B           ][00 00 C6 42]
+        Attribute   5: [               ][00 00 80 3F]
+        Attribute   6: [  L            ][CD CC 4C 3E]
+        Attribute   7: [   B           ][00 00 B4 42]
+        Attribute   8: [   B           ][00 80 89 42]
+        Attribute   9: [   A           ][00 00 BC 41]
+        Attribute  10: [   A           ][00 00 A0 41]
+        Attribute  11: [               ][00 00 00 00 00 00 00 00 00 00 00 00]
+        Attribute  12: [               ][00 00 80 3F]
+        Attribute  13: [               ][00 00 00 00]
+        Attribute  14: [   A           ][00 00 00 41]
+        Attribute  15: [               ][00 00 E0 3F]
+        Attribute  16: [               ][00 00 80 3F]
+        Attribute  17: [               ][00 00 40 3F]
+        Attribute  18: [               ][00 00 00 BF 00 00 00 80 00 00 00 BF]
+        Attribute  19: [               ][00 00 00 BF 00 00 00 80 00 00 00 BF]
+        Attribute  20: [               ][00 00 00 40]
+        Attribute  21: [               ][00 00 00 40]
+        Attribute  22: [               ][00 00 00 BF 00 00 00 BF 00 00 00 BF]
+        Attribute  23: [               ][00 00 00 BF 00 00 00 BF 00 00 00 BF]
+        Attribute  24: [               ][0F 00 00 00]
+        Attribute  25: [               ][00 00 80 3F]
+        Attribute  26: [               ][00 00 00 40]
+        Attribute  27: [               ][12 83 00 BF]
+        Attribute  28: [               ][FF FF FF FF]
+        Attribute  29: [               ][00 BF BF BF]
+        Attribute  30: [               ][00 BF BF BF]
+    Class:    CSystemCommands
+        Attribute   1: [               ][00 00 80 3F 00 00 00 00 00 00 00 00 00 00 00]
+        Attribute   2: [               ][FF FF FF FF]
+        Attribute   3: [               ][FF FF FF FF]
+        Attribute   4: [               ][00 00 00 00]
+    Class:    CAttributeHandler
+        Attribute   0: [               ][00 00 00 00]
+    Global Flag:    FALSE
+strfunc_CreateEntity:
+    Behaviour:    CWin32Keyboard
+    Entity ID:    {80B59667-70CE-44AA-9ED9-2815D8F7EE7C}
+    Class:    CWin32Keyboard
+        Attribute   0: [               ][13 00 00 00]
+        Attribute   1: [               ][15 00 00 00]
+        Attribute   2: [INQ ACTN TURN  ][49 4E 51 5F 41 43 54 4E 5F 54 55 52 4E 00 BF]
+    Class:    CAttributeHandler
+        Attribute   0: [               ][00 00 00 00]
+    Global Flag:    FALSE
+strfunc_CreateEntity:
+    Behaviour:    CWin32Keyboard
+    Entity ID:    {A6BF6ED4-9EFA-42B3-BB06-38B2E6575DBE}
+    Class:    CWin32Keyboard
+        Attribute   0: [               ][14 00 00 00]
+        Attribute   1: [               ][16 00 00 00]
+        Attribute   2: [INQ ACTN FWD   ][49 4E 51 5F 41 43 54 4E 5F 46 57 44 00 BF BF]
+    Class:    CAttributeHandler
+        Attribute   0: [               ][00 00 00 00]
+    Global Flag:    FALSE
+strfunc_CreateEntity:
+    Behaviour:    CWin32Keyboard
+    Entity ID:    {5678D7D3-14AE-43DA-8DF9-BA86A473A1CD}
+    Class:    CWin32Keyboard
+        Attribute   0: [               ][0E 00 00 00]
+        Attribute   1: [               ][0E 00 00 00]
+        Attribute   2: [INQ ACTN JUMP  ][49 4E 51 5F 41 43 54 4E 5F 4A 55 4D 50 00 BF]
+    Class:    CAttributeHandler
+        Attribute   0: [               ][00 00 00 00]
+    Global Flag:    FALSE
+strfunc_LoadEmbeddedAsset:
+    Header size:    212
+    Data size:    1564
+    Name:    
+    ID:    {562EC155-2A1C-409E-B9E3-2C52450EDFBF}
+    Type:    rwID_CLUMP
+    File:    C:\Dokumente und Einstellungen\Lauritz\Desktop\game\Build Output\Local PC - DirectX\Target Resources\{562EC155-2A1C-409E-B9E3-2C52450EDFBF}.dff
+    Dependencies:    Models\Textures
+strfunc_CreateEntity:
+    Behaviour:    FPSDoor
+    Entity ID:    {F908C758-061A-41F8-A800-A6010612345E}
+    Class:    CSystemCommands
+        Attach asset, ID:    {562EC155-2A1C-409E-B9E3-2C52450EDFBF}
+    Class:    FPSDoor
+        Attribute   0: [ACTN PLAYERTOUC][41 43 54 4E 5F 50 4C 41 59 45 52 54 4F 55 43]
+        Attribute   1: [               ][00 00 00 00]
+        Attribute   2: [               ][00 00 40 40]
+        Attribute   3: [d              ][64 00 00 00]
+        Attribute   4: [               ][08 00 00 00]
+        Attribute   5: [               ][00 00 00 00]
+    Class:    CSystemCommands
+        Attribute   1: [               ][00 00 80 3F 00 00 00 00 00 00 00 00 00 00 00]
+        Attribute   2: [               ][FF FF FF FF]
+        Attribute   3: [               ][FF FF FF FF]
+        Attribute   4: [               ][00 00 00 00]
+    Class:    CAttributeHandler
+        Attribute   0: [               ][00 00 00 00]
+    Global Flag:    FALSE
+strfunc_CreateEntity:
+    Behaviour:    FPSDoor
+    Entity ID:    {77364C06-01E8-46A1-8851-A76CBD86FDBE}
+    Class:    CSystemCommands
+        Attach asset, ID:    {562EC155-2A1C-409E-B9E3-2C52450EDFBF}
+    Class:    FPSDoor
+        Attribute   0: [ACTN PLAYERTOUC][41 43 54 4E 5F 50 4C 41 59 45 52 54 4F 55 43]
+        Attribute   1: [               ][00 00 00 00]
+        Attribute   2: [               ][00 00 40 40]
+        Attribute   3: [d              ][64 00 00 00]
+        Attribute   4: [               ][08 00 00 00]
+        Attribute   5: [               ][00 00 00 00]
+    Class:    CSystemCommands
+        Attribute   1: [               ][00 00 80 3F 00 00 00 00 00 00 00 00 00 00 00]
+        Attribute   2: [               ][FF FF FF FF]
+        Attribute   3: [               ][FF FF FF FF]
+        Attribute   4: [               ][00 00 00 00]
+    Class:    CAttributeHandler
+        Attribute   0: [               ][00 00 00 00]
+    Global Flag:    FALSE
+Read a stream
+strfunc_StartSystem
+Read a stream
+strfunc_SetRunningMode
+Read a stream
+strfunc_GetEntityMatrix
+Read a stream
+strfunc_ResetEntity
+strfunc_ResetEntity
+strfunc_ResetEntity
+strfunc_ResetEntity
+strfunc_ResetEntity
+strfunc_ResetEntity
+strfunc_ResetEntity
+Read a stream
+strfunc_Reset
+strfunc_StopSystem
+strfunc_SetFrozenMode
+Read a stream
+strfunc_DeleteEntity:
+    Entity ID:    {CB1396F1-47A5-4682-B2DF-5A1709C28484}
+strfunc_UnLoadAsset:
+Asset ID: {A8D78DFF-03C1-4E96-96A3-669F0C0D6C19}
+strfunc_DeleteEntity:
+    Entity ID:    {77364C06-01E8-46A1-8851-A76CBD86FDBE}
+strfunc_UnLoadAsset:
+Asset ID: {562EC155-2A1C-409E-B9E3-2C52450EDFBF}
+strfunc_DeleteEntity:
+    Entity ID:    {F908C758-061A-41F8-A800-A6010612345E}
+strfunc_DeleteEntity:
+    Entity ID:    {5678D7D3-14AE-43DA-8DF9-BA86A473A1CD}
+strfunc_DeleteEntity:
+    Entity ID:    {A6BF6ED4-9EFA-42B3-BB06-38B2E6575DBE}
+strfunc_DeleteEntity:
+    Entity ID:    {80B59667-70CE-44AA-9ED9-2815D8F7EE7C}
+strfunc_DeleteEntity:
+    Entity ID:    {A3ACF703-7FA9-4796-87E8-DE656C402427}
+strfunc_UnLoadAsset:
+Asset ID: {A47A94D1-05CE-47CD-A67D-2AE7358BA995}
+Read a stream
+strFunc_PlacementNew
+    FPSRender    Count: 1
+    FPSPlayer    Count: 1
+    CWin32Keyboard    Count: 3
+    FPSDoor    Count: 2
+strfunc_LoadEmbeddedAsset:
+    Header size:    212
+    Data size:    758628
+    Name:    
+    ID:    {FFB56E23-FE22-481B-B512-C8EC6E738660}
+    Type:    rwID_TEXDICTIONARY
+    File:    C:\Dokumente und Einstellungen\Lauritz\Desktop\game\Build Output\Local PC - DirectX\Texture Dictionary\{A8D78DFF-03C1-4E96-96A3-669F0C0D6C19}.txd
+    Dependencies:    
+strfunc_LoadEmbeddedAsset:
+    Header size:    212
+    Data size:    903280
+    Name:    
+    ID:    {A8D78DFF-03C1-4E96-96A3-669F0C0D6C19}
+    Type:    rwID_WORLD
+    File:    C:\Dokumente und Einstellungen\Lauritz\Desktop\game\Build Output\Local PC - DirectX\Target Resources\{A8D78DFF-03C1-4E96-96A3-669F0C0D6C19}.bsp
+    Dependencies:    Models\Textures
+strfunc_CreateEntity:
+    Behaviour:    FPSRender
+    Entity ID:    {CB1396F1-47A5-4682-B2DF-5A1709C28484}
+    Class:    CSystemCommands
+        Attach asset, ID:    {A8D78DFF-03C1-4E96-96A3-669F0C0D6C19}
+    Class:    FPSRender
+        Attribute   0: [               ][FF FF FF FF]
+        Attribute   1: [               ][00 00 00 00]
+        Attribute   2: [render         ][72 65 6E 64 65 72 00 BF]
+        Attribute   3: [               ][00 BF BF BF]
+        Attribute   4: [               ][FF FF 00 00]
+        Attribute   5: [               ][FF FF FF FF]
+        Attribute   6: [               ][FF FF FF FF]
+        Attribute   7: [               ][01 00 00 00]
+        Attribute   8: [               ][04 00 00 00]
+        Attribute   9: [               ][05 00 00 00]
+        Attribute  10: [               ][00 00 00 00]
+        Attribute  11: [               ][FF FF FF FF]
+        Attribute  12: [               ][FF FF FF FF]
+        Attribute  13: [               ][00 00 00 00]
+        Attribute  14: [               ][00 00 00 00]
+        Attribute  15: [               ][FF FF FF FF]
+        Attribute  16: [               ][03 00 00 00]
+        Attribute  17: [               ][00 00 00 00]
+        Attribute  18: [               ][00 00 B6 A9]
+        Attribute  19: [               ][00 00 00 00]
+        Attribute  20: [               ][00 00 00 00]
+        Attribute  21: [               ][00 00 00 00]
+        Attribute  22: [               ][FF FF FF FF]
+        Attribute  23: [               ][FF FF FF FF]
+        Attribute  24: [               ][FF FF FF FF]
+        Attribute  25: [               ][00 00 00 3F]
+        Attribute  26: [   B           ][00 00 C8 42]
+    Class:    CAttributeHandler
+        Attribute   0: [               ][00 00 00 00]
+    Class:    CSystemCommands
+        Attribute   1: [               ][00 00 80 3F 00 00 00 00 00 00 00 00 00 00 00]
+        Attribute   2: [               ][FF FF FF FF]
+        Attribute   3: [               ][FF FF FF FF]
+        Attribute   4: [               ][00 00 00 00]
+    Global Flag:    FALSE
+strfunc_LoadEmbeddedAsset:
+    Header size:    212
+    Data size:    1428
+    Name:    
+    ID:    {A47A94D1-05CE-47CD-A67D-2AE7358BA995}
+    Type:    rwID_CLUMP
+    File:    C:\Dokumente und Einstellungen\Lauritz\Desktop\game\Build Output\Local PC - DirectX\Target Resources\{A47A94D1-05CE-47CD-A67D-2AE7358BA995}.dff
+    Dependencies:    Models\Textures
+strfunc_CreateEntity:
+    Behaviour:    FPSPlayer
+    Entity ID:    {A3ACF703-7FA9-4796-87E8-DE656C402427}
+    Class:    CSystemCommands
+        Attach asset, ID:    {A47A94D1-05CE-47CD-A67D-2AE7358BA995}
+    Class:    FPSPlayer
+        Attribute   0: [               ][00 BF BF BF]
+        Attribute   1: [iMsgDoRender   ][69 4D 73 67 44 6F 52 65 6E 64 65 72 00 BF BF]
+        Attribute   2: [               ][FF FF 00 00]
+        Attribute   3: [render         ][72 65 6E 64 65 72 00 BF]
+        Attribute   4: [   B           ][00 00 C6 42]
+        Attribute   5: [               ][00 00 80 3F]
+        Attribute   6: [  L            ][CD CC 4C 3E]
+        Attribute   7: [   B           ][00 00 B4 42]
+        Attribute   8: [   B           ][00 80 89 42]
+        Attribute   9: [   A           ][00 00 BC 41]
+        Attribute  10: [   A           ][00 00 A0 41]
+        Attribute  11: [               ][00 00 00 00 00 00 00 00 00 00 00 00]
+        Attribute  12: [               ][00 00 80 3F]
+        Attribute  13: [               ][00 00 00 00]
+        Attribute  14: [   A           ][00 00 00 41]
+        Attribute  15: [               ][00 00 E0 3F]
+        Attribute  16: [               ][00 00 80 3F]
+        Attribute  17: [               ][00 00 40 3F]
+        Attribute  18: [               ][00 00 00 BF 00 00 00 80 00 00 00 BF]
+        Attribute  19: [               ][00 00 00 BF 00 00 00 80 00 00 00 BF]
+        Attribute  20: [               ][00 00 00 40]
+        Attribute  21: [               ][00 00 00 40]
+        Attribute  22: [               ][00 00 00 BF 00 00 00 BF 00 00 00 BF]
+        Attribute  23: [               ][00 00 00 BF 00 00 00 BF 00 00 00 BF]
+        Attribute  24: [               ][0F 00 00 00]
+        Attribute  25: [               ][00 00 80 3F]
+        Attribute  26: [               ][00 00 00 40]
+        Attribute  27: [               ][12 83 00 BF]
+        Attribute  28: [               ][FF FF FF FF]
+        Attribute  29: [               ][00 BF BF BF]
+        Attribute  30: [               ][00 BF BF BF]
+    Class:    CSystemCommands
+        Attribute   1: [               ][00 00 80 3F 00 00 00 00 00 00 00 00 00 00 00]
+        Attribute   2: [               ][FF FF FF FF]
+        Attribute   3: [               ][FF FF FF FF]
+        Attribute   4: [               ][00 00 00 00]
+    Class:    CAttributeHandler
+        Attribute   0: [               ][00 00 00 00]
+    Global Flag:    FALSE
+strfunc_CreateEntity:
+    Behaviour:    CWin32Keyboard
+    Entity ID:    {80B59667-70CE-44AA-9ED9-2815D8F7EE7C}
+    Class:    CWin32Keyboard
+        Attribute   0: [               ][13 00 00 00]
+        Attribute   1: [               ][15 00 00 00]
+        Attribute   2: [INQ ACTN TURN  ][49 4E 51 5F 41 43 54 4E 5F 54 55 52 4E 00 BF]
+    Class:    CAttributeHandler
+        Attribute   0: [               ][00 00 00 00]
+    Global Flag:    FALSE
+strfunc_CreateEntity:
+    Behaviour:    CWin32Keyboard
+    Entity ID:    {A6BF6ED4-9EFA-42B3-BB06-38B2E6575DBE}
+    Class:    CWin32Keyboard
+        Attribute   0: [               ][14 00 00 00]
+        Attribute   1: [               ][16 00 00 00]
+        Attribute   2: [INQ ACTN FWD   ][49 4E 51 5F 41 43 54 4E 5F 46 57 44 00 BF BF]
+    Class:    CAttributeHandler
+        Attribute   0: [               ][00 00 00 00]
+    Global Flag:    FALSE
+strfunc_CreateEntity:
+    Behaviour:    CWin32Keyboard
+    Entity ID:    {5678D7D3-14AE-43DA-8DF9-BA86A473A1CD}
+    Class:    CWin32Keyboard
+        Attribute   0: [               ][0E 00 00 00]
+        Attribute   1: [               ][0E 00 00 00]
+        Attribute   2: [INQ ACTN JUMP  ][49 4E 51 5F 41 43 54 4E 5F 4A 55 4D 50 00 BF]
+    Class:    CAttributeHandler
+        Attribute   0: [               ][00 00 00 00]
+    Global Flag:    FALSE
+strfunc_LoadEmbeddedAsset:
+    Header size:    212
+    Data size:    97064
+    Name:    
+    ID:    {228AD8B0-B212-4BC6-BB49-1EC10AA08F09}
+    Type:    rwID_TEXDICTIONARY
+    File:    C:\Dokumente und Einstellungen\Lauritz\Desktop\game\Build Output\Local PC - DirectX\Texture Dictionary\{562EC155-2A1C-409E-B9E3-2C52450EDFBF}.txd
+    Dependencies:    
+strfunc_LoadEmbeddedAsset:
+    Header size:    212
+    Data size:    1564
+    Name:    
+    ID:    {562EC155-2A1C-409E-B9E3-2C52450EDFBF}
+    Type:    rwID_CLUMP
+    File:    C:\Dokumente und Einstellungen\Lauritz\Desktop\game\Build Output\Local PC - DirectX\Target Resources\{562EC155-2A1C-409E-B9E3-2C52450EDFBF}.dff
+    Dependencies:    Models\Textures
+strfunc_CreateEntity:
+    Behaviour:    FPSDoor
+    Entity ID:    {F908C758-061A-41F8-A800-A6010612345E}
+    Class:    CSystemCommands
+        Attach asset, ID:    {562EC155-2A1C-409E-B9E3-2C52450EDFBF}
+    Class:    FPSDoor
+        Attribute   0: [ACTN PLAYERTOUC][41 43 54 4E 5F 50 4C 41 59 45 52 54 4F 55 43]
+        Attribute   1: [               ][00 00 00 00]
+        Attribute   2: [               ][00 00 40 40]
+        Attribute   3: [d              ][64 00 00 00]
+        Attribute   4: [               ][08 00 00 00]
+        Attribute   5: [               ][00 00 00 00]
+    Class:    CSystemCommands
+        Attribute   1: [               ][00 00 80 3F 00 00 00 00 00 00 00 00 00 00 00]
+        Attribute   2: [               ][FF FF FF FF]
+        Attribute   3: [               ][FF FF FF FF]
+        Attribute   4: [               ][00 00 00 00]
+    Class:    CAttributeHandler
+        Attribute   0: [               ][00 00 00 00]
+    Global Flag:    FALSE
+strfunc_CreateEntity:
+    Behaviour:    FPSDoor
+    Entity ID:    {77364C06-01E8-46A1-8851-A76CBD86FDBE}
+    Class:    CSystemCommands
+        Attach asset, ID:    {562EC155-2A1C-409E-B9E3-2C52450EDFBF}
+    Class:    FPSDoor
+        Attribute   0: [ACTN PLAYERTOUC][41 43 54 4E 5F 50 4C 41 59 45 52 54 4F 55 43]
+        Attribute   1: [               ][00 00 00 00]
+        Attribute   2: [               ][00 00 40 40]
+        Attribute   3: [d              ][64 00 00 00]
+        Attribute   4: [               ][08 00 00 00]
+        Attribute   5: [               ][00 00 00 00]
+    Class:    CSystemCommands
+        Attribute   1: [               ][00 00 80 3F 00 00 00 00 00 00 00 00 00 00 00]
+        Attribute   2: [               ][FF FF FF FF]
+        Attribute   3: [               ][FF FF FF FF]
+        Attribute   4: [               ][00 00 00 00]
+    Class:    CAttributeHandler
+        Attribute   0: [               ][00 00 00 00]
+    Global Flag:    FALSE
+Read a stream
+strfunc_StartSystem
+strfunc_SetRunningMode
+Read a stream
+strfunc_Reset
+strfunc_StopSystem
+strfunc_SetFrozenMode
+Read a stream
+strfunc_StartSystem
+strfunc_SetRunningMode
+Read a stream
+strfunc_Reset
+strfunc_StopSystem
+strfunc_SetFrozenMode
+Read a stream
+strFunc_PlacementNew
+    FPSRender    Count: 1
+    FPSPlayer    Count: 1
+    CWin32Keyboard    Count: 3
+    FPSDoor    Count: 2
+strfunc_LoadEmbeddedAsset:
+    Header size:    212
+    Data size:    758628
+    Name:    
+    ID:    {7E00580F-6C45-4230-9A02-46B74B3ABAB3}
+    Type:    rwID_TEXDICTIONARY
+    File:    C:\Dokumente und Einstellungen\Lauritz\Desktop\game\Build Output\Local PC - DirectX\Texture Dictionary\{A8D78DFF-03C1-4E96-96A3-669F0C0D6C19}.txd
+    Dependencies:    
+strfunc_LoadEmbeddedAsset:
+    Header size:    212
+    Data size:    903280
+    Name:    
+    ID:    {A8D78DFF-03C1-4E96-96A3-669F0C0D6C19}
+    Type:    rwID_WORLD
+    File:    C:\Dokumente und Einstellungen\Lauritz\Desktop\game\Build Output\Local PC - DirectX\Target Resources\{A8D78DFF-03C1-4E96-96A3-669F0C0D6C19}.bsp
+    Dependencies:    Models\Textures
+strfunc_CreateEntity:
+    Behaviour:    FPSRender
+    Entity ID:    {CB1396F1-47A5-4682-B2DF-5A1709C28484}
+    Class:    CSystemCommands
+        Attach asset, ID:    {A8D78DFF-03C1-4E96-96A3-669F0C0D6C19}
+    Class:    FPSRender
+        Attribute   0: [               ][FF FF FF FF]
+        Attribute   1: [               ][00 00 00 00]
+        Attribute   2: [render         ][72 65 6E 64 65 72 00 BF]
+        Attribute   3: [               ][00 BF BF BF]
+        Attribute   4: [               ][FF FF 00 00]
+        Attribute   5: [               ][FF FF FF FF]
+        Attribute   6: [               ][FF FF FF FF]
+        Attribute   7: [               ][01 00 00 00]
+        Attribute   8: [               ][04 00 00 00]
+        Attribute   9: [               ][05 00 00 00]
+        Attribute  10: [               ][00 00 00 00]
+        Attribute  11: [               ][FF FF FF FF]
+        Attribute  12: [               ][FF FF FF FF]
+        Attribute  13: [               ][00 00 00 00]
+        Attribute  14: [               ][00 00 00 00]
+        Attribute  15: [               ][FF FF FF FF]
+        Attribute  16: [               ][03 00 00 00]
+        Attribute  17: [               ][00 00 00 00]
+        Attribute  18: [               ][00 00 B6 A9]
+        Attribute  19: [               ][00 00 00 00]
+        Attribute  20: [               ][00 00 00 00]
+        Attribute  21: [               ][00 00 00 00]
+        Attribute  22: [               ][FF FF FF FF]
+        Attribute  23: [               ][FF FF FF FF]
+        Attribute  24: [               ][FF FF FF FF]
+        Attribute  25: [               ][00 00 00 3F]
+        Attribute  26: [   B           ][00 00 C8 42]
+    Class:    CAttributeHandler
+        Attribute   0: [               ][00 00 00 00]
+    Class:    CSystemCommands
+        Attribute   1: [               ][00 00 80 3F 00 00 00 00 00 00 00 00 00 00 00]
+        Attribute   2: [               ][FF FF FF FF]
+        Attribute   3: [               ][FF FF FF FF]
+        Attribute   4: [               ][00 00 00 00]
+    Global Flag:    FALSE
+strfunc_LoadEmbeddedAsset:
+    Header size:    212
+    Data size:    1428
+    Name:    
+    ID:    {A47A94D1-05CE-47CD-A67D-2AE7358BA995}
+    Type:    rwID_CLUMP
+    File:    C:\Dokumente und Einstellungen\Lauritz\Desktop\game\Build Output\Local PC - DirectX\Target Resources\{A47A94D1-05CE-47CD-A67D-2AE7358BA995}.dff
+    Dependencies:    Models\Textures
+strfunc_CreateEntity:
+    Behaviour:    FPSPlayer
+    Entity ID:    {A3ACF703-7FA9-4796-87E8-DE656C402427}
+    Class:    CSystemCommands
+        Attach asset, ID:    {A47A94D1-05CE-47CD-A67D-2AE7358BA995}
+    Class:    FPSPlayer
+        Attribute   0: [               ][00 BF BF BF]
+        Attribute   1: [iMsgDoRender   ][69 4D 73 67 44 6F 52 65 6E 64 65 72 00 BF BF]
+        Attribute   2: [               ][FF FF 00 00]
+        Attribute   3: [render         ][72 65 6E 64 65 72 00 BF]
+        Attribute   4: [   B           ][00 00 C6 42]
+        Attribute   5: [               ][00 00 80 3F]
+        Attribute   6: [  L            ][CD CC 4C 3E]
+        Attribute   7: [   B           ][00 00 B4 42]
+        Attribute   8: [   B           ][00 80 89 42]
+        Attribute   9: [   A           ][00 00 BC 41]
+        Attribute  10: [   A           ][00 00 A0 41]
+        Attribute  11: [               ][00 00 00 00 00 00 00 00 00 00 00 00]
+        Attribute  12: [               ][00 00 80 3F]
+        Attribute  13: [               ][00 00 00 00]
+        Attribute  14: [   A           ][00 00 00 41]
+        Attribute  15: [               ][00 00 E0 3F]
+        Attribute  16: [               ][00 00 80 3F]
+        Attribute  17: [               ][00 00 40 3F]
+        Attribute  18: [               ][00 00 00 BF 00 00 00 80 00 00 00 BF]
+        Attribute  19: [               ][00 00 00 BF 00 00 00 80 00 00 00 BF]
+        Attribute  20: [               ][00 00 00 40]
+        Attribute  21: [               ][00 00 00 40]
+        Attribute  22: [               ][00 00 00 BF 00 00 00 BF 00 00 00 BF]
+        Attribute  23: [               ][00 00 00 BF 00 00 00 BF 00 00 00 BF]
+        Attribute  24: [               ][0F 00 00 00]
+        Attribute  25: [               ][00 00 80 3F]
+        Attribute  26: [               ][00 00 00 40]
+        Attribute  27: [               ][12 83 00 BF]
+        Attribute  28: [               ][FF FF FF FF]
+        Attribute  29: [               ][00 BF BF BF]
+        Attribute  30: [               ][00 BF BF BF]
+    Class:    CSystemCommands
+        Attribute   1: [               ][00 00 80 3F 00 00 00 00 00 00 00 00 00 00 00]
+        Attribute   2: [               ][FF FF FF FF]
+        Attribute   3: [               ][FF FF FF FF]
+        Attribute   4: [               ][00 00 00 00]
+    Class:    CAttributeHandler
+        Attribute   0: [               ][00 00 00 00]
+    Global Flag:    FALSE
+strfunc_CreateEntity:
+    Behaviour:    CWin32Keyboard
+    Entity ID:    {80B59667-70CE-44AA-9ED9-2815D8F7EE7C}
+    Class:    CWin32Keyboard
+        Attribute   0: [               ][13 00 00 00]
+        Attribute   1: [               ][15 00 00 00]
+        Attribute   2: [INQ ACTN TURN  ][49 4E 51 5F 41 43 54 4E 5F 54 55 52 4E 00 BF]
+    Class:    CAttributeHandler
+        Attribute   0: [               ][00 00 00 00]
+    Global Flag:    FALSE
+strfunc_CreateEntity:
+    Behaviour:    CWin32Keyboard
+    Entity ID:    {A6BF6ED4-9EFA-42B3-BB06-38B2E6575DBE}
+    Class:    CWin32Keyboard
+        Attribute   0: [               ][14 00 00 00]
+        Attribute   1: [               ][16 00 00 00]
+        Attribute   2: [INQ ACTN FWD   ][49 4E 51 5F 41 43 54 4E 5F 46 57 44 00 BF BF]
+    Class:    CAttributeHandler
+        Attribute   0: [               ][00 00 00 00]
+    Global Flag:    FALSE
+strfunc_CreateEntity:
+    Behaviour:    CWin32Keyboard
+    Entity ID:    {5678D7D3-14AE-43DA-8DF9-BA86A473A1CD}
+    Class:    CWin32Keyboard
+        Attribute   0: [               ][0E 00 00 00]
+        Attribute   1: [               ][0E 00 00 00]
+        Attribute   2: [INQ ACTN JUMP  ][49 4E 51 5F 41 43 54 4E 5F 4A 55 4D 50 00 BF]
+    Class:    CAttributeHandler
+        Attribute   0: [               ][00 00 00 00]
+    Global Flag:    FALSE
+strfunc_LoadEmbeddedAsset:
+    Header size:    212
+    Data size:    97064
+    Name:    
+    ID:    {9B770230-E3D5-4DD9-AC39-1742EECAE4DC}
+    Type:    rwID_TEXDICTIONARY
+    File:    C:\Dokumente und Einstellungen\Lauritz\Desktop\game\Build Output\Local PC - DirectX\Texture Dictionary\{562EC155-2A1C-409E-B9E3-2C52450EDFBF}.txd
+    Dependencies:    
+strfunc_LoadEmbeddedAsset:
+    Header size:    212
+    Data size:    1564
+    Name:    
+    ID:    {562EC155-2A1C-409E-B9E3-2C52450EDFBF}
+    Type:    rwID_CLUMP
+    File:    C:\Dokumente und Einstellungen\Lauritz\Desktop\game\Build Output\Local PC - DirectX\Target Resources\{562EC155-2A1C-409E-B9E3-2C52450EDFBF}.dff
+    Dependencies:    Models\Textures
+strfunc_CreateEntity:
+    Behaviour:    FPSDoor
+    Entity ID:    {F908C758-061A-41F8-A800-A6010612345E}
+    Class:    CSystemCommands
+        Attach asset, ID:    {562EC155-2A1C-409E-B9E3-2C52450EDFBF}
+    Class:    FPSDoor
+        Attribute   0: [ACTN PLAYERTOUC][41 43 54 4E 5F 50 4C 41 59 45 52 54 4F 55 43]
+        Attribute   1: [               ][00 00 00 00]
+        Attribute   2: [               ][00 00 40 40]
+        Attribute   3: [d              ][64 00 00 00]
+        Attribute   4: [               ][08 00 00 00]
+        Attribute   5: [               ][00 00 00 00]
+    Class:    CSystemCommands
+        Attribute   1: [               ][00 00 80 3F 00 00 00 00 00 00 00 00 00 00 00]
+        Attribute   2: [               ][FF FF FF FF]
+        Attribute   3: [               ][FF FF FF FF]
+        Attribute   4: [               ][00 00 00 00]
+    Class:    CAttributeHandler
+        Attribute   0: [               ][00 00 00 00]
+    Global Flag:    FALSE
+strfunc_CreateEntity:
+    Behaviour:    FPSDoor
+    Entity ID:    {77364C06-01E8-46A1-8851-A76CBD86FDBE}
+    Class:    CSystemCommands
+        Attach asset, ID:    {562EC155-2A1C-409E-B9E3-2C52450EDFBF}
+    Class:    FPSDoor
+        Attribute   0: [ACTN PLAYERTOUC][41 43 54 4E 5F 50 4C 41 59 45 52 54 4F 55 43]
+        Attribute   1: [               ][00 00 00 00]
+        Attribute   2: [               ][00 00 40 40]
+        Attribute   3: [d              ][64 00 00 00]
+        Attribute   4: [               ][08 00 00 00]
+        Attribute   5: [               ][00 00 00 00]
+    Class:    CSystemCommands
+        Attribute   1: [               ][00 00 80 3F 00 00 00 00 00 00 00 00 00 00 00]
+        Attribute   2: [               ][FF FF FF FF]
+        Attribute   3: [               ][FF FF FF FF]
+        Attribute   4: [               ][00 00 00 00]
+    Class:    CAttributeHandler
+        Attribute   0: [               ][00 00 00 00]
+    Global Flag:    FALSE
+Read a stream
+strfunc_StartSystem
+strfunc_SetRunningMode
+Read a stream
+strfunc_SetDirectorsCameraMatrix:
+    Position :<-2793.38    1290.35    -3773.41>
+    Right    :<0.956823    0    -0.290671>
+    Up       :<0.00866892    0.999555    0.0285362>
+    At       :<0.290541    -0.0298239    0.956398>
+    Field of view : 0.741765
+strfunc_EnableDirectorsCamera
+Read a stream
+strfunc_DisableDirectorsCamera
+Read a stream
+strfunc_SetFrozenMode
+Read a stream
+strfunc_SetRunningMode
+Read a stream
+strfunc_ResetEntity
+strfunc_ResetEntity
+strfunc_ResetEntity
+strfunc_ResetEntity
+strfunc_ResetEntity
+strfunc_ResetEntity
+strfunc_ResetEntity

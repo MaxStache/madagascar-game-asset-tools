@@ -2,8 +2,8 @@ from bpy.types import Operator
 from bpy_extras.io_utils import ImportHelper
 from bpy.props import StringProperty, FloatProperty, BoolProperty 
 
-from mad_import_bsp.bspLib import parse_file as parse_bsp_file
-from mad_import_bsp.bspLib import collect_atomic_sectors
+from ..bspLib import parse_file as parse_bsp_file
+from ..bspLib import collect_atomic_sectors
 
 class IMPORT_OT_bsp(Operator, ImportHelper):
     bl_idname = "import_scene.bsp"
@@ -55,6 +55,12 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
         default="",
     ) # type: ignore
 
+    recalc_normals: BoolProperty(
+        name="Recalculate Normals",
+        description="Recalculate face normals to be consistent (disable if your BSP has intentional double-sided geometry)",
+        default=False,
+    ) # type: ignore
+
     def execute(self, context):
         import os
 
@@ -64,13 +70,14 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
 
         self.import_bsp(context, self.filepath, self.scale, self.center_geometry,
                         self.cluster_distance, self.distribute_zones, self.distribute_radius,
-                        self.texture_prefix)
+                        self.texture_prefix, self.recalc_normals)
         return {'FINISHED'}
 
     def import_bsp(self, context, filepath, scale=0.01, center_geometry=True,
                    cluster_distance=10000.0, distribute_zones=False, distribute_radius=1000.0,
-                   texture_prefix=""):
+                   texture_prefix="", recalc_normals=False):
         import bpy
+        import bmesh
         import math
         import random
         import os
@@ -88,12 +95,41 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
         bsp_name = os.path.splitext(os.path.basename(filepath))[0]
         bsp_dir = os.path.dirname(filepath)
 
+        # Pre-scan: figure out which material indices are actually used with
+        # non-opaque vertex colors. Vertex alpha is per-vertex (not per-material),
+        # so we need to walk all triangles and check the alpha of their verts.
+        # This is what tells us whether to enable BLENDED mode for a material.
+        ALPHA_THRESHOLD = 254  # vertex alpha values at or above this count as opaque
+        materials_with_vertex_alpha = set()
+        for sector in sectors:
+            if sector.get("isNativeData"):
+                continue
+            sector_vertices = sector.get("vertices", [])
+            sector_colors = sector.get("colors", [])
+            sector_triangles = sector.get("triangles", [])
+            mat_base = sector.get("matListWindowBase", 0)
+            if not sector_vertices or not sector_colors:
+                continue
+            for tri in sector_triangles:
+                v1, v2, v3 = tri["vertex1"], tri["vertex2"], tri["vertex3"]
+                mat_idx = mat_base + tri.get("materialIndex", 0)
+                for vi in (v1, v2, v3):
+                    if vi < len(sector_colors):
+                        if sector_colors[vi].get("a", 255) < ALPHA_THRESHOLD:
+                            materials_with_vertex_alpha.add(mat_idx)
+                            break
+
         # Create Blender materials
         blender_materials = []
         for i, mat in enumerate(materials):
             mat_name = f"{bsp_name}_mat_{i}_{mat_suffix}"
             bl_mat = bpy.data.materials.new(name=mat_name)
             bl_mat.use_nodes = True
+
+            # Disable backface culling so faces are visible from both sides.
+            # BSP source data often has inconsistent triangle winding, which would
+            # otherwise cause faces to appear/disappear depending on view angle.
+            bl_mat.use_backface_culling = False
 
             # Get the principled BSDF node
             nodes = bl_mat.node_tree.nodes
@@ -109,13 +145,32 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
                 a = color.get("a", 255) / 255.0
                 bsdf.inputs["Base Color"].default_value = (r, g, b, 1.0)
 
+                # Vertex color layer (RGBA)
+                vcol_node = nodes.new(type="ShaderNodeVertexColor")
+                vcol_node.layer_name = "Color"
+                vcol_node.location = (-650, 300)
+
                 # Set specular/roughness
                 specular = mat.get("specular", 0.0)
                 bsdf.inputs["Roughness"].default_value = 1.0 - specular
 
-                # Handle alpha
-                if a < 1.0:
-                    bl_mat.blend_method = 'BLEND'
+                # Determine if this material is actually meant to be transparent.
+                # It's transparent if ANY of:
+                #   - base color alpha < 1
+                #   - the BSP material flags it as transparent
+                #   - any vertex using this material has alpha < 1 (pre-scanned)
+                # We can't just always wire vertex alpha — doing so puts even
+                # fully-opaque faces in BLENDED mode and causes sort flicker.
+                is_transparent = (
+                    a < 0.999
+                    or mat.get("isTransparent", False)
+                    or mat.get("hasAlpha", False)
+                    or mat.get("alphaBlend", False)
+                    or i in materials_with_vertex_alpha
+                )
+
+                # Set base alpha from the material color
+                if is_transparent:
                     bsdf.inputs["Alpha"].default_value = a
 
                 # Handle texture
@@ -128,10 +183,6 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
                         tex_node.label = tex_name
                         tex_node.interpolation = 'Closest'
 
-                        # Connect to Base Color
-                        links.new(tex_node.outputs["Color"], bsdf.inputs["Base Color"])
-                        links.new(tex_node.outputs["Alpha"], bsdf.inputs["Alpha"])
-
                         # Load texture file (let Blender handle missing files)
                         tex_path = os.path.join(bsp_dir, texture_prefix, f"{tex_name}.png")
                         try:
@@ -142,8 +193,50 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
                             image.filepath = tex_path
                             image.source = 'FILE'
                         tex_node.image = image
-                        if image.channels == 4:
-                            bl_mat.blend_method = 'BLEND'
+
+                        # Only wire alpha for transparent materials.
+                        # For opaque materials we deliberately ignore vertex/texture
+                        # alpha so Eevee can render them as truly opaque (no sort flicker).
+                        if is_transparent:
+                            alpha_mul = nodes.new(type="ShaderNodeMath")
+                            alpha_mul.operation = 'MULTIPLY'
+                            alpha_mul.location = (-100, 100)
+                            links.new(tex_node.outputs["Alpha"], alpha_mul.inputs[0])
+                            links.new(vcol_node.outputs["Alpha"], alpha_mul.inputs[1])
+                            links.new(alpha_mul.outputs["Value"], bsdf.inputs["Alpha"])
+
+                        # Multiply texture by vertex color
+                        mix_node = nodes.new(type="ShaderNodeMixRGB")
+                        mix_node.blend_type = 'MULTIPLY'
+                        mix_node.inputs["Fac"].default_value = 1.0
+                        mix_node.location = (-100, 300)
+                        links.new(tex_node.outputs["Color"], mix_node.inputs["Color1"])
+                        links.new(vcol_node.outputs["Color"], mix_node.inputs["Color2"])
+                        links.new(mix_node.outputs["Color"], bsdf.inputs["Base Color"])
+                    else:
+                        links.new(vcol_node.outputs["Color"], bsdf.inputs["Base Color"])
+                        if is_transparent:
+                            links.new(vcol_node.outputs["Alpha"], bsdf.inputs["Alpha"])
+                else:
+                    links.new(vcol_node.outputs["Color"], bsdf.inputs["Base Color"])
+                    if is_transparent:
+                        links.new(vcol_node.outputs["Alpha"], bsdf.inputs["Alpha"])
+
+                # Set the appropriate blend method.
+                # Opaque materials stay fully opaque — this is critical for avoiding
+                # the per-face sort flicker that BLENDED causes in Eevee.
+                # Only materials that genuinely need transparency get BLENDED.
+                if hasattr(bl_mat, "surface_render_method"):
+                    # Blender 4.2+
+                    bl_mat.surface_render_method = 'BLENDED' if is_transparent else 'DITHERED'
+                else:
+                    # Blender < 4.2
+                    if is_transparent:
+                        bl_mat.blend_method = 'BLEND'
+                        if hasattr(bl_mat, "shadow_method"):
+                            bl_mat.shadow_method = 'HASHED'
+                    else:
+                        bl_mat.blend_method = 'OPAQUE'
 
             blender_materials.append(bl_mat)
 
@@ -152,6 +245,7 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
         all_faces = []  # (v1, v2, v3) indices into all_verts
         all_face_materials = []  # material index per face
         all_uvs = []    # (u, v) per vertex
+        all_colors = []  # (r, g, b, a) per vertex
         vertex_offset = 0
 
         for sector in sectors:
@@ -159,6 +253,7 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
                 continue
             vertices = sector.get("vertices", [])
             uvs = sector.get("uvs", [])
+            colors = sector.get("colors", [])
             triangles = sector.get("triangles", [])
             mat_base = sector.get("matListWindowBase", 0)
             if not vertices:
@@ -170,6 +265,16 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
                     all_uvs.append((uvs[i]["u"], 1.0 - uvs[i]["v"]))
                 else:
                     all_uvs.append((0, 0))
+                if colors and i < len(colors):
+                    c = colors[i]
+                    all_colors.append((
+                        c.get("r", 255) / 255.0,
+                        c.get("g", 255) / 255.0,
+                        c.get("b", 255) / 255.0,
+                        c.get("a", 255) / 255.0,
+                    ))
+                else:
+                    all_colors.append((1.0, 1.0, 1.0, 1.0))
 
             for tri in triangles:
                 all_faces.append((
@@ -316,6 +421,7 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
             old_to_new = {}
             zone_verts = []
             zone_uvs = []
+            zone_colors = []
             for old_idx in sorted(zone_vert_indices):
                 old_to_new[old_idx] = len(zone_verts)
                 v = all_verts[old_idx]
@@ -325,6 +431,7 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
                     (v[2] - center_offset[2]) * scale,
                 ))
                 zone_uvs.append(all_uvs[old_idx])
+                zone_colors.append(all_colors[old_idx])
 
             # Remap faces and collect material indices
             zone_faces = []
@@ -345,6 +452,18 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
 
             mesh.from_pydata(zone_verts, [], zone_faces)
             mesh.update()
+
+            # Optionally recalculate normals so they all face outward consistently.
+            # Off by default because BSP files often have intentional double-sided
+            # geometry (decals, foliage) that recalc would break. Backface culling
+            # is already disabled on the materials, so this is usually unnecessary.
+            if recalc_normals:
+                bm = bmesh.new()
+                bm.from_mesh(mesh)
+                bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+                bm.to_mesh(mesh)
+                bm.free()
+                mesh.update()
 
             # Add materials to mesh and assign to faces
             # First, find which materials are used in this zone
@@ -369,6 +488,14 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
                     for loop_idx, vert_idx in enumerate(face):
                         if vert_idx < len(zone_uvs):
                             uv_layer.data[face_idx * 3 + loop_idx].uv = zone_uvs[vert_idx]
+
+            # Apply vertex colors (RGBA)
+            if zone_colors:
+                color_layer = mesh.vertex_colors.new(name="Color")
+                for face_idx, face in enumerate(zone_faces):
+                    for loop_idx, vert_idx in enumerate(face):
+                        if vert_idx < len(zone_colors):
+                            color_layer.data[face_idx * 3 + loop_idx].color = zone_colors[vert_idx]
 
             obj.parent = world_parent
 

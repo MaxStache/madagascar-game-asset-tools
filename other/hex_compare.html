@@ -64,12 +64,19 @@
         .diff-list-content {
             flex: 1;
             overflow-y: auto;
+            position: relative;
+        }
+        .diff-list-virtual {
+            position: relative;
+            width: 100%;
         }
         .diff-item {
             padding: 8px 10px;
             cursor: pointer;
             border-bottom: 1px solid #333;
             font-size: 12px;
+            height: 36px;
+            overflow: hidden;
         }
         .diff-item:hover {
             background: #2a2d2e;
@@ -133,6 +140,7 @@
             height: 20px;
             line-height: 20px;
             padding: 0 5px;
+            white-space: nowrap;
         }
         .hex-offset {
             width: 80px;
@@ -161,6 +169,7 @@
             color: #9cdcfe;
             padding-left: 15px;
             border-left: 1px solid #404040;
+            white-space: nowrap;
         }
         .hex-ascii .char {
             display: inline-block;
@@ -232,9 +241,21 @@
         let differences = [];
         let syncingScroll = false;
         let comparisonDone = false;
+        const hexRenderState = {};
+        const hexScrollState = {
+            segmentStartRow: 0,
+            totalRows: 0,
+            maxRowsPerSegment: 0,
+            scrollHeight: 0,
+            adjusting: false
+        };
 
         const ROW_HEIGHT = 20;
-        const BUFFER_ROWS = 20;
+        const BUFFER_ROWS = 0;
+        const MAX_SCROLL_HEIGHT = 8000000;
+        const DIFF_ROW_HEIGHT = 36;
+        const DIFF_BUFFER_ROWS = 20;
+        let selectedDiffIndex = -1;
 
         function loadFile(num, file) {
             if (!file) return;
@@ -348,13 +369,20 @@
             const otherLength = otherData ? otherData.length : 0;
             const maxLen = Math.max(data.length, otherLength);
             const totalRows = Math.ceil(maxLen / 16);
-            const totalHeight = totalRows * ROW_HEIGHT;
+            const maxRowsPerSegment = Math.floor(MAX_SCROLL_HEIGHT / ROW_HEIGHT);
+            const scrollHeight = Math.min(totalRows, maxRowsPerSegment) * ROW_HEIGHT;
 
-            container.innerHTML = `<div class="hex-content" style="height: ${totalHeight}px;"></div>`;
+            hexScrollState.totalRows = totalRows;
+            hexScrollState.maxRowsPerSegment = maxRowsPerSegment;
+            hexScrollState.scrollHeight = scrollHeight;
+
+            container.innerHTML = `<div class="hex-content" style="height: ${scrollHeight}px;"></div>`;
             const content = container.querySelector('.hex-content');
+            hexRenderState[containerId] = { pending: false, lastStart: -1, lastEnd: -1 };
 
             container.onscroll = function() {
-                renderVisibleRows(container, content, data, otherData, maxLen);
+                adjustHexScroll(containerId);
+                scheduleHexRender(containerId, container, content, data, otherData, maxLen);
                 if (!syncingScroll) {
                     syncingScroll = true;
                     const otherId = containerId === 'hex1' ? 'hex2' : 'hex1';
@@ -363,23 +391,90 @@
                 }
             };
 
-            renderVisibleRows(container, content, data, otherData, maxLen);
+            scheduleHexRender(containerId, container, content, data, otherData, maxLen);
         }
 
-        function renderVisibleRows(container, content, data, otherData, maxLen) {
+        function adjustHexScroll(containerId) {
+            const totalRows = hexScrollState.totalRows;
+            const maxRowsPerSegment = hexScrollState.maxRowsPerSegment;
+            if (totalRows <= maxRowsPerSegment || hexScrollState.adjusting) {
+                return;
+            }
+
+            const container = document.getElementById(containerId);
+            const viewHeight = container.clientHeight;
+            const maxScrollTop = Math.max(0, hexScrollState.scrollHeight - viewHeight);
+            const threshold = Math.max(ROW_HEIGHT * 10, Math.floor(viewHeight * 0.25));
+            const stepRows = Math.max(1, Math.floor(maxRowsPerSegment * 0.5));
+
+            let newSegmentStart = null;
+            let scrollDeltaRows = 0;
+
+            if (container.scrollTop > maxScrollTop - threshold && hexScrollState.segmentStartRow + maxRowsPerSegment < totalRows) {
+                newSegmentStart = Math.min(totalRows - maxRowsPerSegment, hexScrollState.segmentStartRow + stepRows);
+                scrollDeltaRows = -stepRows;
+            } else if (container.scrollTop < threshold && hexScrollState.segmentStartRow > 0) {
+                newSegmentStart = Math.max(0, hexScrollState.segmentStartRow - stepRows);
+                scrollDeltaRows = stepRows;
+            }
+
+            if (newSegmentStart === null) {
+                return;
+            }
+
+            hexScrollState.segmentStartRow = newSegmentStart;
+
+            const deltaPx = scrollDeltaRows * ROW_HEIGHT;
+            hexScrollState.adjusting = true;
+            syncingScroll = true;
+            const containers = [document.getElementById('hex1'), document.getElementById('hex2')];
+            containers.forEach((pane) => {
+                const paneMaxScrollTop = Math.max(0, hexScrollState.scrollHeight - pane.clientHeight);
+                pane.scrollTop = Math.max(0, Math.min(pane.scrollTop + deltaPx, paneMaxScrollTop));
+            });
+            hexScrollState.adjusting = false;
+            setTimeout(() => syncingScroll = false, 10);
+        }
+
+        function scheduleHexRender(containerId, container, content, data, otherData, maxLen) {
+            const state = hexRenderState[containerId] || { pending: false, lastStart: -1, lastEnd: -1 };
+            if (state.pending) return;
+            state.pending = true;
+            hexRenderState[containerId] = state;
+
+            requestAnimationFrame(() => {
+                state.pending = false;
+                renderVisibleRows(containerId, container, content, data, otherData, maxLen);
+            });
+        }
+
+        function renderVisibleRows(containerId, container, content, data, otherData, maxLen) {
             const scrollTop = container.scrollTop;
             const viewHeight = container.clientHeight;
 
-            const startRow = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - BUFFER_ROWS);
-            const endRow = Math.min(
-                Math.ceil(maxLen / 16),
-                Math.ceil((scrollTop + viewHeight) / ROW_HEIGHT) + BUFFER_ROWS
+            const segmentStartRow = hexScrollState.segmentStartRow;
+            const totalRows = hexScrollState.totalRows;
+            const startRow = Math.max(
+                segmentStartRow,
+                segmentStartRow + Math.floor(scrollTop / ROW_HEIGHT) - BUFFER_ROWS
             );
+            const endRow = Math.min(
+                totalRows,
+                segmentStartRow + Math.ceil((scrollTop + viewHeight) / ROW_HEIGHT) + BUFFER_ROWS
+            );
+
+            const state = hexRenderState[containerId] || { pending: false, lastStart: -1, lastEnd: -1 };
+            if (startRow === state.lastStart && endRow === state.lastEnd) {
+                return;
+            }
+            state.lastStart = startRow;
+            state.lastEnd = endRow;
+            hexRenderState[containerId] = state;
 
             let html = '';
             for (let row = startRow; row < endRow; row++) {
                 const offset = row * 16;
-                const top = row * ROW_HEIGHT;
+                const top = (row - segmentStartRow) * ROW_HEIGHT;
                 html += `<div class="hex-row" style="position:absolute;top:${top}px;left:0;right:0;" data-offset="${offset}">`;
                 html += `<span class="hex-offset">${offset.toString(16).padStart(8, '0').toUpperCase()}</span>`;
 
@@ -426,29 +521,58 @@
             const container = document.getElementById('diff-list');
             document.getElementById('diff-count').textContent = differences.length;
 
+            const totalHeight = differences.length * DIFF_ROW_HEIGHT;
+            container.innerHTML = `<div class="diff-list-virtual" style="height: ${totalHeight}px;"></div>`;
+            const content = container.querySelector('.diff-list-virtual');
+
+            container.onscroll = function() {
+                renderVisibleDiffs(container, content);
+            };
+
+            renderVisibleDiffs(container, content);
+        }
+
+        function renderVisibleDiffs(container, content) {
+            const scrollTop = container.scrollTop;
+            const viewHeight = container.clientHeight;
+
+            const startRow = Math.max(0, Math.floor(scrollTop / DIFF_ROW_HEIGHT) - DIFF_BUFFER_ROWS);
+            const endRow = Math.min(
+                differences.length,
+                Math.ceil((scrollTop + viewHeight) / DIFF_ROW_HEIGHT) + DIFF_BUFFER_ROWS
+            );
+
             let html = '';
-            differences.forEach((diff, index) => {
+            for (let index = startRow; index < endRow; index++) {
+                const diff = differences[index];
+                const top = index * DIFF_ROW_HEIGHT;
                 const byte1 = diff.start < file1Data.length ? file1Data[diff.start] : null;
                 const byte2 = diff.start < file2Data.length ? file2Data[diff.start] : null;
                 const byte1Str = byte1 !== null ? byte1.toString(16).padStart(2, '0').toUpperCase() : '--';
                 const byte2Str = byte2 !== null ? byte2.toString(16).padStart(2, '0').toUpperCase() : '--';
+                const isSelected = index === selectedDiffIndex;
 
-                html += `<div class="diff-item" onclick="scrollToDiff(${index}, ${diff.start})">`;
+                html += `<div class="diff-item${isSelected ? ' selected' : ''}" style="position:absolute;top:${top}px;left:0;right:0;" onclick="scrollToDiff(${index}, ${diff.start})">`;
                 html += `<div class="offset">0x${diff.start.toString(16).toUpperCase()}</div>`;
                 html += `<div class="values">${byte1Str} → ${byte2Str}`;
                 if (diff.count > 1) {
                     html += ` (+${diff.count - 1} more)`;
                 }
                 html += '</div></div>';
-            });
+            }
 
-            container.innerHTML = html;
+            content.innerHTML = html;
         }
 
         function scrollToDiff(index, offset) {
-            document.querySelectorAll('.diff-item').forEach((el, i) => {
-                el.classList.toggle('selected', i === index);
-            });
+            selectedDiffIndex = index;
+            const listContainer = document.getElementById('diff-list');
+            const listScrollTop = index * DIFF_ROW_HEIGHT - 100;
+            listContainer.scrollTop = Math.max(0, listScrollTop);
+            const listContent = listContainer.querySelector('.diff-list-virtual');
+            if (listContent) {
+                renderVisibleDiffs(listContainer, listContent);
+            }
 
             const rowIndex = Math.floor(offset / 16);
             const scrollTop = rowIndex * ROW_HEIGHT - 100;

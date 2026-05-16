@@ -313,7 +313,7 @@ def _write_log_HandleAttribute(f, command, data, strCurrentClass, offset=0x0):
     if attrDocumentation:
         output = f"\t\t{hex(offset)} - {attrDocumentation['name']:<15}"
     else:
-        output = f"\t\tAttribute {command:>3}"
+        output = f"\t\t{hex(offset)} - Attribute {command:>3}"
 
     if attrDocumentation and data:
         if attrDocumentation["data"]["type"] == "GUID":

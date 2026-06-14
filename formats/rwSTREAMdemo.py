@@ -2,14 +2,14 @@ from lib.parser import Parser
 import rwSTREAM as rwSTREAM
 import struct
 
-stream = rwSTREAM.load_stream("banquet.stream")
+stream = rwSTREAM.load_stream("kingofny.stream")
 
 func = rwSTREAM.RW_strfunc_SetFrozenMode()
 
 #stream.append(func)
 #stream.replace_at_index(0, func)
 
-rwSTREAM.write_log(stream, "banquet_stream.txt")
+rwSTREAM.write_log(stream, "kingofny_stream.txt")
 
 
 def modify_int_in_stream(stream, sec_index, attr_offset, new_value):
@@ -35,9 +35,10 @@ def modify_int_in_stream(stream, sec_index, attr_offset, new_value):
 #modify_int_in_stream(stream, 1804, 0x194, 1)
 #modify_int_in_stream(stream, 1804, 0x1a0, 1)
 
-modify_int_in_stream(stream, 1765, 0xd8, 0)
+#modify_int_in_stream(stream, 1765, 0xd8, 0)
 
 #stream_global = rwSTREAM.load_stream("global.stream")
 #rwSTREAM.write_log(stream_global, "global_stream.txt")
 
-stream.save("C:/Users/Max/Desktop/Madagascar_ENG/Game/Levels/banquet.stream")
+#stream.save("C:/Users/Max/Desktop/Madagascar_ENG/Game/Levels/banquet.stream")
+#stream.save("banquet_new.stream")

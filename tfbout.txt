@@ -1,0 +1,42 @@
+Script Name: TFB Script
+Unknown Count: 112
+Opcode Table: 8 entries
+  0: set value::op-code (metadata: 0)
+  1: create variable::op-code (metadata: 0)
+  2: check value::op-code (metadata: 0)
+  3: move to::op-code (metadata: 0)
+  4: check message::op-code (metadata: 0)
+  5: play animation::op-code (metadata: 0)
+  6: set behavior::op-code (metadata: 0)
+  7: turn to::op-code (metadata: 0)
+Table 2: 4 entries
+  0: Something cool happened!::message (metadata: 0)
+  1: message senders::set::actor (metadata: 0)
+  2: Script Time::value (metadata: 0)
+  3: players::set::actor (metadata: 0)
+Table 3: 4 entries
+  0: Walk or stand::behavior (metadata: 0)
+  1: clap::behavior (metadata: 0)
+  2: Timer::user::value (metadata: 0)
+  3: my::actor (metadata: 0)
+----- INSTRUCTIONS -----
+OP: OP_0xFF                    A: 9                                  B: 32                           C: 0(Walk or stand::behavior) D: 0   Payload: 
+OP: OP_0xFF                    A: 9                                  B: 16                           C: 0(Walk or stand::behavior) D: 0   Payload: 
+OP: set value::op-code         A: 1(message senders::set::actor)     B: 0(Something cool happened!::message) C: 0(Walk or stand::behavior) D: 0   Payload: 00caffff000f000000
+OP: create variable::op-code   A: 1(message senders::set::actor)     B: 0(Something cool happened!::message) C: 0(Walk or stand::behavior) D: 0   Payload: 00c003ff
+OP: OP_0xFF                    A: 1(message senders::set::actor)     B: 0(Something cool happened!::message) C: 0(Walk or stand::behavior) D: 0   Payload: 
+OP: OP_0xFF                    A: 9                                  B: 64                           C: 0(Walk or stand::behavior) D: 0   Payload: 
+OP: check value::op-code       A: 9                                  B: 8                            C: 0(Walk or stand::behavior) D: 0   Payload: 00f4ffff010032000000
+OP: move to::op-code           A: 9                                  B: 0(Something cool happened!::message) C: 0(Walk or stand::behavior) D: 0   Payload: 00c2ffff00050004000000
+OP: check value::op-code       A: 9                                  B: 8                            C: 0(Walk or stand::behavior) D: 0   Payload: 00f4ffff01001e000000
+OP: move to::op-code           A: 9                                  B: 0(Something cool happened!::message) C: 0(Walk or stand::behavior) D: 0   Payload: 00c2ffff00040003000000
+OP: check message::op-code     A: 9                                  B: 24                           C: 0(Walk or stand::behavior) D: 0   Payload: 00000000004000000000f4010000
+OP: set value::op-code         A: 1(message senders::set::actor)     B: 0(Something cool happened!::message) C: 0(Walk or stand::behavior) D: 0   Payload: 00c003ff0200800000000000000000
+PLAY ANIMATION, IDX: 31
+OP: set behavior::op-code      A: 1(message senders::set::actor)     B: 0(Something cool happened!::message) C: 0(Walk or stand::behavior) D: 0   Payload: 008003ff
+OP: OP_0xFF                    A: 9                                  B: 40                           C: 0(Walk or stand::behavior) D: 0   Payload: 
+OP: turn to::op-code           A: 9                                  B: 0(Something cool happened!::message) C: 0(Walk or stand::behavior) D: 0   Payload: 0240c000000000000000001f
+PLAY ANIMATION, IDX: 31
+OP: check value::op-code       A: 9                                  B: 16                           C: 0(Walk or stand::behavior) D: 0   Payload: 00c003ff020200800000000003000000
+PLAY ANIMATION, IDX: 1
+OP: set behavior::op-code      A: 1(message senders::set::actor)     B: 0(Something cool happened!::message) C: 0(Walk or stand::behavior) D: 0   Payload: 004003ff

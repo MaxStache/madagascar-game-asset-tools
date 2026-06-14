@@ -132,6 +132,10 @@ class Parser:
         if remainder:
             self.offset += alignment - remainder
         return s
+    
+    def readString(self, length: int, encoding="latin-1") -> str:
+        b = self.readBytes(length)
+        return b.decode(encoding)
 
     def readGUID(self):
         guid_bytes = self.readBytes(16)

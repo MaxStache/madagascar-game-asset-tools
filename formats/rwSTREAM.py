@@ -294,21 +294,17 @@ def _ParseMatrix4x4(data):
     return matrix
 
 
-last__ = 0
-
 
 def _write_log_HandleAttribute(f, command, data, strCurrentClass, offset=0x0):
     attrDocumentation = CREATE_ENTITY_ATTRIBUTE_COMMANDS.get(strCurrentClass, {}).get(
         int(command), None
     )
 
-    if strCurrentClass == "CTFBSound" and command == 14:
-        val = Parser(data, endian="little").readUint32()
+    if strCurrentClass == "CTFBModel" and command == 1:
+        val = Parser(data, endian="little")
 
-        if val != 0:
-            #print(val)
-            #f.write("SEEK_SEEK_SEEK")
-            pass
+        with open("CTFBModel_Cmd1.txt", "a") as ctfblog:
+            ctfblog.write(data.hex() + "\n")
 
     if attrDocumentation:
         output = f"\t\t{hex(offset)} - {attrDocumentation['name']:<15}"

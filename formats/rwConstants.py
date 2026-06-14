@@ -1,5 +1,7 @@
 from enum import Enum
 
+class RWSectionType_TFB(Enum):
+    rwID_tfbMATFXEFFECTUVTRANSFORM = 0x800000F6
 
 class RWSectionType(Enum):
     rwID_NAOBJECT = 0x0000

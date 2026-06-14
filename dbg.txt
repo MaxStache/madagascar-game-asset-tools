@@ -1,0 +1,129 @@
+Script Name: TFB Script
+Unknown Count: 495
+Opcode Table: 18 entries
+  0: create variable::op-code (metadata: 0)
+  1: set value::op-code (metadata: 0)
+  2: check value::op-code (metadata: 0)
+  3: comment:::op-code (metadata: 0)
+  4: check message::op-code (metadata: 0)
+  5: set reference::op-code (metadata: 0)
+  6: send message::op-code (metadata: 0)
+  7: set behavior::op-code (metadata: 0)
+  8: teleport to::op-code (metadata: 0)
+  9: displace::op-code (metadata: 0)
+  10: find variable::op-code (metadata: 0)
+  11: inc value::op-code (metadata: 0)
+  12: if/else::op-code (metadata: 0)
+  13: play sound::op-code (metadata: 0)
+  14: spawn actor::op-code (metadata: 0)
+  15: slide value::op-code (metadata: 0)
+  16: print::op-code (metadata: 0)
+  17: remove::op-code (metadata: 0)
+Table 2: 13 entries
+  0: I_Spawned_You::message (metadata: 0)
+  1: message senders::set::actor (metadata: 0)
+  2: I_Know_Who_My_Spawner_Is::message (metadata: 0)
+  3: Remote_Activated::user::value (metadata: 0)
+  4: BalloonsPopped::user::value (metadata: 0)
+  5: PenguingFishingSegmentController::actor (metadata: 0)
+  6: Ballon Counter::sprite (metadata: 0)
+  7: Ballon Counter Icon::sprite (metadata: 0)
+  8: introcs_done::user::value (metadata: 0)
+  9: BalloonPop::sound (metadata: 0)
+  10: Coin_Splode::particle (metadata: 0)
+  11: Script Time::value (metadata: 0)
+  12: WhatAmIDoing::user::value (metadata: 0)
+Table 3: 12 entries
+  0: startup::behavior (metadata: 0)
+  1: WaitToGetPopped::behavior (metadata: 0)
+  2: MySpawnerLetMeGo::behavior (metadata: 0)
+  3: Pop::behavior (metadata: 0)
+  4: Remote_Activated::user::value (metadata: 0)
+  5: Timer::user::value (metadata: 0)
+  6: MyColor::user::value (metadata: 0)
+  7: Death TImer::user::value (metadata: 0)
+  8: Slide Timer::user::value (metadata: 0)
+  9: My Splode::user::particle (metadata: 0)
+  10: MySpawner::user::actor (metadata: 0)
+  11: my::actor (metadata: 0)
+----- INSTRUCTIONS -----
+OP_0xFF                    A: 9   B: 184 C: 0   D: 0   Payload: 
+   OP_0xFF                    A: 9   B: 168 C: 0   D: 0   Payload: 
+      CREATE VARIABLE, VARIABLE: 004004ff (var0)
+      SET VALUE, VAR: var0, OPERATION: 0, NEW VALUE: 00000000
+      CREATE VARIABLE, VARIABLE: 008004ff (var1)
+      CREATE VARIABLE, VARIABLE: 00c004ff (var2)
+      SET VALUE, VAR: var2, OPERATION: 0, NEW VALUE: 01000000
+      SET VALUE, VAR: var2, OPERATION: 1, NEW VALUE: 04000000
+      check value::op-code       A: 9   B: 16  C: 0   D: 0   Payload: 00c004ff000001000000
+         // Blue
+         SET VALUE, VAR: var2, OPERATION: 32, NEW VALUE: 3145ffff
+      check value::op-code       A: 9   B: 16  C: 0   D: 0   Payload: 00c004ff010002000000
+         // red
+         SET VALUE, VAR: var2, OPERATION: 32, NEW VALUE: ef2c00ff
+      check value::op-code       A: 9   B: 16  C: 0   D: 0   Payload: 00c004ff010003000000
+         // Green
+         SET VALUE, VAR: var2, OPERATION: 32, NEW VALUE: 5afb63ff
+      check value::op-code       A: 9   B: 16  C: 0   D: 0   Payload: 00c004ff010004000000
+         // Purple
+         SET VALUE, VAR: var2, OPERATION: 32, NEW VALUE: 8400e7ff
+      CREATE VARIABLE, VARIABLE: 000005ff (var3)
+      CREATE VARIABLE, VARIABLE: 004005ff (var4)
+      CREATE VARIABLE, VARIABLE: 008005ff (var5)
+   OP_0xFF                    A: 1   B: 0   C: 0   D: 0   Payload: 
+OP_0xFF                    A: 9   B: 48  C: 0   D: 0   Payload: 
+   // Message-trading goes on here to ascertain ownership
+   check message::op-code     A: 9   B: 32  C: 0   D: 0   Payload: 0000000000400000000014000000
+      CREATE VARIABLE, VARIABLE: 00c005ff (var6)
+      set reference::op-code     A: 1   B: 0   C: 0   D: 0   Payload: 00c005ff00c0feff
+      send message::op-code      A: 1   B: 0   C: 0   D: 0   Payload: 0080000000c005ff000014000000
+      set behavior::op-code      A: 1   B: 0   C: 0   D: 0   Payload: 008003ff
+OP_0xFF                    A: 9   B: 248 C: 0   D: 0   Payload: 
+   teleport to::op-code       A: 1   B: 0   C: 0   D: 0   Payload: 00c005ff0000000000000000000000
+   displace::op-code          A: 1   B: 0   C: 0   D: 0   Payload: 00c0ffff000000000000005a0000000004000000
+   check value::op-code       A: 9   B: 184 C: 0   D: 0   Payload: 004004ff010001000000
+      find variable::op-code     A: 8   B: 168 C: 0   D: 0   Payload: 00c0000000c005ff
+         SET VALUE, VAR: var6, OPERATION: 0, NEW VALUE: 02000000
+         find variable::op-code     A: 9   B: 8   C: 0   D: 0   Payload: 0000010000400100
+            inc value::op-code         A: 1   B: 0   C: 0   D: 0   Payload: 0080feff
+         if/else::op-code           A: 136 B: 136 C: 0   D: 0   Payload: 
+            check value::op-code       A: 9   B: 0   C: 0   D: 0   Payload: 000005ff040000000000
+            SET VALUE, VAR: var6, OPERATION: 0, NEW VALUE: 01000000
+            SET VALUE, VAR: var6, OPERATION: 0, NEW VALUE: 01000000
+            check value::op-code       A: 9   B: 8   C: 0   D: 0   Payload: 0000020005002d000000
+               play sound::op-code        A: 1   B: 0   C: 0   D: 0   Payload: 00400200
+            SET VALUE, VAR: var6, OPERATION: 0, NEW VALUE: 00000000
+            spawn actor::op-code       A: 9   B: 32  C: 0   D: 0   Payload: 0080020000c0ffff0000000000
+               displace::op-code          A: 1   B: 0   C: 0   D: 0   Payload: 00c0ffff000000000000005a0000000005000000
+               SET VALUE, VAR: var6, OPERATION: 16, NEW VALUE: cdcccc3e
+               SET VALUE, VAR: var6, OPERATION: 0, NEW VALUE: 1e000000
+               set reference::op-code     A: 1   B: 0   C: 0   D: 0   Payload: 008005ff00c0ffff
+            SET VALUE, VAR: var6, OPERATION: 2, NEW VALUE: 00c00200
+            SET VALUE, VAR: var6, OPERATION: 2, NEW VALUE: 00c00200
+            inc value::op-code         A: 65  B: 0   C: 0   D: 0   Payload: 00810100
+            slide value::op-code       A: 73  B: 0   C: 0   D: 0   Payload: 02c2010000f4010000100000003f0000000000000000
+            slide value::op-code       A: 73  B: 0   C: 0   D: 0   Payload: 0282010000ae010000100000003f0000000000000000
+            set behavior::op-code      A: 1   B: 0   C: 0   D: 0   Payload: 000004ff
+      PRINT "I'm hit, but I didn't remove myself", unknown: 4294950912
+   check value::op-code       A: 9   B: 32  C: 0   D: 0   Payload: 004004ff010002000000
+      find variable::op-code     A: 9   B: 8   C: 0   D: 0   Payload: 00c0000000c005ff
+         SET VALUE, VAR: var6, OPERATION: 0, NEW VALUE: 02000000
+      set behavior::op-code      A: 1   B: 0   C: 0   D: 0   Payload: 00c003ff
+      SET VALUE, VAR: var6, OPERATION: 2, NEW VALUE: 00c00200
+OP_0xFF                    A: 9   B: 72  C: 0   D: 0   Payload: 
+   // Start rising up
+   displace::op-code          A: 1   B: 0   C: 0   D: 0   Payload: 00c0ffff000000000000005a000000100000803e
+   check value::op-code       A: 9   B: 48  C: 0   D: 0   Payload: 00c002000202008004ff000003000000
+      find variable::op-code     A: 9   B: 24  C: 0   D: 0   Payload: 0000030000400100
+         check value::op-code       A: 9   B: 16  C: 0   D: 0   Payload: 0080feff010003000000
+            find variable::op-code     A: 9   B: 8   C: 0   D: 0   Payload: 0000010000400100
+               inc value::op-code         A: 1   B: 0   C: 0   D: 0   Payload: 0080feff
+      play sound::op-code        A: 1   B: 0   C: 0   D: 0   Payload: 00400200
+      remove::op-code            A: 1   B: 0   C: 0   D: 0   Payload: 00c0ffff
+OP_0xFF                    A: 9   B: 48  C: 0   D: 0   Payload: 
+   check value::op-code       A: 9   B: 16  C: 0   D: 0   Payload: 000005ff030200c00200000000000000
+      remove::op-code            A: 1   B: 0   C: 0   D: 0   Payload: 008005ff
+      remove::op-code            A: 1   B: 0   C: 0   D: 0   Payload: 00c0ffff
+   check value::op-code       A: 73  B: 16  C: 0   D: 0   Payload: 004005ff000200c00200000000000000
+      slide value::op-code       A: 73  B: 0   C: 0   D: 0   Payload: 028201000044020000100000003f0000000000000000
+      slide value::op-code       A: 73  B: 0   C: 0   D: 0   Payload: 02c20100008a020000100000003f0000000000000000

@@ -3,25 +3,25 @@ import rwtxd as rwtxd
 import sys
 
 # Round-trip
-txd = rwtxd.load("../ENG_KoNY_LPA/2_TD_LEVEL FOLDER.txd")
+txd = rwtxd.load("Levels/kingofny/2_TD_LEVEL FOLDER.txd")
 
 # print(next(t for t in txd.textures if t.name == "head"))
 print("EXPORTING...")
 
-# for texture in tqdm(txd.textures, desc="Exporting textures"):
-#    rwtxd.export_png(texture, f"temp/{texture.name}.png")
-#    if texture.name == "melman_tissue2":
-#        print("\n")
-#        print(texture._xbox_texelDataSize)
+for texture in tqdm(txd.textures, desc="Exporting textures"):
+    rwtxd.export_png(texture, f"Levels/kingofny/textures/{texture.name}.png")
+    if texture.name == "melman_tissue2":
+        print("\n")
+        print(texture._xbox_texelDataSize)
 
-txd_out = rwtxd.TextureDictionary()
+#txd_out = rwtxd.TextureDictionary()
 
-print("IMPORTING INTO NEW...")
+#print("IMPORTING INTO NEW...")
 
-disa = rwtxd.disassemble_filter_mode(0x3302)
-print(rwtxd.FilterMode(disa[0]).name)
-print(rwtxd.AddressingMode(disa[1]).name)
-print(rwtxd.AddressingMode(disa[2]).name)
+#disa = rwtxd.disassemble_filter_mode(0x3302)
+#print(rwtxd.FilterMode(disa[0]).name)
+##print(rwtxd.AddressingMode(disa[1]).name)
+#print(rwtxd.AddressingMode(disa[2]).name)
 
 sys.exit(1)
 
@@ -38,6 +38,6 @@ for original_texture in tqdm(txd.textures, desc="Importing textures"):
     # Could also be done like this:
     # imported_texture.filter_mode = original_texture.filter_mode
     
-    txd_out.textures.append(imported_texture)
+#    txd_out.textures.append(imported_texture)
 
-rwtxd.save(txd_out, "../ENG_KoNY_LPA_MODIFIED/2_TD_LEVEL FOLDER.txd")
+#rwtxd.save(txd_out, "../ENG_KoNY_LPA_MODIFIED/2_TD_LEVEL FOLDER.txd")

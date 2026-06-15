@@ -13,94 +13,16 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Union, Optional
 from lib.parser import Parser
-from rwConstants import RWSectionType, RWSectionType_TFB
+from rwConstants import RWSectionType, RWSectionType_TFB, DEFAULT_VERSION_STAMP
+from rw_basics import RWColor32, Vector3, RWHeader, RW_World_Triangle
+from rw_extensions import RW_ExtensionSector
 
 __version__ = "1.0.0"
 
 
 # ═══════════════════════════════════════════════════════
-#  Constants
-# ═══════════════════════════════════════════════════════
-
-DEFAULT_VERSION_STAMP = 0x1C020016
-
-# ═══════════════════════════════════════════════════════
 #  Data Structures
 # ═══════════════════════════════════════════════════════
-
-
-@dataclass
-class RWHeader:
-    type: int = 0
-    size: int = 0
-    library_id_stamp: int = None
-
-    @property
-    def binSize(self):
-        return 4 * 3  # 3 uint32 fields
-
-    def pack(self) -> bytes:
-        return struct.pack("<III", self.type, self.size, self.library_id_stamp)
-
-    @staticmethod
-    def read(parser: Parser) -> "RWHeader":
-        read_header = parser.readRWChunkHeader()
-        return RWHeader(
-            type=read_header["id"],
-            size=read_header["size"],
-            library_id_stamp=read_header["version"],
-        )
-
-    @property
-    def version(self) -> str:
-        if self.library_id_stamp & 0xFFFF0000:
-            v = (self.library_id_stamp >> 14 & 0x3FF00) + 0x30000
-            v |= self.library_id_stamp >> 16 & 0x3F
-            return f"{(v >> 16) & 0xF}.{(v >> 12) & 0xF}.{(v >> 8) & 0xF}.{v & 0xFF}"
-        return "3.1.0.0"
-
-
-@dataclass(frozen=True, slots=True)
-class Vector3:
-    x: float = 0.0
-    y: float = 0.0
-    z: float = 0.0
-
-    @staticmethod
-    def read(parser: Parser) -> "Vector3":
-        return Vector3(
-            x=parser.readFloat(),
-            y=parser.readFloat(),
-            z=parser.readFloat(),
-        )
-
-    def write(this, f):
-        _write_f32(f, this.x)
-        _write_f32(f, this.y)
-        _write_f32(f, this.z)
-
-
-@dataclass()
-class RWColor32:
-    r: int = 0  # u8
-    g: int = 0  # u8
-    b: int = 0  # u8
-    a: int = 0  # u8
-
-    @staticmethod
-    def read(parser: Parser) -> "RWColor32":
-        return RWColor32(
-            r=parser.readUint8(),
-            g=parser.readUint8(),
-            b=parser.readUint8(),
-            a=parser.readUint8(),
-        )
-
-    def write(this, f):
-        _write_u8(f, this.r)
-        _write_u8(f, this.g)
-        _write_u8(f, this.b)
-        _write_u8(f, this.a)
 
 
 def bytes_pad4(data: bytes) -> bytes:
@@ -137,15 +59,13 @@ class RW_Texture:
         texture.useMipLevels = parser.readUint16()
 
         texture.diffuse_header = RWHeader.read(parser)
-        texture.diffuseTextureName = (
-            parser.readBytes(texture.diffuse_header.size)
-            .decode("latin-1", errors="replace")
-        )
+        texture.diffuseTextureName = parser.readBytes(
+            texture.diffuse_header.size
+        ).decode("latin-1", errors="replace")
 
         texture.alpha_header = RWHeader.read(parser)
-        texture.alphaTextureName = (
-            parser.readBytes(texture.alpha_header.size)
-            .decode("latin-1", errors="replace")
+        texture.alphaTextureName = parser.readBytes(texture.alpha_header.size).decode(
+            "latin-1", errors="replace"
         )
 
         texture.ext_header = RWHeader.read(parser)
@@ -214,14 +134,6 @@ class RW_Texture:
         f.write(rw_header.pack())
         f.write(rw_struct_header.pack())
         f.write(buf.getvalue())
-
-
-@dataclass
-class RW_World_Triangle:
-    vertex1: int = 0  # uint16
-    vertex2: int = 0  # uint16
-    vertex3: int = 0  # uint16
-    materialIndex: int = 0  # uint16
 
 
 @dataclass
@@ -572,8 +484,9 @@ class RW_World_AtomicSector:
         default_factory=list, init=False
     )  # num_triangles
 
-    ext_header: RWHeader = field(default_factory=RWHeader)
-    extData: bytes = b""  # ext_header.payload_size
+    extension_sector: RW_ExtensionSector = field(
+        default_factory=RW_ExtensionSector, init=False
+    )
 
     @staticmethod
     def read(parser: Parser, collision_only_map=False) -> "RW_World_AtomicSector":
@@ -617,8 +530,9 @@ class RW_World_AtomicSector:
             triangle.materialIndex = parser.readUint16()
             atomic.triangles.append(triangle)
 
-        atomic.ext_header = RWHeader.read(parser)
-        atomic.extData = parser.readBytes(atomic.ext_header.size)
+        atomic.extension_sector = RW_ExtensionSector.read(
+            parser, RWSectionType.rwID_ATOMICSECT
+        )
 
         return atomic
 
@@ -665,13 +579,7 @@ class RW_World_AtomicSector:
 
         buf.write(sbuf.getvalue())
 
-        ext_header = RWHeader(
-            type=RWSectionType.rwID_EXTENSION.value,
-            size=len(this.extData),
-            library_id_stamp=stamp,
-        )
-        buf.write(ext_header.pack())
-        buf.write(this.extData)
+        buf.write(this.extension_sector.pack(stamp))
 
         _write_u32(
             f, len(buf.getvalue()) + RWHeader().binSize

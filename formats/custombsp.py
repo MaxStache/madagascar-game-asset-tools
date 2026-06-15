@@ -160,6 +160,15 @@ for sector in rwwBSP._collect_atomic_sectors(orig.world_chunk.data):
     # sector.boxMax = rwwBSP.Vector3(sector.boxMax.x, sector.boxMax.y + 40, sector.boxMax.z)
     # sector.boxMin = rwwBSP.Vector3(sector.boxMin.x, sector.boxMin.y + 40, sector.boxMin.z)
 
+    if sector.numVertices != 0:
+        print(sector.ext_header.pack())
+        print()
+        print()
+        print()
+        print(sector.extData)
+        print()
+        exit()
+
 orig.save(
     "Levels/KingOfNY/13_KingofNY9_Combined188_NoShadow.bsp", collision_only_map=False
 )

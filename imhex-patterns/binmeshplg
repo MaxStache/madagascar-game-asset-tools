@@ -1,0 +1,16 @@
+/*
+ * Bin Mesh PLG (Non-Pre-Instanced)
+ * RenderWare sector Extension on Geometry
+ *
+ * Reference:
+ * https://gtamods.com/wiki/Bin_Mesh_PLG_(RW_Section)
+ *
+ * Author: Max Stache
+ * Date: 2026-06-15
+ */
+ 
+struct RW_EXT_BINMESHPLG {
+    
+};
+
+RW_EXT_BINMESHPLG my_binMeshPLG @ 0x00;

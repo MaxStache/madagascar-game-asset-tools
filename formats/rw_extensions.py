@@ -167,10 +167,20 @@ class RW_EXT_BinMeshPLG(RW_EXT_BASE):
         triangles: list[RW_World_Triangle],
         stamp=DEFAULT_VERSION_STAMP,
         flag: RW_BinMeshPLG_Type = RW_BinMeshPLG_Type.TRIANGLE_LIST,
+        matListWindowBase: int = 0,
     ) -> "RW_EXT_BinMeshPLG":
         ext = RW_EXT_BinMeshPLG()
+        ext.header = RWHeader(type=RWSectionType.rwID_BINMESHPLUGIN.value, size=0, library_id_stamp=stamp)
 
         if flag == RW_BinMeshPLG_Type.TRIANGLE_STRIP:
+            print("WARN! TRIANGLE STRIP IS BROKEN CURENTLY")
+            print("WARN! TRIANGLE STRIP IS BROKEN CURENTLY")
+            print("WARN! TRIANGLE STRIP IS BROKEN CURENTLY")
+            print("WARN! TRIANGLE STRIP IS BROKEN CURENTLY")
+            print("WARN! TRIANGLE STRIP IS BROKEN CURENTLY")
+            print("WARN! TRIANGLE STRIP IS BROKEN CURENTLY")
+            print("WARN! TRIANGLE STRIP IS BROKEN CURENTLY")
+            print("WARN! TRIANGLE STRIP IS BROKEN CURENTLY")
             ext.flags = RW_BinMeshPLG_Type.TRIANGLE_STRIP
 
             material_to_mesh: dict[int, RW_BinMeshPLG_Mesh] = {}
@@ -180,7 +190,6 @@ class RW_EXT_BinMeshPLG(RW_EXT_BASE):
                     material_to_mesh[tri.materialIndex] = RW_BinMeshPLG_Mesh(
                         numIndices=0,
                         materialIndex=tri.materialIndex,
-                        indices=[],
                     )
 
             # Process each material separately
@@ -242,14 +251,13 @@ class RW_EXT_BinMeshPLG(RW_EXT_BASE):
             material_to_mesh: dict[int, RW_BinMeshPLG_Mesh] = {}
 
             for tri in triangles:
-                if tri.materialIndex not in material_to_mesh:
-                    material_to_mesh[tri.materialIndex] = RW_BinMeshPLG_Mesh(
+                if tri.materialIndex + matListWindowBase not in material_to_mesh:
+                    material_to_mesh[tri.materialIndex + matListWindowBase] = RW_BinMeshPLG_Mesh(
                         numIndices=0,
-                        materialIndex=tri.materialIndex,
-                        indices=[],
+                        materialIndex=tri.materialIndex + matListWindowBase,
                     )
 
-                mesh = material_to_mesh[tri.materialIndex]
+                mesh = material_to_mesh[tri.materialIndex + matListWindowBase]
                 mesh.indices.extend([tri.vertex1, tri.vertex2, tri.vertex3])
                 mesh.numIndices += 3
 
@@ -271,7 +279,7 @@ class RW_EXT_BinMeshPLG(RW_EXT_BASE):
                 _write_u32(buf, idx)
 
         rw_header = RWHeader(
-            type=self.header.type,
+            type=RWSectionType.rwID_BINMESHPLUGIN.value,
             size=len(buf.getvalue()),
             library_id_stamp=stamp,
         )
@@ -419,21 +427,64 @@ class RW_ExtensionSector:
 if __name__ == "__main__":
     import rwwBSP
     import rw_extensions as _rw  # avoid double-import class identity mismatch
-
+    import math
     bsp = rwwBSP.load_bsp(
         "Levels/KingOfNY-unchanged/13_KingofNY9_Combined188_NoShadow.bsp"
     )
 
+
     for sec in rwwBSP._collect_atomic_sectors(bsp.world_chunk.data):
         print(f"Atomic Sector: {sec.numVertices} vertices, {sec.numTriangles} triangles")
+        #sec.triangles = [rwwBSP.RW_World_Triangle(t.vertex1, t.vertex2, t.vertex3, t.materialIndex) for t in sec.triangles]
+        sec.vertices = [
+            rwwBSP.Vector3(
+                v.x,
+                v.y,
+                v.z + math.sin(v.x * 0.1 + v.y * 0.2) * 20.0
+            )
+            for v in sec.vertices
+        ]
+
+
         sec.extension_sector.extensions = [
             ext
             for ext in sec.extension_sector.extensions
             if not isinstance(ext, _rw.RW_EXT_BinMeshPLG)
         ]
+
+        binmesh = _rw.RW_EXT_BinMeshPLG.generate_from_triangles(sec.triangles, flag=_rw.RW_BinMeshPLG_Type.TRIANGLE_LIST, matListWindowBase=sec.matListWindowBase)
+
+        sec.extension_sector.extensions.append(
+            binmesh)
+
         print(sec.extension_sector.extensions)
 
-    bsp.save("test.bsp")
+    import colorsys
+
+
+    for sec in rwwBSP._collect_atomic_sectors(bsp.world_chunk.data):
+
+        if not sec.vertices:
+            continue  # skip empty sectors safely
+
+        zs = [v.z for v in sec.vertices]
+        z_min = min(zs)
+        z_max = max(zs)
+        z_range = (z_max - z_min) or 1.0
+
+        def height_to_rgb(vz):
+            t = (vz - z_min) / z_range
+            hue = (1.0 - t) * 0.7
+
+            r, g, b = colorsys.hsv_to_rgb(hue, 1.0, 1.0)
+            return int(r * 255), int(g * 255), int(b * 255)
+
+        sec.colors = [
+            rwwBSP.RWColor32(*height_to_rgb(v.z), c.a)
+            for v, c in zip(sec.vertices, sec.colors)
+        ]
+
+    bsp.save("Levels/KingOfNY/13_KingofNY9_Combined188_NoShadow.bsp")
 
     exit()
     world_ext = bsp.ext_header.pack() + bsp.extData

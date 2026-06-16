@@ -49,6 +49,9 @@ class Parser:
 
     def tell(self) -> int:
         return self.offset
+    
+    def remaining(self) -> int:
+        return len(self.data) - self.offset
 
     def skip(self, size: int):
         self.seek(self.offset + size)

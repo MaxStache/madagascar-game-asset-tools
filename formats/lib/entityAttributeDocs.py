@@ -548,7 +548,7 @@ CREATE_ENTITY_ATTRIBUTE_COMMANDS = {
         7: {
             # 7 is bool (ex. MudSlideLoop) maybe "Loop Sound"!?
             "source": "GUESS",
-            "name": "UNKNOWN 7",
+            "name": "Loop Sound",
             "description": "",
             "data": {"type": "BOOLEAN", "default": 0},
         },

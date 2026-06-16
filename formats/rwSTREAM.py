@@ -2,7 +2,7 @@ import io
 import struct
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Union
+from typing import BinaryIO, Union
 from lib.parser import Parser
 from rwConstants import (
     RWSectionType,
@@ -89,9 +89,137 @@ class RWHeader:
 
 
 @dataclass
-class RW_strfunc_CreateEntity:
-    pass
+class RW_strfunc_CreateEntity_Attribute:
+    command: int
+    data: bytes = b""
+@dataclass
+class RW_strfunc_CreateEntity_AttributeClass:
+    class_name: str = ""
+    attributes: list[RW_strfunc_CreateEntity_Attribute] = field(default_factory=list)
 
+    def find_first_attribute(self, command: int) -> Union[bytes, None]:
+        for attr in self.attributes:
+            if attr.command == command:
+                return attr
+        return None
+    
+    def find_all_attributes(self, command: int) -> Union[bytes, None]:
+        return [attr for attr in self.attributes if attr.command == command]
+
+
+RWSPH_CLASSID = 0x80000000  # Class
+RWSPH_INSTANCEID = 0x40000000  # Entity ID
+RWSPH_CREATECLASSID = 0x20000000  # Behavior
+
+
+def bytes_pad4_BF(data: bytes) -> bytes:
+    padding = (4 - (len(data) % 4)) % 4
+    return data + b"\xBF" * padding
+
+
+@dataclass
+class RW_strfunc_CreateEntity:
+    behaviour: str = ""
+    entityID: uuid.UUID = uuid.UUID(int=0)
+    isGlobal: bool = False
+
+    classes: list[RW_strfunc_CreateEntity_AttributeClass] = field(default_factory=list)
+
+    def read(parser: Parser) -> "RW_strfunc_CreateEntity":
+        create_entity = RW_strfunc_CreateEntity()
+        create_entity.isGlobal = parser.readBool()
+        attributePacket = parser.readBytes(parser.remaining())
+
+        # Parse attribute packet
+        buf = Parser(attributePacket, endian="little")
+
+        currentClass = None
+
+        while buf.canRead(4):
+            packetStart = buf.tell()
+            packetSize = buf.readUint32()
+            if packetSize == 0:
+                break
+
+            command = buf.readUint32()
+            dataSize = packetSize - 2 * 4  # subtract the two uint32s (size + command)
+
+            if command == RWSPH_CLASSID:
+                dataBytes = buf.readBytes(dataSize)
+                class_name = dataBytes.split(b"\x00")[0].decode(
+                    "ascii", errors="replace"
+                )
+                atr_class = RW_strfunc_CreateEntity_AttributeClass(
+                    class_name=class_name
+                )
+                currentClass = atr_class
+                create_entity.classes.append(atr_class)
+            elif command == RWSPH_INSTANCEID:
+                entityID = uuid.UUID(bytes=buf.readBytes(16))
+                create_entity.entityID = entityID
+            elif command == RWSPH_CREATECLASSID:
+                dataBytes = buf.readBytes(dataSize)
+
+                behaviour = dataBytes.split(b"\x00")[0].decode(
+                    "ascii", errors="replace"
+                )
+                create_entity.behaviour = behaviour
+            else:
+                attr = RW_strfunc_CreateEntity_Attribute(command=command, data=buf.readBytes(dataSize))
+                if currentClass is not None:
+                    currentClass.attributes.append(attr)
+
+            # Advance to next packet (ensures correct alignment regardless of how much data was consumed)
+            buf.seek(packetStart + packetSize)
+
+        return create_entity
+
+    def write(self, f: BinaryIO, stamp: int = DEFAULT_VERSION_STAMP):
+        buf = io.BytesIO()
+
+        _write_u32(buf, self.isGlobal)
+
+        # Write attributes in top level
+        behaviour_bytes = bytes_pad4_BF(self.behaviour.encode("latin-1") + b"\x00")
+        _write_u32(buf, len(behaviour_bytes) + 2 * 4)
+
+        _write_u32(buf, RWSPH_CREATECLASSID)
+        _write_bytes(buf, behaviour_bytes)
+
+        # ---
+
+        _write_u32(buf, len(self.entityID.bytes) + 2 * 4)
+        _write_u32(buf, RWSPH_INSTANCEID)
+        _write_bytes(buf, self.entityID.bytes)
+
+        # ---
+
+        for atr_class in self.classes:
+            class_name_bytes = bytes_pad4_BF(atr_class.class_name.encode("latin-1") + b"\x00")
+            _write_u32(buf, len(class_name_bytes) + 2 * 4)
+            _write_u32(buf, RWSPH_CLASSID)
+            _write_bytes(buf, class_name_bytes)
+
+            for attr in atr_class.attributes:
+                _write_u32(buf, len(attr.data) + 2 * 4)
+                _write_u32(buf, attr.command)
+                _write_bytes(buf, attr.data)
+
+        f.write(buf.getvalue())
+
+    def find_first_class(self, class_name: str) -> RW_strfunc_CreateEntity_AttributeClass:
+        for cls in self.classes:
+            if cls.class_name == class_name:
+                return cls
+        return None
+    
+    def find_first_class_with_command(self, class_name: str, command: int) -> RW_strfunc_CreateEntity_AttributeClass:
+        for cls in self.classes:
+            if cls.class_name == class_name:
+                for attr in cls.attributes:
+                    if attr.command == command:
+                        return cls
+        return None
 
 @dataclass
 class RW_strfunc_PlacementNew:
@@ -294,7 +422,6 @@ def _ParseMatrix4x4(data):
     return matrix
 
 
-
 def _write_log_HandleAttribute(f, command, data, strCurrentClass, offset=0x0):
     attrDocumentation = CREATE_ENTITY_ATTRIBUTE_COMMANDS.get(strCurrentClass, {}).get(
         int(command), None
@@ -307,7 +434,7 @@ def _write_log_HandleAttribute(f, command, data, strCurrentClass, offset=0x0):
             ctfblog.write(data.hex() + "\n")
 
     if attrDocumentation:
-        output = f"\t\t{hex(offset)} - {attrDocumentation['name']:<15}"
+        output = f"\t\t{hex(offset)} - {command:>3}-{attrDocumentation['name']:<15}"
     else:
         output = f"\t\t{hex(offset)} - Attribute {command:>3}"
 

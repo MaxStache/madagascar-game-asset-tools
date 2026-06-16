@@ -1,0 +1,215 @@
+Read a file stream
+
+════════════════════ Sector 0 ════════════════════
+Length: 132 Type: 1820 (sf_PlacementNew)
+Data:
+    AudioGlobalMixer Count:1
+    CDebugTools Count:1
+    CXboxStndController Count:1
+    GameController Count:1
+    GlobalScriptNames Count:1
+    MemCard Count:1
+
+════════════════════ Sector 1 ════════════════════
+Length: 460 Type: 1796 (sf_CreateEntity)
+Create Entity Call:
+	Behaviour:	AudioGlobalMixer
+	Entity ID:	{4e94dc5f-f2c4-7842-a316-124813157ed5}
+	Class:	CTFBCommand
+		0x5c -   0-Script Object Name: AudioMixer
+	Class:	AudioGlobalMixer
+		0x90 -   0-Receive Render Camera Event: 3rd_person_cam       (message)
+		0x9c -   1-Stop All Voices: <No Message>         
+		0xa8 -   2-Fade Voices Up : <No Message>         
+		0xb4 -   3-Fade Voices Down: <No Message>         
+		0xc0 -   4-Fade Ended Msg : <No Message>         
+		0xcc -   5-Fade Step      : 0.029999999329447746
+		0xd8 -   6-Output Gain    : 0.5
+		0xe4 -   7-Change Doppler scale: 1.0
+		0xf0 -   8-Distance Factor: 1.0
+		0xfc -   9-Roll-off Factor: 1.0
+		0x108 -  10-Speaker Configuration: rwaSPEAKERCONFIG_STEREO (0)
+		0x114 -  11-Mixer Debug Output: RWBool(0) (False)
+	Class:	CSystemCommands
+		0x174 -   1-Matrix         : Matrix4x4([1.000, 0.000, 0.000, 0.000]
+                                               [0.000, 1.000, 0.000, 0.000]
+                                               [0.000, 0.000, 1.000, 0.000]
+                                               [0.000, 0.000, 0.000, 0.000])
+		0x180 -   2-Solid Collisions: RWBool(255) (True)
+		0x18c -   3-Enable Collisions: RWBool(255) (True)
+		0x198 -   4-Invisible      : RWBool(0) (False)
+	Class:	CAttributeHandler
+		0x1c0 -   0-Debug          : RWBool(0) (False)
+	isGlobal:	True
+
+════════════════════ Sector 2 ════════════════════
+Length: 444 Type: 1796 (sf_CreateEntity)
+Create Entity Call:
+	Behaviour:	CDebugTools
+	Entity ID:	{b2a6d551-a8c6-f345-b910-7f7574065c84}
+	Class:	CTFBCommand
+		0x54 -   0-Script Object Name: DebugTools
+	Class:	CDebugTools
+		0x74 - Attribute   0: [    ][01 00 00 00]
+		0x80 - Attribute   1: [    ][01 00 00 00]
+		0x8c - Attribute   2: [    ][01 00 00 00]
+		0x98 - Attribute   3: [    ][01 00 00 00]
+		0xa4 - Attribute   4: [    ][01 00 00 00]
+		0xb0 - Attribute   5: [    ][01 00 00 00]
+		0xbc - Attribute   6: [    ][01 00 00 00]
+		0xc8 - Attribute   7: [    ][01 00 00 00]
+		0xd4 - Attribute   8: [    ][01 00 00 00]
+		0xe0 - Attribute   9: [    ][01 00 00 00]
+		0xec - Attribute  10: [    ][01 00 00 00]
+		0xf8 - Attribute  11: [    ][01 00 00 00]
+		0x104 - Attribute  12: [    ][01 00 00 00]
+		0x110 - Attribute  13: [    ][01 00 00 00]
+		0x128 - Attribute  14: [3rd_person_cam  ][33 72 64 5F 70 65 72 73 6F 6E 5F 63 61 6D 00 BF]
+		0x134 - Attribute  15: [    ][00 00 00 00]
+		0x140 - Attribute  16: [    ][00 00 00 00]
+		0x14c - Attribute  17: [    ][04 00 00 00]
+		0x158 - Attribute  18: [    ][05 00 00 00]
+		0x164 - Attribute  19: [    ][FF FF FF FF]
+		0x170 - Attribute  20: [    ][00 00 00 00]
+		0x17c - Attribute  21: [    ][FF FF FF FF]
+		0x188 - Attribute  22: [    ][03 00 00 00]
+	Class:	CAttributeHandler
+		0x1b0 -   0-Debug          : RWBool(255) (True)
+	isGlobal:	True
+
+════════════════════ Sector 3 ════════════════════
+Length: 724 Type: 1796 (sf_CreateEntity)
+Create Entity Call:
+	Behaviour:	CXboxStndController
+	Entity ID:	{b7f11e18-d7f7-da4f-a7b4-60c32e079bdc}
+	Class:	CTFBCommand
+		0x60 -   0-Script Object Name: XBOX control
+	Class:	CXboxStndController
+		0x88 -   0-Port Select    : Pad 1 (0)
+		0xa0 -   1-Left Joystick X Inquire: INQ_ACTN_TURN        (message)
+		0xb8 -   2-Left Joystick Y Inquire: INQ_ACTN_FWD         (message)
+		0xd4 -   3-Right Joystick X Inquire: INQ_CAMERA_ROTATE    (message)
+		0xf0 -   4-Right Joystick Y Inquire: INQ_CAMERA_PITCH     (message)
+		0x108 -   5-Button 1 (A) Inquire: INQ_ACTN_JUMP        (message)
+		0x120 -   6-Button 2 (B) Inquire: INQ_ACTN_FIRE        (message)
+		0x138 -   7-Button 3 (X) Inquire: INQ_ACTN_DODGE       (message)
+		0x150 -   8-Button 4 (Y) Inquire: INQ_ACTN_TRICK       (message)
+		0x170 -   9-Button 5 (BLACK) Inquire: INQ_ACTN_SHOULDER_R2 (message)
+		0x190 -  10-Button 6 (WHITE) Inquire: INQ_ACTN_SHOULDER_L2 (message)
+		0x1ac -  11-Button 7 (L Shoulder) Inquire: INQ_SHOULDER_LEFT    (message)
+		0x1c8 -  12-Button 8 (R Shoulder) Inquire: INQ_SHOULDER_RIGHT   (message)
+		0x1e0 -  13-Directional Pad Up Inquire: INQ_ACTN_PAD_U       (message)
+		0x1f8 -  14-Directional Pad Down Inquire: INQ_ACTN_PAD_D       (message)
+		0x210 -  15-Directional Pad Left Inquire: INQ_ACTN_PAD_L       (message)
+		0x228 -  16-Directional Pad Right Inquire: INQ_ACTN_PAD_R       (message)
+		0x240 -  17-Start Inquire  : INQ_ACTN_START       (message)
+		0x258 -  18-Back Inquire   : INQ_ACTN_SELECT      (message)
+		0x270 -  19-Left Thumb Inquire: INQ_LPAD_BUTTON      (message)
+		0x288 -  20-Right Thumb Inquire: INQ_RPAD_BUTTON      (message)
+		0x294 -  21-Digital Joystick X Inquire: <No Message>         
+		0x2a0 -  22-Digital Joystick Y Inquire: <No Message>         
+	Class:	CAttributeHandler
+		0x2c8 -   0-Debug          : RWBool(0) (False)
+	isGlobal:	True
+
+════════════════════ Sector 4 ════════════════════
+Length: 148 Type: 1796 (sf_CreateEntity)
+Create Entity Call:
+	Behaviour:	GameController
+	Entity ID:	{e0298f5e-4a12-4549-837c-a64999ec4e6b}
+	Class:	CTFBCommand
+		0x60 -   0-Script Object Name: Script controller
+	Class:	CAttributeHandler
+		0x88 -   0-Debug          : RWBool(0) (False)
+	isGlobal:	True
+
+════════════════════ Sector 5 ════════════════════
+Length: 2740 Type: 1796 (sf_CreateEntity)
+Create Entity Call:
+	Behaviour:	GlobalScriptNames
+	Entity ID:	{a4ea5b67-7f4f-8d4e-928f-33481f910bb3}
+	Class:	CTFBCommand
+		0x6c -   0-Script Object Name: Messages And Variables Hub
+	Class:	GlobalScriptNames
+	Class:	LevelHub
+		0xbc - Attribute   1: [        ZoosterLives    ][05 00 00 00 00 00 00 00 5A 6F 6F 73 74 65 72 4C 69 76 65 73 00 BF BF BF]
+		0xdc - Attribute   1: [        ZoosterMoney    ][00 00 00 00 00 00 00 00 5A 6F 6F 73 74 65 72 4D 6F 6E 65 79 00 BF BF BF]
+		0x100 - Attribute   1: [        ZoosterMiniTotems   ][00 00 00 00 00 00 00 00 5A 6F 6F 73 74 65 72 4D 69 6E 69 54 6F 74 65 6D 73 00 BF BF]
+		0x128 - Attribute   1: [        ZoosterHealthContainers ][04 00 00 00 00 00 00 00 5A 6F 6F 73 74 65 72 48 65 61 6C 74 68 43 6F 6E 74 61 69 6E 65 72 73 00]
+		0x154 - Attribute   1: [        Current_Checkpoint_Index    ][00 00 00 00 00 00 00 00 43 75 72 72 65 6E 74 5F 43 68 65 63 6B 70 6F 69 6E 74 5F 49 6E 64 65 78 00 BF BF BF]
+		0x178 - Attribute   1: [        last_level_played   ][00 00 00 00 00 00 00 00 6C 61 73 74 5F 6C 65 76 65 6C 5F 70 6C 61 79 65 64 00 BF BF]
+		0x1a0 - Attribute   1: [        furthest_level_unlocked ][00 00 00 00 00 00 00 00 66 75 72 74 68 65 73 74 5F 6C 65 76 65 6C 5F 75 6E 6C 6F 63 6B 65 64 00]
+		0x1cc - Attribute   1: [        prompted_to_insert_memcard? ][00 00 00 00 00 00 00 00 70 72 6F 6D 70 74 65 64 5F 74 6F 5F 69 6E 73 65 72 74 5F 6D 65 6D 63 61 72 64 3F 00]
+		0x1f8 - Attribute   1: [        furthest_checkpoint_index   ][00 00 00 00 00 00 00 00 66 75 72 74 68 65 73 74 5F 63 68 65 63 6B 70 6F 69 6E 74 5F 69 6E 64 65 78 00 BF BF]
+		0x21c - Attribute   1: [        zoovenir_item_bits  ][00 00 00 00 00 00 00 00 7A 6F 6F 76 65 6E 69 72 5F 69 74 65 6D 5F 62 69 74 73 00 BF]
+		0x23c - Attribute   1: [        Golf_Best_Score ][20 00 00 00 00 00 00 00 47 6F 6C 66 5F 42 65 73 74 5F 53 63 6F 72 65 00]
+		0x25c - Attribute   1: [        shuffle_state_A ][00 00 00 00 00 00 00 00 73 68 75 66 66 6C 65 5F 73 74 61 74 65 5F 41 00]
+		0x27c - Attribute   1: [        shuffle_state_b ][00 00 00 00 00 00 00 00 73 68 75 66 66 6C 65 5F 73 74 61 74 65 5F 62 00]
+		0x29c - Attribute   1: [        rave_state_a    ][00 00 00 00 00 00 00 00 72 61 76 65 5F 73 74 61 74 65 5F 61 00 BF BF BF]
+		0x2bc - Attribute   1: [        rave_state_b    ][00 00 00 00 00 00 00 00 72 61 76 65 5F 73 74 61 74 65 5F 62 00 BF BF BF]
+		0x2e8 - Attribute   1: [        new_level_just_unlocked?    ][00 00 00 00 00 00 00 00 6E 65 77 5F 6C 65 76 65 6C 5F 6A 75 73 74 5F 75 6E 6C 6F 63 6B 65 64 3F 00 BF BF BF]
+		0x310 - Attribute   1: [        total_money_collected   ][00 00 00 00 00 00 00 00 74 6F 74 61 6C 5F 6D 6F 6E 65 79 5F 63 6F 6C 6C 65 63 74 65 64 00 BF BF]
+		0x330 - Attribute   1: [        coins_escape    ][00 00 00 00 00 00 00 00 63 6F 69 6E 73 5F 65 73 63 61 70 65 00 BF BF BF]
+		0x350 - Attribute   1: [        coins_street    ][00 00 00 00 00 00 00 00 63 6F 69 6E 73 5F 73 74 72 65 65 74 00 BF BF BF]
+		0x370 - Attribute   1: [        coins_mutiny    ][00 00 00 00 00 00 00 00 63 6F 69 6E 73 5F 6D 75 74 69 6E 79 00 BF BF BF]
+		0x390 - Attribute   1: [        coins_jungle    ][00 00 00 00 00 00 00 00 63 6F 69 6E 73 5F 6A 75 6E 67 6C 65 00 BF BF BF]
+		0x3b0 - Attribute   1: [        coins_lemurs    ][00 00 00 00 00 00 00 00 63 6F 69 6E 73 5F 6C 65 6D 75 72 73 00 BF BF BF]
+		0x3d0 - Attribute   1: [        coins_kingofny  ][00 00 00 00 00 00 00 00 63 6F 69 6E 73 5F 6B 69 6E 67 6F 66 6E 79 00 BF]
+		0x3f0 - Attribute   1: [        coins_coming    ][00 00 00 00 00 00 00 00 63 6F 69 6E 73 5F 63 6F 6D 69 6E 67 00 BF BF BF]
+		0x40c - Attribute   1: [        coins_beach ][00 00 00 00 00 00 00 00 63 6F 69 6E 73 5F 62 65 61 63 68 00]
+		0x42c - Attribute   1: [        coins_rescue    ][00 00 00 00 00 00 00 00 63 6F 69 6E 73 5F 72 65 73 63 75 65 00 BF BF BF]
+		0x44c - Attribute   1: [        coins_battle    ][00 00 00 00 00 00 00 00 63 6F 69 6E 73 5F 62 61 74 74 6C 65 00 BF BF BF]
+		0x46c - Attribute   1: [        rings_street    ][00 00 00 00 00 00 00 00 72 69 6E 67 73 5F 73 74 72 65 65 74 00 BF BF BF]
+		0x48c - Attribute   1: [        rings_lemurs    ][00 00 00 00 00 00 00 00 72 69 6E 67 73 5F 6C 65 6D 75 72 73 00 BF BF BF]
+		0x4ac - Attribute   1: [        rings_banquet   ][00 00 00 00 00 00 00 00 72 69 6E 67 73 5F 62 61 6E 71 75 65 74 00 BF BF]
+		0x4d0 - Attribute   1: [        high_score_armor    ][00 00 00 00 00 00 00 00 68 69 67 68 5F 73 63 6F 72 65 5F 61 72 6D 6F 72 00 BF BF BF]
+		0x4f4 - Attribute   1: [        high_score_wobble   ][00 00 00 00 00 00 00 00 68 69 67 68 5F 73 63 6F 72 65 5F 77 6F 62 62 6C 65 00 BF BF]
+		0x518 - Attribute   1: [        high_score_space    ][00 00 00 00 00 00 00 00 68 69 67 68 5F 73 63 6F 72 65 5F 73 70 61 63 65 00 BF BF BF]
+		0x53c - Attribute   1: [        high_score_fruit    ][00 00 00 00 00 00 00 00 68 69 67 68 5F 73 63 6F 72 65 5F 66 72 75 69 74 00 BF BF BF]
+		0x560 - Attribute   1: [        high_score_moles    ][00 00 00 00 00 00 00 00 68 69 67 68 5F 73 63 6F 72 65 5F 6D 6F 6C 65 73 00 BF BF BF]
+		0x584 - Attribute   1: [        high_score_simon    ][00 00 00 00 00 00 00 00 68 69 67 68 5F 73 63 6F 72 65 5F 73 69 6D 6F 6E 00 BF BF BF]
+		0x5a4 - Attribute   1: [        coins_banquet   ][00 00 00 00 00 00 00 00 63 6F 69 6E 73 5F 62 61 6E 71 75 65 74 00 BF BF]
+		0x5d4 - Attribute   1: [        Section01_LemurToss_Gathered    ][00 00 00 00 00 00 00 00 53 65 63 74 69 6F 6E 30 31 5F 4C 65 6D 75 72 54 6F 73 73 5F 47 61 74 68 65 72 65 64 00 BF BF BF]
+		0x604 - Attribute   1: [        Section02_MartyJump_Gathered    ][00 00 00 00 00 00 00 00 53 65 63 74 69 6F 6E 30 32 5F 4D 61 72 74 79 4A 75 6D 70 5F 47 61 74 68 65 72 65 64 00 BF BF BF]
+		0x634 - Attribute   1: [        Section03_MelmanGlide_Gathered  ][00 00 00 00 00 00 00 00 53 65 63 74 69 6F 6E 30 33 5F 4D 65 6C 6D 61 6E 47 6C 69 64 65 5F 47 61 74 68 65 72 65 64 00 BF]
+		0x668 - Attribute   1: [        Section04_TurtleMinigame_Gathered   ][00 00 00 00 00 00 00 00 53 65 63 74 69 6F 6E 30 34 5F 54 75 72 74 6C 65 4D 69 6E 69 67 61 6D 65 5F 47 61 74 68 65 72 65 64 00 BF BF]
+		0x698 - Attribute   1: [        Section05_CrocBattle_Gathered   ][00 00 00 00 00 00 00 00 53 65 63 74 69 6F 6E 30 35 5F 43 72 6F 63 42 61 74 74 6C 65 5F 47 61 74 68 65 72 65 64 00 BF BF]
+		0x6cc - Attribute   1: [        Section06_MushroomChain_Gathered    ][00 00 00 00 00 00 00 00 53 65 63 74 69 6F 6E 30 36 5F 4D 75 73 68 72 6F 6F 6D 43 68 61 69 6E 5F 47 61 74 68 65 72 65 64 20 00 BF BF]
+		0x6fc - Attribute   1: [        Section07_BirdWhack_Gathered    ][00 00 00 00 00 00 00 00 53 65 63 74 69 6F 6E 30 37 5F 42 69 72 64 57 68 61 63 6B 5F 47 61 74 68 65 72 65 64 00 BF BF BF]
+		0x72c - Attribute   1: [        Section08_CrabSmash_Gathered    ][00 00 00 00 00 00 00 00 53 65 63 74 69 6F 6E 30 38 5F 43 72 61 62 53 6D 61 73 68 5F 47 61 74 68 65 72 65 64 00 BF BF BF]
+		0x75c - Attribute   1: [        Section09_BoulderRun_Gathered   ][00 00 00 00 00 00 00 00 53 65 63 74 69 6F 6E 30 39 5F 42 6F 75 6C 64 65 72 52 75 6E 5F 47 61 74 68 65 72 65 64 00 BF BF]
+		0x78c - Attribute   1: [        Section01_WhackMole_Gathered    ][00 00 00 00 00 00 00 00 53 65 63 74 69 6F 6E 30 31 5F 57 68 61 63 6B 4D 6F 6C 65 5F 47 61 74 68 65 72 65 64 00 BF BF BF]
+		0x7bc - Attribute   1: [        Section02_CaveOnion_Gathered    ][00 00 00 00 00 00 00 00 53 65 63 74 69 6F 6E 30 32 5F 43 61 76 65 4F 6E 69 6F 6E 5F 47 61 74 68 65 72 65 64 00 BF BF BF]
+		0x7e8 - Attribute   1: [        Section06_Smoothie_Gathered ][00 00 00 00 00 00 00 00 53 65 63 74 69 6F 6E 30 36 5F 53 6D 6F 6F 74 68 69 65 5F 47 61 74 68 65 72 65 64 00]
+		0x818 - Attribute   1: [        Section08_KelpSalad_Gathered    ][00 00 00 00 00 00 00 00 53 65 63 74 69 6F 6E 30 38 5F 4B 65 6C 70 53 61 6C 61 64 5F 47 61 74 68 65 72 65 64 00 BF BF BF]
+		0x844 - Attribute   1: [        Section04_Simon_Gathered    ][00 00 00 00 00 00 00 00 53 65 63 74 69 6F 6E 30 34 5F 53 69 6D 6F 6E 5F 47 61 74 68 65 72 65 64 00 BF BF BF]
+		0x870 - Attribute   1: [        Section09_Melon_Gathered    ][00 00 00 00 00 00 00 00 53 65 63 74 69 6F 6E 30 39 5F 4D 65 6C 6F 6E 5F 47 61 74 68 65 72 65 64 00 BF BF BF]
+		0x898 - Attribute   1: [        Section10_Race_Gathered ][00 00 00 00 00 00 00 00 53 65 63 74 69 6F 6E 31 30 5F 52 61 63 65 5F 47 61 74 68 65 72 65 64 00]
+		0x8c8 - Attribute   1: [        Section07_RoyalJelly_Gathered   ][00 00 00 00 00 00 00 00 53 65 63 74 69 6F 6E 30 37 5F 52 6F 79 61 6C 4A 65 6C 6C 79 5F 47 61 74 68 65 72 65 64 00 BF BF]
+		0x8f8 - Attribute   1: [        Section03_Pineapple_Gathered    ][00 00 00 00 00 00 00 00 53 65 63 74 69 6F 6E 30 33 5F 50 69 6E 65 61 70 70 6C 65 5F 47 61 74 68 65 72 65 64 00 BF BF BF]
+		0x920 - Attribute   1: [        Section10_Jump_Gathered ][00 00 00 00 00 00 00 00 53 65 63 74 69 6F 6E 31 30 5F 4A 75 6D 70 5F 47 61 74 68 65 72 65 64 00]
+		0x950 - Attribute   1: [        Section05_Waterslide_Gathered   ][00 00 00 00 00 00 00 00 53 65 63 74 69 6F 6E 30 35 5F 57 61 74 65 72 73 6C 69 64 65 5F 47 61 74 68 65 72 65 64 00 BF BF]
+		0x970 - Attribute   1: [        rings_jungle    ][00 00 00 00 00 00 00 00 72 69 6E 67 73 5F 6A 75 6E 67 6C 65 00 BF BF BF]
+		0x994 - Attribute   1: [        acquired_hipslide?  ][00 00 00 00 00 00 00 00 61 63 71 75 69 72 65 64 5F 68 69 70 73 6C 69 64 65 3F 00 BF]
+		0x9b8 - Attribute   1: [        acquired_headbash?  ][00 00 00 00 00 00 00 00 61 63 71 75 69 72 65 64 5F 68 65 61 64 62 61 73 68 3F 00 BF]
+		0x9dc - Attribute   1: [        acquired_long_jump? ][00 00 00 00 00 00 00 00 61 63 71 75 69 72 65 64 5F 6C 6F 6E 67 5F 6A 75 6D 70 3F 00]
+		0x9fc - Attribute   1: [        go_to_zoovenir  ][00 00 00 00 00 00 00 00 67 6F 5F 74 6F 5F 7A 6F 6F 76 65 6E 69 72 00 BF]
+		0xa24 - Attribute   1: [        zoovenir_disable_bits   ][00 00 00 00 00 00 00 00 7A 6F 6F 76 65 6E 69 72 5F 64 69 73 61 62 6C 65 5F 62 69 74 73 00 BF BF]
+		0xa48 - Attribute   1: [        destruction_street  ][00 00 00 00 00 00 00 00 64 65 73 74 72 75 63 74 69 6F 6E 5F 73 74 72 65 65 74 00 BF]
+		0xa64 - Attribute   3: [LevelAudioStream    ][4C 65 76 65 6C 41 75 64 69 6F 53 74 72 65 61 6D 00 BF BF BF]
+		0xa80 - Attribute   4: [LevelMusicStream    ][4C 65 76 65 6C 4D 75 73 69 63 53 74 72 65 61 6D 00 BF BF BF]
+	Class:	CAttributeHandler
+		0xaa8 -   0-Debug          : RWBool(0) (False)
+	isGlobal:	True
+
+════════════════════ Sector 6 ════════════════════
+Length: 140 Type: 1796 (sf_CreateEntity)
+Create Entity Call:
+	Behaviour:	MemCard
+	Entity ID:	{b80783d3-48d7-454f-aa88-4fb459578180}
+	Class:	CTFBCommand
+		0x58 -   0-Script Object Name: MemCard Controller
+	Class:	CAttributeHandler
+		0x80 -   0-Debug          : RWBool(0) (False)
+	isGlobal:	True
+

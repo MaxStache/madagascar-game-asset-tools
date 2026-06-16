@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Madagascar RW BSP Importer",
     "author": "Maxttc",
-    "version": (0, 1, 0),
+    "version": (0, 3, 0),
     "blender": (3, 0, 0),
     "location": "File > Import > BSP (.bsp)",
     "description": "Imports BSP files",

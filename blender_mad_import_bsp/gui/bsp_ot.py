@@ -1,166 +1,116 @@
 from bpy.types import Operator
 from bpy_extras.io_utils import ImportHelper
-from bpy.props import StringProperty, FloatProperty, BoolProperty 
+from bpy.props import StringProperty, FloatProperty, BoolProperty
 
 from ..bspLib import parse_file as parse_bsp_file
 from ..bspLib import collect_atomic_sectors
 
+
 class IMPORT_OT_bsp(Operator, ImportHelper):
     bl_idname = "import_scene.bsp"
     bl_label = "Import BSP"
-    bl_options = {'PRESET', 'UNDO'}
+    bl_options = {"PRESET", "UNDO"}
 
     filename_ext = ".bsp"
-    filter_glob: StringProperty(default="*.bsp", options={'HIDDEN'}) # type: ignore
+    filter_glob: StringProperty(default="*.bsp", options={"HIDDEN"})  # type: ignore
 
     scale: FloatProperty(
         name="Scale",
-        description="Scale factor for imported geometry",
-        default=3,
+        description="Scale factor for imported geometry (Default 0.01 because RW Unit is 1cm but blender is 1m, we need to scale it a little larger because its too small otherwise and blender hates that)",
+        default=0.05,
         min=0.000001,
         max=1000.0,
-    ) # type: ignore
-
-    center_geometry: BoolProperty(
-        name="Center Geometry",
-        description="Move all geometry to be centered at the origin",
-        default=True,
-    ) # type: ignore
-
-    cluster_distance: FloatProperty(
-        name="Cluster Distance",
-        description="Sectors farther apart than this are imported as separate meshes (0 = single mesh)",
-        default=10000.0,
-        min=0.0,
-        max=100000000.0,
-    ) # type: ignore
-
-    distribute_zones: BoolProperty(
-        name="Distribute Zones",
-        description="Arrange zones in a circle around the origin for easy viewing",
-        default=False,
-    ) # type: ignore
-
-    distribute_radius: FloatProperty(
-        name="Distribution Radius",
-        description="Radius of the circle for zone distribution",
-        default=1000.0,
-        min=0.0,
-        max=100000.0,
-    ) # type: ignore
+    )  # type: ignore
 
     texture_prefix: StringProperty(
         name="Texture Prefix",
         description="Path prefix for textures relative to BSP location (e.g., 'textures/' or '../shared/')",
         default="",
-    ) # type: ignore
+    )  # type: ignore
 
     recalc_normals: BoolProperty(
         name="Recalculate Normals",
         description="Recalculate face normals to be consistent (disable if your BSP has intentional double-sided geometry)",
         default=False,
-    ) # type: ignore
+    )  # type: ignore
 
     def execute(self, context):
         import os
 
         if os.path.isdir(self.filepath):
-            self.report({'ERROR'}, "Selected path is a folder, please select a BSP file.")
-            return {'CANCELLED'}
+            self.report(
+                {"ERROR"}, "Selected path is a folder, please select a BSP file."
+            )
+            return {"CANCELLED"}
 
-        self.import_bsp(context, self.filepath, self.scale, self.center_geometry,
-                        self.cluster_distance, self.distribute_zones, self.distribute_radius,
-                        self.texture_prefix, self.recalc_normals)
-        return {'FINISHED'}
+        result = self.import_bsp(
+            context,
+            self.filepath,
+            self.scale,
+            self.texture_prefix,
+            self.recalc_normals,
+        )
+        return result or {"FINISHED"}
 
-    def import_bsp(self, context, filepath, scale=0.01, center_geometry=True,
-                   cluster_distance=10000.0, distribute_zones=False, distribute_radius=1000.0,
-                   texture_prefix="", recalc_normals=False):
+    def import_bsp(self, context, filepath, scale=0.05, texture_prefix="", recalc_normals=False):
         import bpy
         import bmesh
-        import math
         import random
         import os
 
         parsed_bsp = parse_bsp_file(filepath)
         sectors = collect_atomic_sectors(parsed_bsp.get("worldChunk", []))
         if not sectors:
-            print("No geometry found in BSP")
-            self.report({'ERROR'}, "No geometry found in BSP")
-            return {'CANCELLED'}
+            self.report({"ERROR"}, "No geometry found in BSP")
+            return {"CANCELLED"}
 
-        # Get materials from BSP
         materials = parsed_bsp.get("materialList", {}).get("materials", [])
         mat_suffix = str(random.randint(1000, 9999))
         bsp_name = os.path.splitext(os.path.basename(filepath))[0]
         bsp_dir = os.path.dirname(filepath)
 
-        # Pre-scan: figure out which material indices are actually used with
-        # non-opaque vertex colors. Vertex alpha is per-vertex (not per-material),
-        # so we need to walk all triangles and check the alpha of their verts.
-        # This is what tells us whether to enable BLENDED mode for a material.
-        ALPHA_THRESHOLD = 254  # vertex alpha values at or above this count as opaque
+        # Pre-scan: determine which material indices have non-opaque vertex alpha
+        ALPHA_THRESHOLD = 254
         materials_with_vertex_alpha = set()
         for sector in sectors:
             if sector.get("isNativeData"):
                 continue
-            sector_vertices = sector.get("vertices", [])
             sector_colors = sector.get("colors", [])
             sector_triangles = sector.get("triangles", [])
             mat_base = sector.get("matListWindowBase", 0)
-            if not sector_vertices or not sector_colors:
+            if not sector_colors:
                 continue
             for tri in sector_triangles:
-                v1, v2, v3 = tri["vertex1"], tri["vertex2"], tri["vertex3"]
-                mat_idx = mat_base + tri.get("materialIndex", 0)
-                for vi in (v1, v2, v3):
-                    if vi < len(sector_colors):
-                        if sector_colors[vi].get("a", 255) < ALPHA_THRESHOLD:
-                            materials_with_vertex_alpha.add(mat_idx)
-                            break
+                mat_idx = mat_base + tri[3]
+                for vi in (tri[0], tri[1], tri[2]):
+                    if vi < len(sector_colors) and sector_colors[vi][3] < ALPHA_THRESHOLD:
+                        materials_with_vertex_alpha.add(mat_idx)
+                        break
 
         # Create Blender materials
         blender_materials = []
         for i, mat in enumerate(materials):
-            mat_name = f"{bsp_name}_mat_{i}_{mat_suffix}"
-            bl_mat = bpy.data.materials.new(name=mat_name)
+            bl_mat = bpy.data.materials.new(name=f"{bsp_name}_mat_{i}_{mat_suffix}")
             bl_mat.use_nodes = True
-
-            # Disable backface culling so faces are visible from both sides.
-            # BSP source data often has inconsistent triangle winding, which would
-            # otherwise cause faces to appear/disappear depending on view angle.
             bl_mat.use_backface_culling = False
 
-            # Get the principled BSDF node
             nodes = bl_mat.node_tree.nodes
             links = bl_mat.node_tree.links
             bsdf = nodes.get("Principled BSDF")
 
             if bsdf:
-                # Set color
                 color = mat.get("color", {})
                 r = color.get("r", 255) / 255.0
                 g = color.get("g", 255) / 255.0
                 b = color.get("b", 255) / 255.0
                 a = color.get("a", 255) / 255.0
                 bsdf.inputs["Base Color"].default_value = (r, g, b, 1.0)
+                bsdf.inputs["Roughness"].default_value = 1.0 - mat.get("specular", 0.0)
 
-                # Vertex color layer (RGBA)
                 vcol_node = nodes.new(type="ShaderNodeVertexColor")
                 vcol_node.layer_name = "Color"
                 vcol_node.location = (-650, 300)
 
-                # Set specular/roughness
-                specular = mat.get("specular", 0.0)
-                bsdf.inputs["Roughness"].default_value = 1.0 - specular
-
-                # Determine if this material is actually meant to be transparent.
-                # It's transparent if ANY of:
-                #   - base color alpha < 1
-                #   - the BSP material flags it as transparent
-                #   - any vertex using this material has alpha < 1 (pre-scanned)
-                # We can't just always wire vertex alpha — doing so puts even
-                # fully-opaque faces in BLENDED mode and causes sort flicker.
                 is_transparent = (
                     a < 0.999
                     or mat.get("isTransparent", False)
@@ -169,83 +119,86 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
                     or i in materials_with_vertex_alpha
                 )
 
-                # Set base alpha from the material color
-                if is_transparent:
-                    bsdf.inputs["Alpha"].default_value = a
-
-                # Handle texture
+                tex_node = None
                 if mat.get("isTextured") and mat.get("texture"):
                     tex_name = mat["texture"].get("diffuseTextureName", "")
                     if tex_name:
-                        # Create image texture node (always, even if file missing)
                         tex_node = nodes.new(type="ShaderNodeTexImage")
                         tex_node.location = (-300, 300)
                         tex_node.label = tex_name
-                        tex_node.interpolation = 'Closest'
+                        tex_node.interpolation = "Closest"
 
-                        # Load texture file (let Blender handle missing files)
                         tex_path = os.path.join(bsp_dir, texture_prefix, f"{tex_name}.png")
                         try:
                             image = bpy.data.images.load(tex_path, check_existing=True)
                         except Exception:
-                            # Create placeholder image with filepath set
                             image = bpy.data.images.new(name=tex_name, width=1, height=1)
                             image.filepath = tex_path
-                            image.source = 'FILE'
+                            image.source = "FILE"
                         tex_node.image = image
 
-                        # Only wire alpha for transparent materials.
-                        # For opaque materials we deliberately ignore vertex/texture
-                        # alpha so Eevee can render them as truly opaque (no sort flicker).
-                        if is_transparent:
-                            alpha_mul = nodes.new(type="ShaderNodeMath")
-                            alpha_mul.operation = 'MULTIPLY'
-                            alpha_mul.location = (-100, 100)
-                            links.new(tex_node.outputs["Alpha"], alpha_mul.inputs[0])
-                            links.new(vcol_node.outputs["Alpha"], alpha_mul.inputs[1])
-                            links.new(alpha_mul.outputs["Value"], bsdf.inputs["Alpha"])
-
-                        # Multiply texture by vertex color
+                # Color: texture × vertex_color (or just vertex_color if no texture)
+                if tex_node:
+                    import bpy.app
+                    if bpy.app.version >= (4, 0, 0):
+                        mix_node = nodes.new(type="ShaderNodeMix")
+                        mix_node.data_type = "RGBA"
+                        mix_node.blend_type = "MULTIPLY"
+                        mix_node.inputs["Factor"].default_value = 1.0
+                        mix_node.location = (-100, 300)
+                        links.new(tex_node.outputs["Color"], mix_node.inputs["A"])
+                        links.new(vcol_node.outputs["Color"], mix_node.inputs["B"])
+                        links.new(mix_node.outputs["Result"], bsdf.inputs["Base Color"])
+                    else:
                         mix_node = nodes.new(type="ShaderNodeMixRGB")
-                        mix_node.blend_type = 'MULTIPLY'
+                        mix_node.blend_type = "MULTIPLY"
                         mix_node.inputs["Fac"].default_value = 1.0
                         mix_node.location = (-100, 300)
                         links.new(tex_node.outputs["Color"], mix_node.inputs["Color1"])
                         links.new(vcol_node.outputs["Color"], mix_node.inputs["Color2"])
                         links.new(mix_node.outputs["Color"], bsdf.inputs["Base Color"])
-                    else:
-                        links.new(vcol_node.outputs["Color"], bsdf.inputs["Base Color"])
-                        if is_transparent:
-                            links.new(vcol_node.outputs["Alpha"], bsdf.inputs["Alpha"])
                 else:
                     links.new(vcol_node.outputs["Color"], bsdf.inputs["Base Color"])
-                    if is_transparent:
-                        links.new(vcol_node.outputs["Alpha"], bsdf.inputs["Alpha"])
 
-                # Set the appropriate blend method.
-                # Opaque materials stay fully opaque — this is critical for avoiding
-                # the per-face sort flicker that BLENDED causes in Eevee.
-                # Only materials that genuinely need transparency get BLENDED.
+                # Alpha: vcol_alpha × tex_alpha × mat_a — all three only when relevant
+                if is_transparent:
+                    alpha_out = vcol_node.outputs["Alpha"]
+
+                    if tex_node:
+                        mul = nodes.new(type="ShaderNodeMath")
+                        mul.operation = "MULTIPLY"
+                        mul.location = (-300, 100)
+                        links.new(tex_node.outputs["Alpha"], mul.inputs[0])
+                        links.new(alpha_out, mul.inputs[1])
+                        alpha_out = mul.outputs["Value"]
+
+                    if a < 0.999:
+                        mul2 = nodes.new(type="ShaderNodeMath")
+                        mul2.operation = "MULTIPLY"
+                        mul2.inputs[0].default_value = a
+                        mul2.location = (-100, 100)
+                        links.new(alpha_out, mul2.inputs[1])
+                        alpha_out = mul2.outputs["Value"]
+
+                    links.new(alpha_out, bsdf.inputs["Alpha"])
+
                 if hasattr(bl_mat, "surface_render_method"):
-                    # Blender 4.2+
-                    bl_mat.surface_render_method = 'BLENDED' if is_transparent else 'DITHERED'
+                    bl_mat.surface_render_method = "BLENDED" if is_transparent else "DITHERED"
                 else:
-                    # Blender < 4.2
                     if is_transparent:
-                        bl_mat.blend_method = 'BLEND'
+                        bl_mat.blend_method = "BLEND"
                         if hasattr(bl_mat, "shadow_method"):
-                            bl_mat.shadow_method = 'HASHED'
+                            bl_mat.shadow_method = "HASHED"
                     else:
-                        bl_mat.blend_method = 'OPAQUE'
+                        bl_mat.blend_method = "OPAQUE"
 
             blender_materials.append(bl_mat)
 
-        # Step 1: Merge ALL geometry into single lists
-        all_verts = []  # (x, y, z) raw coordinates
-        all_faces = []  # (v1, v2, v3) indices into all_verts
-        all_face_materials = []  # material index per face
-        all_uvs = []    # (u, v) per vertex
-        all_colors = []  # (r, g, b, a) per vertex
+        all_verts = []
+        all_faces = []
+        all_face_materials = []
+        all_uvs = []
+        all_colors = []
         vertex_offset = 0
 
         for sector in sectors:
@@ -260,256 +213,85 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
                 continue
 
             for i, v in enumerate(vertices):
-                all_verts.append((v["x"], v["y"], v["z"]))
-                if uvs and i < len(uvs):
-                    all_uvs.append((uvs[i]["u"], 1.0 - uvs[i]["v"]))
-                else:
-                    all_uvs.append((0, 0))
+                all_verts.append((v[0] * scale, v[2] * scale, v[1] * scale))
+                all_uvs.append((uvs[i][0], 1.0 - uvs[i][1]) if uvs and i < len(uvs) else (0.0, 0.0))
                 if colors and i < len(colors):
                     c = colors[i]
-                    all_colors.append((
-                        c.get("r", 255) / 255.0,
-                        c.get("g", 255) / 255.0,
-                        c.get("b", 255) / 255.0,
-                        c.get("a", 255) / 255.0,
-                    ))
+                    all_colors.append((c[0] / 255.0, c[1] / 255.0, c[2] / 255.0, c[3] / 255.0))
                 else:
                     all_colors.append((1.0, 1.0, 1.0, 1.0))
 
+            num_sector_verts = len(vertices)
             for tri in triangles:
+                v0, v1, v2 = tri[0], tri[1], tri[2]
+                if v0 >= num_sector_verts or v1 >= num_sector_verts or v2 >= num_sector_verts:
+                    continue
+                if v0 == v1 or v0 == v2 or v1 == v2:
+                    continue
                 all_faces.append((
-                    tri["vertex1"] + vertex_offset,
-                    tri["vertex2"] + vertex_offset,
-                    tri["vertex3"] + vertex_offset,
+                    v0 + vertex_offset,
+                    v2 + vertex_offset,
+                    v1 + vertex_offset,
                 ))
-                # Calculate actual material index
-                mat_idx = mat_base + tri.get("materialIndex", 0)
-                all_face_materials.append(mat_idx)
+                all_face_materials.append(mat_base + tri[3])
             vertex_offset += len(vertices)
 
         if not all_faces:
-            self.report({'ERROR'}, "No geometry found")
-            return {'CANCELLED'}
+            self.report({"ERROR"}, "No geometry found")
+            return {"CANCELLED"}
 
-        # Step 2: Find connected components of faces using union-find on vertices
-        n_verts = len(all_verts)
-        parent = list(range(n_verts))
+        # Build single mesh object
+        mesh = bpy.data.meshes.new(f"{bsp_name}_Mesh")
+        obj = bpy.data.objects.new(bsp_name, mesh)
+        context.collection.objects.link(obj)
 
-        def find(x):
-            root = x
-            while parent[root] != root:
-                root = parent[root]
-            # Path compression
-            while parent[x] != root:
-                next_x = parent[x]
-                parent[x] = root
-                x = next_x
-            return root
+        # Build material slots before from_pydata so we can assign per-polygon
+        # indices before mesh.validate() runs. validate() can silently remove
+        # degenerate faces, which would desync a post-validate foreach_set call.
+        used_mats = sorted(set(all_face_materials))
+        mat_to_slot = {}
+        for mat_idx in used_mats:
+            if mat_idx < len(blender_materials):
+                mat_to_slot[mat_idx] = len(obj.data.materials)
+                obj.data.materials.append(blender_materials[mat_idx])
 
-        def union(x, y):
-            px, py = find(x), find(y)
-            if px != py:
-                parent[px] = py
+        mesh.from_pydata(all_verts, [], all_faces)
 
-        # Connect vertices that share a face
-        for face in all_faces:
-            union(face[0], face[1])
-            union(face[1], face[2])
+        # Set per-polygon slot indices now — before validate removes any faces.
+        slot_indices = [mat_to_slot.get(m, 0) for m in all_face_materials]
+        mesh.polygons.foreach_set("material_index", slot_indices)
 
-        # Step 3: Group faces by their connected component
-        component_faces = {}  # root -> list of face indices
-        for face_idx, face in enumerate(all_faces):
-            root = find(face[0])
-            if root not in component_faces:
-                component_faces[root] = []
-            component_faces[root].append(face_idx)
+        mesh.validate()
+        mesh.update()
 
-        # Step 4: Calculate bounding box for each component
-        components = []
-        for root, face_indices in component_faces.items():
-            # Get all vertices in this component
-            vert_indices = set()
-            for fi in face_indices:
-                vert_indices.update(all_faces[fi])
-
-            xs = [all_verts[vi][0] for vi in vert_indices]
-            ys = [all_verts[vi][1] for vi in vert_indices]
-            zs = [all_verts[vi][2] for vi in vert_indices]
-
-            components.append({
-                "face_indices": face_indices,
-                "vert_indices": vert_indices,
-                "bbox": (min(xs), max(xs), min(ys), max(ys), min(zs), max(zs)),
-            })
-
-        # Step 5: Cluster components by bounding box distance
-        n_comp = len(components)
-        comp_parent = list(range(n_comp))
-
-        def find_comp(x):
-            root = x
-            while comp_parent[root] != root:
-                root = comp_parent[root]
-            # Path compression
-            while comp_parent[x] != root:
-                next_x = comp_parent[x]
-                comp_parent[x] = root
-                x = next_x
-            return root
-
-        def union_comp(x, y):
-            px, py = find_comp(x), find_comp(y)
-            if px != py:
-                comp_parent[px] = py
-
-        def bbox_distance(b1, b2):
-            def axis_dist(min1, max1, min2, max2):
-                if max1 < min2:
-                    return min2 - max1
-                elif max2 < min1:
-                    return min1 - max2
-                return 0
-            dx = axis_dist(b1[0], b1[1], b2[0], b2[1])
-            dy = axis_dist(b1[2], b1[3], b2[2], b2[3])
-            dz = axis_dist(b1[4], b1[5], b2[4], b2[5])
-            return (dx*dx + dy*dy + dz*dz) ** 0.5
-
-        if cluster_distance > 0:
-            for i in range(n_comp):
-                for j in range(i + 1, n_comp):
-                    dist = bbox_distance(components[i]["bbox"], components[j]["bbox"])
-                    if dist <= cluster_distance:
-                        union_comp(i, j)
-
-        # Step 6: Group components into final zones
-        zones = {}
-        for i in range(n_comp):
-            root = find_comp(i)
-            if root not in zones:
-                zones[root] = []
-            zones[root].append(components[i])
-
-        # Create parent empty
-        world_parent = bpy.data.objects.new(bsp_name, None)
-        context.collection.objects.link(world_parent)
-        # Rotate 90 degrees on X axis (convert from Z-up to Y-up coordinate system)
-        world_parent.rotation_euler[0] = math.radians(90)
-
-        # Step 7: Create mesh for each zone
-        n_zones = len(zones)
-        for zone_idx, zone_components in enumerate(zones.values()):
-            # Collect all vertex indices and face indices for this zone
-            zone_vert_indices = set()
-            zone_face_indices = []
-            for comp in zone_components:
-                zone_vert_indices.update(comp["vert_indices"])
-                zone_face_indices.extend(comp["face_indices"])
-
-            # Calculate center offset for this zone
-            center_offset = (0, 0, 0)
-            if center_geometry:
-                xs = [all_verts[vi][0] for vi in zone_vert_indices]
-                ys = [all_verts[vi][1] for vi in zone_vert_indices]
-                zs = [all_verts[vi][2] for vi in zone_vert_indices]
-                center_offset = (
-                    (min(xs) + max(xs)) / 2,
-                    (min(ys) + max(ys)) / 2,
-                    (min(zs) + max(zs)) / 2,
-                )
-
-            # Remap vertex indices to new local indices
-            old_to_new = {}
-            zone_verts = []
-            zone_uvs = []
-            zone_colors = []
-            for old_idx in sorted(zone_vert_indices):
-                old_to_new[old_idx] = len(zone_verts)
-                v = all_verts[old_idx]
-                zone_verts.append((
-                    (v[0] - center_offset[0]) * scale,
-                    (v[1] - center_offset[1]) * scale,
-                    (v[2] - center_offset[2]) * scale,
-                ))
-                zone_uvs.append(all_uvs[old_idx])
-                zone_colors.append(all_colors[old_idx])
-
-            # Remap faces and collect material indices
-            zone_faces = []
-            zone_face_mats = []
-            for fi in zone_face_indices:
-                face = all_faces[fi]
-                zone_faces.append((
-                    old_to_new[face[0]],
-                    old_to_new[face[1]],
-                    old_to_new[face[2]],
-                ))
-                zone_face_mats.append(all_face_materials[fi])
-
-            # Create mesh
-            mesh = bpy.data.meshes.new(f"Zone_{zone_idx}_Mesh")
-            obj = bpy.data.objects.new(f"Zone_{zone_idx}", mesh)
-            context.collection.objects.link(obj)
-
-            mesh.from_pydata(zone_verts, [], zone_faces)
+        if recalc_normals:
+            bm = bmesh.new()
+            bm.from_mesh(mesh)
+            bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+            bm.to_mesh(mesh)
+            bm.free()
             mesh.update()
 
-            # Optionally recalculate normals so they all face outward consistently.
-            # Off by default because BSP files often have intentional double-sided
-            # geometry (decals, foliage) that recalc would break. Backface culling
-            # is already disabled on the materials, so this is usually unnecessary.
-            if recalc_normals:
-                bm = bmesh.new()
-                bm.from_mesh(mesh)
-                bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-                bm.to_mesh(mesh)
-                bm.free()
-                mesh.update()
+        # Apply UVs — build from mesh.loops so the count matches after mesh.validate()
+        if all_uvs:
+            uv_layer = mesh.uv_layers.new(name="UVMap")
+            uvs_flat = [coord for loop in mesh.loops for coord in all_uvs[loop.vertex_index]]
+            uv_layer.data.foreach_set("uv", uvs_flat)
 
-            # Add materials to mesh and assign to faces
-            # First, find which materials are used in this zone
-            used_mats = sorted(set(zone_face_mats))
-            mat_to_slot = {}  # maps global mat index -> slot index in this mesh
-
-            for mat_idx in used_mats:
-                if mat_idx < len(blender_materials):
-                    slot_idx = len(obj.data.materials)
-                    obj.data.materials.append(blender_materials[mat_idx])
-                    mat_to_slot[mat_idx] = slot_idx
-
-            # Assign materials to faces
-            for face_idx, mat_idx in enumerate(zone_face_mats):
-                if mat_idx in mat_to_slot:
-                    mesh.polygons[face_idx].material_index = mat_to_slot[mat_idx]
-
-            # Apply UVs
-            if zone_uvs:
-                uv_layer = mesh.uv_layers.new(name="UVMap")
-                for face_idx, face in enumerate(zone_faces):
-                    for loop_idx, vert_idx in enumerate(face):
-                        if vert_idx < len(zone_uvs):
-                            uv_layer.data[face_idx * 3 + loop_idx].uv = zone_uvs[vert_idx]
-
-            # Apply vertex colors (RGBA)
-            if zone_colors:
+        # Apply vertex colors — use color_attributes with FLOAT_COLOR so values
+        # stay in linear space and aren't double-gamma-converted by the sRGB byte path.
+        # Build from mesh.loops so the count matches after mesh.validate().
+        if all_colors:
+            colors_flat = [comp for loop in mesh.loops for comp in all_colors[loop.vertex_index]]
+            if hasattr(mesh, "color_attributes"):
+                col_attr = mesh.color_attributes.new(name="Color", type="FLOAT_COLOR", domain="CORNER")
+                col_attr.data.foreach_set("color", colors_flat)
+            else:
                 color_layer = mesh.vertex_colors.new(name="Color")
-                for face_idx, face in enumerate(zone_faces):
-                    for loop_idx, vert_idx in enumerate(face):
-                        if vert_idx < len(zone_colors):
-                            color_layer.data[face_idx * 3 + loop_idx].color = zone_colors[vert_idx]
+                color_layer.data.foreach_set("color", colors_flat)
 
-            obj.parent = world_parent
+        obj.select_set(True)
+        context.view_layer.objects.active = obj
 
-            # Position zone on circle if distribution is enabled
-            if distribute_zones and n_zones > 1:
-                angle = (2 * math.pi * zone_idx) / n_zones
-                obj.location = (
-                    math.cos(angle) * distribute_radius,
-                    math.sin(angle) * distribute_radius,
-                    0,
-                )
-
-        world_parent.select_set(True)
-        context.view_layer.objects.active = world_parent
-
-        self.report({'INFO'}, f"Imported {len(zones)} zone(s) from {len(components)} connected components")
-        return {'FINISHED'}
+        self.report({"INFO"}, f"Imported {len(all_verts)} verts, {len(all_faces)} faces")
+        return {"FINISHED"}

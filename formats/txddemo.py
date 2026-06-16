@@ -3,13 +3,13 @@ import rwtxd as rwtxd
 import sys
 
 # Round-trip
-txd = rwtxd.load("Levels/kingofny/2_TD_LEVEL FOLDER.txd")
+txd = rwtxd.load("Levels/mutiny/2_TD_LEVEL FOLDER.txd")
 
 # print(next(t for t in txd.textures if t.name == "head"))
 print("EXPORTING...")
 
 for texture in tqdm(txd.textures, desc="Exporting textures"):
-    rwtxd.export_png(texture, f"Levels/kingofny/textures/{texture.name}.png")
+    rwtxd.export_png(texture, f"Levels/mutiny/textures/{texture.name}.png")
     if texture.name == "melman_tissue2":
         print("\n")
         print(texture._xbox_texelDataSize)

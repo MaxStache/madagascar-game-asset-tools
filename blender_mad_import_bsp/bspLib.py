@@ -232,15 +232,10 @@ def parse_atomic_sector(
     # Reset to after header and read vertex data
     reader.offset = start_struct_position + header_size
 
-    # Vertex Data 
-    atomic["vertices"] = [
-        {
-            "x": reader.read_float32(),
-            "y": reader.read_float32(),
-            "z": reader.read_float32(),
-        }
-        for _ in range(num_vertices)
-    ]
+    # Vertex Data - bulk unpack: stored as (x, y, z) tuples
+    vert_raw = struct.unpack_from(f"<{num_vertices * 3}f", reader.data, reader.offset)
+    reader.offset += num_vertices * 12
+    atomic["vertices"] = [(vert_raw[i*3], vert_raw[i*3+1], vert_raw[i*3+2]) for i in range(num_vertices)]
 
     if not is_collision:
         # Check for two vertex color arrays
@@ -262,8 +257,10 @@ def parse_atomic_sector(
         if two_vcolor_arrays:
             reader.offset += 4 * num_vertices
 
-        # Color Data
-        atomic["colors"] = [reader.read_color32() for _ in range(num_vertices)]
+        # Color Data - bulk unpack: stored as (r, g, b, a) tuples
+        col_raw = struct.unpack_from(f"<{num_vertices * 4}B", reader.data, reader.offset)
+        reader.offset += num_vertices * 4
+        atomic["colors"] = [(col_raw[i*4], col_raw[i*4+1], col_raw[i*4+2], col_raw[i*4+3]) for i in range(num_vertices)]
 
         # Reset position for UV data
         if two_vcolor_arrays:
@@ -271,11 +268,10 @@ def parse_atomic_sector(
         else:
             reader.offset = start_struct_position + header_size + 16 * num_vertices
 
-        # UV Data
-        atomic["uvs"] = [
-            {"u": reader.read_float32(), "v": reader.read_float32()}
-            for _ in range(num_vertices)
-        ]
+        # UV Data - bulk unpack: stored as (u, v) tuples
+        uv_raw = struct.unpack_from(f"<{num_vertices * 2}f", reader.data, reader.offset)
+        reader.offset += num_vertices * 8
+        atomic["uvs"] = [(uv_raw[i*2], uv_raw[i*2+1]) for i in range(num_vertices)]
     else:
         atomic["colors"] = []
         atomic["uvs"] = []
@@ -283,16 +279,10 @@ def parse_atomic_sector(
     # Triangle data is at the end of the struct
     reader.offset = start_struct_position + struct_size - 8 * num_triangles
 
-    # Triangle Data - order differs between shadow and heroes format
-    atomic["triangles"] = [
-        {
-            "vertex1": reader.read_uint16(),
-            "vertex2": reader.read_uint16(),
-            "vertex3": reader.read_uint16(),
-            "materialIndex": reader.read_uint16(),
-        }
-        for _ in range(num_triangles)
-    ]
+    # Triangle Data - bulk unpack: stored as (v1, v2, v3, materialIndex) tuples
+    tri_raw = struct.unpack_from(f"<{num_triangles * 4}H", reader.data, reader.offset)
+    reader.offset += num_triangles * 8
+    atomic["triangles"] = [(tri_raw[i*4], tri_raw[i*4+1], tri_raw[i*4+2], tri_raw[i*4+3]) for i in range(num_triangles)]
 
     # Ensure we're at the end of struct
     reader.offset = start_struct_position + struct_size
@@ -604,31 +594,31 @@ def write_obj(output_path: str, filename: str, world_data: dict, texture_prefix:
 
             # Write vertices with scaling
             for v in vertices:
-                f.write(f"v {v['x']*scale:.6f} {v['y']*scale:.6f} {v['z']*scale:.6f}\n")
+                f.write(f"v {v[0]*scale:.6f} {v[1]*scale:.6f} {v[2]*scale:.6f}\n")
 
             # Write UVs (V flipped)
             for uv in uvs:
-                f.write(f"vt {uv['u']:.6f} {1.0 - uv['v']:.6f}\n")
+                f.write(f"vt {uv[0]:.6f} {1.0 - uv[1]:.6f}\n")
 
             # Group triangles by material (add matListWindowBase to get actual material index)
             mat_base = sector.get("matListWindowBase", 0)
             tris_by_mat = {}
             for tri in triangles:
-                mat_idx = mat_base + tri["materialIndex"]
+                mat_idx = mat_base + tri[3]
                 tris_by_mat.setdefault(mat_idx, []).append(tri)
 
             # Write faces grouped by material
             for mat_idx in sorted(tris_by_mat.keys()):
                 f.write(f"usemtl material_{mat_idx}_{mat_suffix}\n")
                 for tri in tris_by_mat[mat_idx]:
-                    v1 = tri["vertex1"] + vertex_offset + 1
-                    v2 = tri["vertex2"] + vertex_offset + 1
-                    v3 = tri["vertex3"] + vertex_offset + 1
+                    v1 = tri[0] + vertex_offset + 1
+                    v2 = tri[1] + vertex_offset + 1
+                    v3 = tri[2] + vertex_offset + 1
 
                     if uvs:
-                        vt1 = tri["vertex1"] + uv_offset + 1
-                        vt2 = tri["vertex2"] + uv_offset + 1
-                        vt3 = tri["vertex3"] + uv_offset + 1
+                        vt1 = tri[0] + uv_offset + 1
+                        vt2 = tri[1] + uv_offset + 1
+                        vt3 = tri[2] + uv_offset + 1
                         f.write(f"f {v1}/{vt1} {v2}/{vt2} {v3}/{vt3}\n")
                     else:
                         f.write(f"f {v1} {v2} {v3}\n")

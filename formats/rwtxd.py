@@ -223,6 +223,12 @@ class TextureDictionary:
     version_stamp: int = DEFAULT_VERSION_STAMP
     _txd_extension_data: bytes = b""
 
+    def findTextureByName(self, name: str) -> Optional[NativeTexture]:
+        for tex in self.textures:
+            if tex.name == name:
+                return tex
+        return None
+
 
 # ═══════════════════════════════════════════════════════
 #  Binary I/O helpers

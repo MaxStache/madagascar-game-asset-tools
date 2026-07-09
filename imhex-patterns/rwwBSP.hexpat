@@ -72,7 +72,7 @@ struct RW_UV {
     float u, v;
 } [[static]];
 
-struct RW_World_Triangle {
+struct RW_Triangle {
     u16 vertex1, vertex2, vertex3;
     u16 materialIndex;
 } [[static]];
@@ -203,7 +203,7 @@ struct RW_World_AtomicSector {
     Vector3        vertices[numVertices];
     RWColor32      colors[numVertices];
     RW_UV          uvs[numVertices];      // absent for collision-only BSPs
-    RW_World_Triangle triangles[numTriangles];
+    RW_Triangle triangles[numTriangles];
 
     RWHeader ext_header;          // rwID_EXTENSION
     u8 extData[ext_header.size];

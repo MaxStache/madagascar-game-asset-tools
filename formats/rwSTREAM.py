@@ -234,6 +234,26 @@ class RW_strfunc_SetFrozenMode:
 
     def get_raw_data(self):
         return b""
+    
+@dataclass
+class RW_strfunc_EnableDirectorsCamera:
+    @property
+    def strfunc(self):
+        return strfunc_func.sf_EnableDirectorsCamera
+
+    def get_raw_data(self):
+        return b""
+
+@dataclass
+class RW_strfunc_DeleteAllEntities:
+    @property
+    def strfunc(self):
+        return strfunc_func.sf_DeleteAllEntities
+
+    def get_raw_data(self):
+        return b""
+
+
 
 
 @dataclass
@@ -426,13 +446,7 @@ def _write_log_HandleAttribute(f, command, data, strCurrentClass, offset=0x0):
     attrDocumentation = CREATE_ENTITY_ATTRIBUTE_COMMANDS.get(strCurrentClass, {}).get(
         int(command), None
     )
-
-    if strCurrentClass == "CTFBModel" and command == 1:
-        val = Parser(data, endian="little")
-
-        with open("CTFBModel_Cmd1.txt", "a") as ctfblog:
-            ctfblog.write(data.hex() + "\n")
-
+    
     if attrDocumentation:
         output = f"\t\t{hex(offset)} - {command:>3}-{attrDocumentation['name']:<15}"
     else:
@@ -701,4 +715,6 @@ def write_log(stream: RW_StreamFile, output_path: Union[str, Path]):
 
             # Unhandled
             else:
-                f.write("\t[No view defined]\n\n")
+                f.write("\t[No view defined]\n")
+                f.write("\t[Raw Data:]\n")
+                f.write(f"\t\t{e.data.hex()}\n")

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import BinaryIO, Union, Optional
 from lib.parser import Parser
 from rwConstants import RWSectionType, RWSectionType_TFB, DEFAULT_VERSION_STAMP
-from rw_basics import RWColor32, Vector3, RWHeader, RW_World_Triangle
+from rw_basics import RWColor32, Vector3, RWHeader, RW_Triangle
 from rich.pretty import pprint
 
 # ═══════════════════════════════════════════════════════
@@ -162,9 +162,30 @@ class RW_EXT_BinMeshPLG(RW_EXT_BASE):
 
         return ext
 
+    def write(self, f: BinaryIO, stamp=DEFAULT_VERSION_STAMP):
+        buf = io.BytesIO()
+        _write_u32(buf, self.flags.value)
+        _write_u32(buf, self.numMeshes)
+        _write_u32(buf, self.numIndices)
+        for mesh in self.meshes:
+            _write_u32(buf, mesh.numIndices)
+            _write_u32(buf, mesh.materialIndex)
+            for idx in mesh.indices:
+                _write_u32(buf, idx)
+
+        rw_header = RWHeader(
+            type=RWSectionType.rwID_BINMESHPLUGIN.value,
+            size=len(buf.getvalue()),
+            library_id_stamp=stamp,
+        )
+        f.write(rw_header.pack())
+        f.write(buf.getvalue())
+
+
+
     @staticmethod
     def generate_from_triangles(
-        triangles: list[RW_World_Triangle],
+        triangles: list[RW_Triangle],
         stamp=DEFAULT_VERSION_STAMP,
         flag: RW_BinMeshPLG_Type = RW_BinMeshPLG_Type.TRIANGLE_LIST,
         matListWindowBase: int = 0,
@@ -267,26 +288,6 @@ class RW_EXT_BinMeshPLG(RW_EXT_BASE):
 
         return ext
 
-    def write(self, f: BinaryIO, stamp=DEFAULT_VERSION_STAMP):
-        buf = io.BytesIO()
-        _write_u32(buf, self.flags.value)
-        _write_u32(buf, self.numMeshes)
-        _write_u32(buf, self.numIndices)
-        for mesh in self.meshes:
-            _write_u32(buf, mesh.numIndices)
-            _write_u32(buf, mesh.materialIndex)
-            for idx in mesh.indices:
-                _write_u32(buf, idx)
-
-        rw_header = RWHeader(
-            type=RWSectionType.rwID_BINMESHPLUGIN.value,
-            size=len(buf.getvalue()),
-            library_id_stamp=stamp,
-        )
-        f.write(rw_header.pack())
-        f.write(buf.getvalue())
-
-
 @dataclass
 class RW_EXT_MaterialEffectsPLG_GeometryExt(RW_EXT_BASE):
     """
@@ -388,7 +389,7 @@ class RW_ExtensionSector:
                             ext_header, ext_parser
                         )
                     else:
-                        # print("Material Effects PLG found in non-atomic sector, skipping...")
+                        # print("Material Effects PLG found in non-atomic sector, reading normally")
                         ext = RW_EXT_MaterialEffectsPLG.read(ext_header, ext_parser)
                 case 2147483894:  # Some unk extension found on nearly every material
                     ext = RW_EXT_UNKNOWN.read(ext_header, ext_parser)
@@ -435,7 +436,7 @@ if __name__ == "__main__":
 
     for sec in rwwBSP._collect_atomic_sectors(bsp.world_chunk.data):
         print(f"Atomic Sector: {sec.numVertices} vertices, {sec.numTriangles} triangles")
-        #sec.triangles = [rwwBSP.RW_World_Triangle(t.vertex1, t.vertex2, t.vertex3, t.materialIndex) for t in sec.triangles]
+        #sec.triangles = [rwwBSP.RW_Triangle(t.vertex1, t.vertex2, t.vertex3, t.materialIndex) for t in sec.triangles]
         sec.vertices = [
             rwwBSP.Vector3(
                 v.x,

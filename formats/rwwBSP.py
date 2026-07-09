@@ -12,10 +12,13 @@ import struct
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Union, Optional
+
+from sections import RW_Extension, RW_BinMeshPlugin
+from sections.BINMESHPLUGIN_050E import RW_BinMeshPlugin_Flags
+
 from lib.parser import Parser
 from rwConstants import RWSectionType, RWSectionType_TFB, DEFAULT_VERSION_STAMP
-from rw_basics import RWColor32, Vector3, RWHeader, RW_World_Triangle
-from rw_extensions import RW_ExtensionSector
+from rw_basics import RWColor32, Vector3, RWHeader, RW_Triangle
 
 __version__ = "1.0.0"
 
@@ -240,6 +243,8 @@ class RW_Material:
     ext_header: RWHeader = field(default_factory=RWHeader)
     extData: bytes = b""  # ext_header.payload_size
 
+    extension: RW_Extension = field(default_factory=RW_Extension)
+
     def parse_extensions(this):
         buf = Parser(this.extData)
         extensions = []
@@ -284,8 +289,10 @@ class RW_Material:
         if mat.isTextured:
             mat.texture = RW_Texture.read(parser)
 
-        mat.ext_header = RWHeader.read(parser)
-        mat.extData = parser.readBytes(mat.ext_header.size)
+        #mat.ext_header = RWHeader.read(parser)
+        #mat.extData = parser.readBytes(mat.ext_header.size)
+
+        mat.extension = RW_Extension.read(parser, parent_type=RWSectionType.rwID_MATERIAL.value)
 
         return mat
 
@@ -409,13 +416,92 @@ class RW_MaterialList:
 
 
 @dataclass
+class RpWorldFlags:
+    triStrip: bool = False  # 0x00000001 — geometry uses triangle strips
+    positions: bool = False  # 0x00000002 — has positions (should always be set)
+    textured: bool = False  # 0x00000004 — has one set of texture coordinates
+    preLit: bool = False  # 0x00000008 — has pre-lit vertex colors
+    normals: bool = False  # 0x00000010 — has normals
+    light: bool = False  # 0x00000020 — is lit
+    modulateMaterialColor: bool = (
+        False  # 0x00000040 — vertex colors modulate material color
+    )
+    textured2: bool = False  # 0x00000080 — has a second set of texture coordinates
+    numTexCoordSets: int = (
+        0  # bits 16–19 — number of UV sets (0 = auto-detect from other flags)
+    )
+    native: bool = False  # 0x01000000 — world is in native (platform-specific) format
+    nativeInstance: bool = False  # 0x02000000 — world is a native instance
+    sectorsOverlap: bool = False  # 0x40000000 — BSP sectors are allowed to overlap
+
+    @staticmethod
+    def decode(value: int) -> "RpWorldFlags":
+        f = RpWorldFlags()
+        f.triStrip = bool(value & 0x00000001)
+        f.positions = bool(value & 0x00000002)
+        f.textured = bool(value & 0x00000004)
+        f.preLit = bool(value & 0x00000008)
+        f.normals = bool(value & 0x00000010)
+        f.light = bool(value & 0x00000020)
+        f.modulateMaterialColor = bool(value & 0x00000040)
+        f.textured2 = bool(value & 0x00000080)
+        f.numTexCoordSets = (value >> 16) & 0xF
+        f.native = bool(value & 0x01000000)
+        f.nativeInstance = bool(value & 0x02000000)
+        f.sectorsOverlap = bool(value & 0x40000000)
+        return f
+
+    def encode(self) -> int:
+        v = 0
+        if self.triStrip:
+            v |= 0x00000001
+        if self.positions:
+            v |= 0x00000002
+        if self.textured:
+            v |= 0x00000004
+        if self.preLit:
+            v |= 0x00000008
+        if self.normals:
+            v |= 0x00000010
+        if self.light:
+            v |= 0x00000020
+        if self.modulateMaterialColor:
+            v |= 0x00000040
+        if self.textured2:
+            v |= 0x00000080
+        v |= (self.numTexCoordSets & 0xF) << 16
+        if self.native:
+            v |= 0x01000000
+        if self.nativeInstance:
+            v |= 0x02000000
+        if self.sectorsOverlap:
+            v |= 0x40000000
+        return v
+    
+    def print(self):
+        print("RpWorldFlags:")
+        print(f"  triStrip: {self.triStrip}")
+        print(f"  positions: {self.positions}")
+        print(f"  textured: {self.textured}")
+        print(f"  preLit: {self.preLit}")
+        print(f"  normals: {self.normals}")
+        print(f"  light: {self.light}")
+        print(f"  modulateMaterialColor: {self.modulateMaterialColor}")
+        print(f"  textured2: {self.textured2}")
+        print(f"  numTexCoordSets: {self.numTexCoordSets}")
+        print(f"  native: {self.native}")
+        print(f"  nativeInstance: {self.nativeInstance}")
+        print(f"  sectorsOverlap: {self.sectorsOverlap}")
+
+
+@dataclass
 class WorldStructData_A:
     numTriangles: int = 0  # uint32
     numVertices: int = 0  # uint32
     numPlaneSectors: int = 0  # uint32
     numAtomicSectors: int = 0  # uint32
     colSectorSize: int = 0  # uint32, often 0
-    worldFlags: int = 0  # uint32, often 1073807437
+    worldFlags: RpWorldFlags = field(default_factory=RpWorldFlags)
 
     boxMax: Vector3 = field(default_factory=Vector3)
     boxMin: Vector3 = field(default_factory=Vector3)
@@ -426,7 +512,7 @@ class WorldStructData_A:
         _write_u32(f, this.numPlaneSectors)
         _write_u32(f, this.numAtomicSectors)
         _write_u32(f, this.colSectorSize)
-        _write_u32(f, this.worldFlags)
+        _write_u32(f, this.worldFlags.encode())
 
         this.boxMax.write(f)
         this.boxMin.write(f)
@@ -441,7 +527,7 @@ class WorldStructData_B:
     numPlaneSectors: int = 0  # uint32
     numAtomicSectors: int = 0  # uint32
     colSectorSize: int = 0  # uint32
-    worldFlags: int = 0  # uint32
+    worldFlags: RpWorldFlags = field(default_factory=RpWorldFlags)
 
     def write(this, f, stamp):
         this.boxMax.write(f)
@@ -451,7 +537,7 @@ class WorldStructData_B:
         _write_u32(f, this.numPlaneSectors)
         _write_u32(f, this.numAtomicSectors)
         _write_u32(f, this.colSectorSize)
-        _write_u32(f, this.worldFlags)
+        _write_u32(f, this.worldFlags.encode())
 
 
 @dataclass
@@ -480,12 +566,12 @@ class RW_World_AtomicSector:
     uvs: Optional[list[RW_UV]] = field(default_factory=list, init=False)  # num_vertices
     # endif
 
-    triangles: list[RW_World_Triangle] = field(
+    triangles: list[RW_Triangle] = field(
         default_factory=list, init=False
     )  # num_triangles
 
-    extension_sector: RW_ExtensionSector = field(
-        default_factory=RW_ExtensionSector, init=False
+    extension_sector: RW_Extension = field(
+        default_factory=RW_Extension, init=False
     )
 
     @staticmethod
@@ -523,14 +609,14 @@ class RW_World_AtomicSector:
 
         atomic.triangles = []
         for _ in range(atomic.numTriangles):
-            triangle = RW_World_Triangle()
+            triangle = RW_Triangle()
             triangle.vertex1 = parser.readUint16()
             triangle.vertex2 = parser.readUint16()
             triangle.vertex3 = parser.readUint16()
             triangle.materialIndex = parser.readUint16()
             atomic.triangles.append(triangle)
 
-        atomic.extension_sector = RW_ExtensionSector.read(
+        atomic.extension_sector = RW_Extension.read(
             parser, RWSectionType.rwID_ATOMICSECT
         )
 
@@ -691,13 +777,13 @@ class RW_World_PlaneSector:
                 raise ValueError(
                     f"Expected AtomicSector (0x0009) for left child, got 0x{ps.left_child_id:04X}"
                 )
-            ps.left_data = RW_World_AtomicSector.read(parser, collision_only_map)
+            ps.left_data = RW_World_AtomicSector.read(parser, collision_only_map=collision_only_map)
         else:
             if ps.left_child_id != 0x000A:
                 raise ValueError(
                     f"Expected PlaneSector (0x000A) for left child, got 0x{ps.left_child_id:04X}"
                 )
-            ps.left_data = RW_World_PlaneSector.read(parser, collision_only_map)
+            ps.left_data = RW_World_PlaneSector.read(parser, collision_only_map=collision_only_map)
 
         ps.right_child_id = parser.readUint32()
 
@@ -706,13 +792,13 @@ class RW_World_PlaneSector:
                 raise ValueError(
                     f"Expected AtomicSector (0x0009) for right child, got 0x{ps.right_child_id:04X}"
                 )
-            ps.right_data = RW_World_AtomicSector.read(parser, collision_only_map)
+            ps.right_data = RW_World_AtomicSector.read(parser, collision_only_map=collision_only_map)
         else:
             if ps.right_child_id != 0x000A:
                 raise ValueError(
                     f"Expected PlaneSector (0x000A) for right child, got 0x{ps.right_child_id:04X}"
                 )
-            ps.right_data = RW_World_PlaneSector.read(parser, collision_only_map)
+            ps.right_data = RW_World_PlaneSector.read(parser, collision_only_map=collision_only_map)
 
         return ps
 
@@ -776,9 +862,9 @@ class RW_World_RootChunk:
         rootchunk.section_id = parser.readUint32()
 
         if parent.data.numAtomicSectors == 1 and parent.data.numPlaneSectors == 0:
-            rootchunk.data = RW_World_AtomicSector.read(parser, collision_only_map)
+            rootchunk.data = RW_World_AtomicSector.read(parser, collision_only_map=collision_only_map)
         elif parent.data.numPlaneSectors > 0:
-            rootchunk.data = RW_World_PlaneSector.read(parser, collision_only_map)
+            rootchunk.data = RW_World_PlaneSector.read(parser, collision_only_map=collision_only_map)
         else:
             raise ValueError(
                 f"Unexpected world struct sector counts: atomic={parent.data.numAtomicSectors}, plane={parent.data.numPlaneSectors}"
@@ -954,7 +1040,8 @@ def load_bsp(filepath: Union[str, Path], collision_only_map=False) -> RW_World:
             bsp.world_struct.data.numPlaneSectors = parser.readUint32()
             bsp.world_struct.data.numAtomicSectors = parser.readUint32()
             bsp.world_struct.data.colSectorSize = parser.readUint32()
-            bsp.world_struct.data.worldFlags = parser.readUint32()
+            bsp.world_struct.data.worldFlags = RpWorldFlags.decode(parser.readUint32())
+            bsp.world_struct.data.worldFlags.print()
             bsp.world_struct.data.boxMax = Vector3.read(parser)
             bsp.world_struct.data.boxMin = Vector3.read(parser)
         elif bsp.world_struct.header.size == 0x30:
@@ -965,7 +1052,7 @@ def load_bsp(filepath: Union[str, Path], collision_only_map=False) -> RW_World:
             bsp.world_struct.data.numPlaneSectors = parser.readUint32()
             bsp.world_struct.data.numAtomicSectors = parser.readUint32()
             bsp.world_struct.data.colSectorSize = parser.readUint32()
-            bsp.world_struct.data.worldFlags = parser.readUint32()
+            bsp.world_struct.data.worldFlags = RpWorldFlags.decode(parser.readUint32())
         else:
             raise ValueError(
                 f"Unexpected RW_WorldStruct payload size: {bsp.world_struct.header.payload_size}"
@@ -1007,3 +1094,252 @@ def _collect_atomic_sectors(
         sectors.extend(_collect_atomic_sectors(chunk.right_data))
 
     return sectors
+
+
+# ═══════════════════════════════════════════════════════
+#  BSP World Builder
+# ═══════════════════════════════════════════════════════
+
+
+def _make_atomic_sector(
+    vertices: list[tuple[float, float, float]],
+    triangles: list[tuple[int, int, int, int]],
+    uvs: Optional[list[tuple[float, float]]],
+    colors: Optional[list[tuple[int, int, int, int]]],
+    tri_indices: list[int],
+    collision_only: bool,
+) -> RW_World_AtomicSector:
+    used_global = sorted(set(
+        v for i in tri_indices for v in triangles[i][:3]
+    ))
+    g2l = {g: li for li, g in enumerate(used_global)}
+
+    local_verts = [Vector3(*vertices[g]) for g in used_global]
+
+    local_tris = [
+        RW_Triangle(
+            g2l[triangles[i][0]],
+            g2l[triangles[i][1]],
+            g2l[triangles[i][2]],
+            triangles[i][3],
+        )
+        for i in tri_indices
+    ]
+
+    if local_verts:
+        b_min = Vector3(
+            min(v.x for v in local_verts),
+            min(v.y for v in local_verts),
+            min(v.z for v in local_verts),
+        )
+        b_max = Vector3(
+            max(v.x for v in local_verts),
+            max(v.y for v in local_verts),
+            max(v.z for v in local_verts),
+        )
+    else:
+        b_min = b_max = Vector3(0.0, 0.0, 0.0)
+
+    sector = RW_World_AtomicSector()
+    sector.matListWindowBase = 0
+    sector.vertices = local_verts
+    sector.boxMin = b_min
+    sector.boxMax = b_max
+    sector.collSectorPresent = 0
+    sector.unused = 0
+
+    if not collision_only:
+        sector.colors = (
+            [RWColor32(*colors[g]) for g in used_global]
+            if colors is not None
+            else [RWColor32(255, 255, 255, 255)] * len(used_global)
+        )
+        sector.uvs = (
+            [RW_UV(uvs[g][0], uvs[g][1]) for g in used_global]
+            if uvs is not None
+            else [RW_UV(0.0, 0.0)] * len(used_global)
+        )
+    else:
+        sector.colors = []
+        sector.uvs = []
+
+    sector.triangles = local_tris
+
+    sector.extension_sector = RW_Extension()
+    sector.extension_sector.children = [
+        RW_BinMeshPlugin.generate_from_triangles(
+            local_tris,
+            flag=RW_BinMeshPlugin_Flags.TRIANGLE_LIST,
+            matListWindowBase=0,
+        )
+    ]
+
+    return sector
+
+
+def _build_bsp_node(
+    vertices: list[tuple[float, float, float]],
+    triangles: list[tuple[int, int, int, int]],
+    uvs: Optional[list[tuple[float, float]]],
+    colors: Optional[list[tuple[int, int, int, int]]],
+    tri_indices: list[int],
+    max_tris: int,
+    collision_only: bool,
+) -> tuple[Union[RW_World_AtomicSector, RW_World_PlaneSector], int, int]:
+    """Returns (node, num_plane_sectors, num_atomic_sectors)."""
+    if len(tri_indices) <= max_tris:
+        return _make_atomic_sector(vertices, triangles, uvs, colors, tri_indices, collision_only), 0, 1
+
+    def centroid(i):
+        v1, v2, v3 = triangles[i][0], triangles[i][1], triangles[i][2]
+        return (
+            (vertices[v1][0] + vertices[v2][0] + vertices[v3][0]) / 3.0,
+            (vertices[v1][1] + vertices[v2][1] + vertices[v3][1]) / 3.0,
+            (vertices[v1][2] + vertices[v2][2] + vertices[v3][2]) / 3.0,
+        )
+
+    centroids = [centroid(i) for i in tri_indices]
+    spans = [
+        max(c[a] for c in centroids) - min(c[a] for c in centroids)
+        for a in range(3)
+    ]
+    axis = spans.index(max(spans))
+    axis_type = [
+        RW_World_PlaneSectorType.rwPLANE_X,
+        RW_World_PlaneSectorType.rwPLANE_Y,
+        RW_World_PlaneSectorType.rwPLANE_Z,
+    ][axis]
+
+    sorted_pairs = sorted(zip(tri_indices, centroids), key=lambda p: p[1][axis])
+    sorted_indices = [p[0] for p in sorted_pairs]
+    sorted_axis_vals = [p[1][axis] for p in sorted_pairs]
+
+    mid = len(sorted_indices) // 2
+    left_indices = sorted_indices[:mid]
+    right_indices = sorted_indices[mid:]
+
+    if not left_indices or not right_indices:
+        return _make_atomic_sector(vertices, triangles, uvs, colors, tri_indices, collision_only), 0, 1
+
+    split_value = (sorted_axis_vals[mid - 1] + sorted_axis_vals[mid]) / 2.0
+
+    def vert_axis_vals(indices):
+        return [vertices[triangles[i][vi]][axis] for i in indices for vi in range(3)]
+
+    left_vv = vert_axis_vals(left_indices)
+    right_vv = vert_axis_vals(right_indices)
+    left_value = max(left_vv) if left_vv else split_value
+    right_value = min(right_vv) if right_vv else split_value
+
+    left_node, lp, la = _build_bsp_node(vertices, triangles, uvs, colors, left_indices, max_tris, collision_only)
+    right_node, rp, ra = _build_bsp_node(vertices, triangles, uvs, colors, right_indices, max_tris, collision_only)
+
+    plane = RW_World_PlaneSector()
+    plane.type = axis_type
+    plane.value = split_value
+    plane.left_is_atomic = 1 if isinstance(left_node, RW_World_AtomicSector) else 0
+    plane.right_is_atomic = 1 if isinstance(right_node, RW_World_AtomicSector) else 0
+    plane.left_value = left_value
+    plane.right_value = right_value
+    plane.left_data = left_node
+    plane.right_data = right_node
+
+    return plane, lp + rp + 1, la + ra
+
+
+def build_bsp_world(
+    vertices: list[tuple[float, float, float]],
+    triangles: list[tuple[int, int, int, int]],
+    uvs: Optional[list[tuple[float, float]]] = None,
+    colors: Optional[list[tuple[int, int, int, int]]] = None,
+    materials: Optional[list[RW_Material]] = None,
+    max_tris_per_sector: int = 6000,
+    collision_only: bool = False,
+) -> RW_World:
+    """Build an RW_World from flat geometry data.
+
+    Args:
+        vertices: List of (x, y, z) world-space positions.
+        triangles: List of (v1, v2, v3, mat_idx) tuples. mat_idx is a global
+            index into *materials*.
+        uvs: Per-vertex (u, v) pairs, same length as *vertices*. None for untextured.
+        colors: Per-vertex (r, g, b, a) tuples in 0-255 range, same length as
+            *vertices*. None defaults every vertex to opaque white.
+        materials: List of RW_Material objects that form the global material list.
+            Defaults to a single blank white material.
+        max_tris_per_sector: Maximum triangles allowed in one AtomicSector before
+            the builder splits it into two children. Tune to balance depth vs sector size.
+        collision_only: When True, omits vertex colours and UVs (collision BSP).
+
+    Returns:
+        RW_World instance ready to be written with .save().
+    """
+    if materials is None:
+        materials = [RW_Material()]
+
+    tri_indices = list(range(len(triangles)))
+
+    root_node, num_planes, num_atomics = _build_bsp_node(
+        vertices, triangles, uvs, colors, tri_indices, max_tris_per_sector, collision_only
+    )
+
+    # Global bounding box from referenced vertices
+    used = set(v for tri in triangles for v in tri[:3])
+    if used:
+        xs = [vertices[i][0] for i in used]
+        ys = [vertices[i][1] for i in used]
+        zs = [vertices[i][2] for i in used]
+        box_min = Vector3(min(xs), min(ys), min(zs))
+        box_max = Vector3(max(xs), max(ys), max(zs))
+    else:
+        box_min = box_max = Vector3(0.0, 0.0, 0.0)
+
+    all_atomics = _collect_atomic_sectors(root_node)
+    total_verts = sum(len(s.vertices) for s in all_atomics)
+    total_tris = sum(len(s.triangles) for s in all_atomics)
+
+    flags = RpWorldFlags()
+    flags.positions = True
+    flags.light = True
+    if not collision_only:
+        if uvs is not None:
+            flags.textured = True
+        if colors is not None:
+            flags.preLit = True
+
+    struct_data = WorldStructData_A()
+    struct_data.numTriangles = total_tris
+    struct_data.numVertices = total_verts
+    struct_data.numPlaneSectors = num_planes
+    struct_data.numAtomicSectors = num_atomics
+    struct_data.colSectorSize = 0
+    struct_data.worldFlags = flags
+    struct_data.boxMax = box_max
+    struct_data.boxMin = box_min
+
+    world_struct = RW_WorldStruct()
+    world_struct.rootIsWorldSector = 1
+    world_struct.inverseOrigin = Vector3(0.0, 0.0, 0.0)
+    world_struct.data = struct_data
+
+    matlist = RW_MaterialList()
+    matlist.material_count = len(materials)
+    matlist.materialIndices = [-1] * len(materials)
+    matlist.materials = list(materials)
+
+    if isinstance(root_node, RW_World_AtomicSector):
+        section_id = RWSectionType.rwID_ATOMICSECT.value
+    else:
+        section_id = RWSectionType.rwID_PLANESECT.value
+
+    world_chunk = RW_World_RootChunk()
+    world_chunk.section_id = section_id
+    world_chunk.data = root_node
+
+    world = RW_World()
+    world.world_struct = world_struct
+    world.material_list = matlist
+    world.world_chunk = world_chunk
+    world.extData = b""
+
+    return world

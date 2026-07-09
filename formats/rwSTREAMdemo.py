@@ -2,18 +2,22 @@ import io
 
 from lib.parser import Parser
 import rwSTREAM as rwSTREAM
-from rwConstants import strfunc_func
+from rwConstants import strfunc_func, DEFAULT_VERSION_STAMP
 import struct
 
 stream = rwSTREAM.load_stream("kingofny.stream")
 
 func = rwSTREAM.RW_strfunc_SetFrozenMode()
+func2 = rwSTREAM.RW_strfunc_EnableDirectorsCamera()
+func3 = rwSTREAM.RW_strfunc_DeleteAllEntities()
 
-# stream.append(func)
-# stream.replace_at_index(0, func)
+#stream.append(func)
+stream.append(func3)
 
-rwSTREAM.write_log(stream, "kingofny_stream.txt")
+stream.save("kingofny.stream_PATCHED")
+rwSTREAM.write_log(stream, "kingofny_log.txt")
 
+exit()
 
 def modify_int_in_stream(stream, sec_index, attr_offset, new_value):
     writeobj = bytearray(stream.contents[sec_index].data)
@@ -81,7 +85,14 @@ for e in stream.contents:
         create_call.write(buf)
         e.data = buf.getvalue()
 
+
+
+
+new_sec = rwSTREAM.RW_strfunc_EnableDirectorsCamera()
+stream.append(new_sec)
+
 rwSTREAM.write_log(stream, "kingofny_stream_new.txt")
+
 stream.save("../../Desktop/Madagascar/Game/Levels/kingofny.stream")
 
 

@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 
 import struct
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple
 import random
+
+# Values used by the original TFB/RenderWare export tools for Madagascar.
+DEFAULT_VERSION_STAMP = 0x1C020016
+DEFAULT_WORLD_FLAGS = 0x4001004D  # triStrip|textured|preLit|modulateMatColor|1 UV set|sectorsOverlap
+DEFAULT_MATERIAL_UNUSED_INT2 = 0x1C2DE734
 
 class BinaryReader:
     """Helper class to read binary data with offset tracking."""
@@ -125,6 +130,33 @@ def parse_texture(reader: BinaryReader) -> Dict[str, Any]:
     return texture
 
 
+def parse_tfb_blend_state(ext_data: bytes) -> Optional[int]:
+    """Extract the blend-state field from the TFB material plugin chunk
+    (0x800000F6) inside a material extension.
+
+    Payload layout (33 or 65 bytes): magic 0x0F0F000D, flags, blendState,
+    alphaRef?, srcOrDstBlend?, ... trailing byte = terrain layer index.
+
+    blendState == 0 means the game renders the material fully opaque and
+    ignores vertex/texture/material alpha entirely (terrain base layers and
+    plain walls often carry garbage vertex alpha of 0). Non-zero (1 or 3 in
+    shipped levels) means alpha blending is enabled (terrain overlay layers,
+    shadow decals, water, cutout foliage).
+
+    Returns None if the chunk is absent.
+    """
+    off = 0
+    while off + 12 <= len(ext_data):
+        ctype, csize, _ = struct.unpack_from("<IiI", ext_data, off)
+        off += 12
+        if csize < 0 or off + csize > len(ext_data):
+            break
+        if ctype == 0x800000F6 and csize >= 12:
+            return struct.unpack_from("<I", ext_data, off + 8)[0]
+        off += csize
+    return None
+
+
 def parse_material(reader: BinaryReader) -> Dict[str, Any]:
     """Parse a Material section (0x0007)."""
     material = {}
@@ -153,7 +185,9 @@ def parse_material(reader: BinaryReader) -> Dict[str, Any]:
     # Material Extension Header
     ext_header = parse_section_header(reader)
     material["extensionHeader"] = ext_header
-    material["extensionData"] = reader.read_bytes(ext_header["size"]).hex()
+    ext_data = reader.read_bytes(ext_header["size"])
+    material["extensionData"] = ext_data.hex()
+    material["tfbBlendState"] = parse_tfb_blend_state(ext_data)
 
     return material
 
@@ -246,9 +280,7 @@ def parse_atomic_sector(
         two_vcolor_arrays = False
 
         extra_size = struct_size - supposed_total_length
-        if extra_size == num_vertices * 4:
-            two_vcolor_arrays = True
-        elif extra_size == num_vertices * 12:
+        if num_vertices > 0 and extra_size in (num_vertices * 4, num_vertices * 12):
             two_vcolor_arrays = True
 
         atomic["twoColorArrays"] = two_vcolor_arrays
@@ -516,6 +548,514 @@ def collect_atomic_sectors(chunk: Optional[Dict[str, Any]]) -> list:
         sectors.extend(collect_atomic_sectors(plane_data.get("rightSection")))
 
     return sectors
+
+
+# ═══════════════════════════════════════════════════════════════════
+# BSP writing — mirrors the output of the original TFB/RenderWare tools
+# ═══════════════════════════════════════════════════════════════════
+
+
+def _chunk(ctype: int, payload: bytes, stamp: int) -> bytes:
+    """Wrap a payload in a standard RW section header."""
+    return struct.pack("<IiI", ctype, len(payload), stamp) + payload
+
+
+def _struct_chunk(payload: bytes, stamp: int) -> bytes:
+    return _chunk(0x0001, payload, stamp)
+
+
+def _string_chunk(s: str, stamp: int) -> bytes:
+    """RW string chunk (0x0002), NUL-terminated and padded to 4 bytes."""
+    raw = s.encode("ascii", errors="replace") + b"\x00"
+    raw += b"\x00" * (-len(raw) % 4)
+    return _chunk(0x0002, raw, stamp)
+
+
+def default_material_extension(transparent: bool = False, stamp: int = DEFAULT_VERSION_STAMP) -> bytes:
+    """TFB material chunk (0x800000F6) as written by the original tools.
+
+    Payload: magic 0x0F0F000D, flags 0x201, blendState, alphaRef?, blendFunc?,
+    then 13 zero bytes (33 bytes total). blendState 0/blendFunc 8 = opaque,
+    blendState 3/blendFunc 5 = alpha blended.
+    """
+    blend_state, blend_func = (3, 5) if transparent else (0, 8)
+    payload = struct.pack("<IIIII", 0x0F0F000D, 0x201, blend_state, 2, blend_func) + b"\x00" * 13
+    return _chunk(0x800000F6, payload, stamp)
+
+
+def default_texture_extension(stamp: int = DEFAULT_VERSION_STAMP) -> bytes:
+    """Texture extension as in shipped files: Sky Mipmap Val + TFB 0x800000DD."""
+    return _chunk(0x0110, struct.pack("<I", 0x0F80), stamp) + _chunk(
+        0x800000DD, struct.pack("<III", 0x0F0F0004, 0, 0), stamp
+    )
+
+
+def default_world_extension(stamp: int = DEFAULT_VERSION_STAMP) -> bytes:
+    """Minimal TFB world chunk (0x800000B0) accepted by the game."""
+    return _chunk(0x800000B0, struct.pack("<IIII", 0x0F0F0003, 0, 0, 0), stamp)
+
+
+def _sector_tfb_extension(stamp: int, has_geometry: bool) -> bytes:
+    """TFB per-sector chunks (0x800000D4 + 0x800000FE) as in shipped files.
+
+    The third dword of the 0x800000FE payload is 1 on every shipped sector
+    that contains geometry and 0 on empty ones — the engine appears to use
+    it as a "sector has renderable content" flag, so getting it wrong makes
+    the game silently draw nothing.
+    """
+    return _chunk(0x800000D4, struct.pack("<III", 0x0F0F0003, 0, 0), stamp) + _chunk(
+        0x800000FE,
+        struct.pack("<IIII", 0x0F0F0003, 0, 1 if has_geometry else 0, 0),
+        stamp,
+    )
+
+
+def build_tristrips(triangles: List[Tuple[int, int, int]]) -> List[int]:
+    """Stripify triangles into a single index strip (RW/GL semantics:
+    strip triangle k is winding-flipped when k is odd).
+
+    Greedy walk with the classic SGI heuristics: seed at triangles with the
+    fewest unused neighbors (chain ends), rotate the seed so the walk starts
+    at a dead end, and on ties continue into the neighbor with the fewest
+    unused neighbors. Substrips are stitched with degenerate triangles,
+    padded so winding parity stays correct.
+    """
+    # directed edge (u, v) -> list of (triangle index, third vertex w)
+    # where the triangle winds (u, v, w)
+    edge_map: Dict[Tuple[int, int], List[Tuple[int, int]]] = {}
+    used = [False] * len(triangles)
+    for ti, (a, b, c) in enumerate(triangles):
+        if a == b or b == c or a == c:
+            used[ti] = True  # degenerate: renders nothing, keep out of strips
+            continue
+        for u, v, w in ((a, b, c), (b, c, a), (c, a, b)):
+            edge_map.setdefault((u, v), []).append((ti, w))
+
+    def unused_neighbors(ti: int) -> int:
+        a, b, c = triangles[ti]
+        count = 0
+        for u, v in ((a, b), (b, c), (c, a)):
+            # A neighbor continuing our edge (u, v) winds it as (v, u).
+            for tj, _ in edge_map.get((v, u), ()):
+                if not used[tj]:
+                    count += 1
+        return count
+
+    def pick_continuation(need: Tuple[int, int]) -> Optional[Tuple[int, int]]:
+        best = None
+        best_count = None
+        for ti, w in edge_map.get(need, ()):
+            if used[ti]:
+                continue
+            n = unused_neighbors(ti)
+            if best_count is None or n < best_count:
+                best, best_count = (ti, w), n
+        return best
+
+    # Seed order: boundary triangles (fewest neighbors) first.
+    seeds = sorted(range(len(triangles)), key=unused_neighbors)
+
+    strip: List[int] = []
+    for seed in seeds:
+        if used[seed]:
+            continue
+
+        # Rotate the seed so the strip starts at a dead end: prefer a rotation
+        # with no unused triangle continuing *into* (a, b), and among those the
+        # most continuations out of (b, c).
+        best_rot = None
+        best_key = None
+        for rot in range(3):
+            t = triangles[seed]
+            a, b, c = t[rot % 3], t[(rot + 1) % 3], t[(rot + 2) % 3]
+            incoming = any(
+                not used[ti] for ti, _ in edge_map.get((b, a), ())
+            )
+            outgoing = sum(
+                1 for ti, _ in edge_map.get((c, b), ()) if not used[ti]
+            )
+            key = (incoming, -outgoing)
+            if best_key is None or key < best_key:
+                best_key = key
+                best_rot = (a, b, c)
+        a, b, c = best_rot
+        used[seed] = True
+
+        if not strip:
+            strip.extend((a, b, c))
+        else:
+            # Stitch: duplicate the last vertex and the new first vertex so
+            # every bridging triangle is degenerate, padding so the new
+            # triangle lands on an even strip index (correct winding).
+            strip.append(strip[-1])
+            if len(strip) % 2 == 0:
+                strip.append(strip[-1])
+            strip.extend((a, a, b, c))
+
+        # Extend while an unused neighbor shares the trailing edge.
+        while True:
+            u, v = strip[-2], strip[-1]
+            # Triangle index of the candidate: k = len(strip) - 2.
+            # Even k needs winding (u, v, w); odd k needs (v, u, w).
+            need = (u, v) if (len(strip) - 2) % 2 == 0 else (v, u)
+            cont = pick_continuation(need)
+            if cont is None:
+                break
+            ti, w = cont
+            used[ti] = True
+            strip.append(w)
+
+    return strip
+
+
+def decode_tristrip(strip: List[int]) -> List[Tuple[int, int, int]]:
+    """Inverse of build_tristrips (drops degenerates). Useful for validation."""
+    tris = []
+    for k in range(len(strip) - 2):
+        a, b, c = strip[k], strip[k + 1], strip[k + 2]
+        if a == b or b == c or a == c:
+            continue
+        tris.append((a, b, c) if k % 2 == 0 else (b, a, c))
+    return tris
+
+
+def _binmesh_extension(
+    triangles: List[Tuple[int, int, int, int]],
+    stamp: int,
+    tristrip: bool = True,
+) -> bytes:
+    """BinMesh PLG (0x050E): triangles grouped per material, stripified.
+
+    Empty sectors get the same empty (flags=0, 0 meshes) chunk shipped files have.
+    """
+    if not triangles:
+        return _chunk(0x050E, struct.pack("<III", 0, 0, 0), stamp)
+
+    by_mat: Dict[int, List[Tuple[int, int, int]]] = {}
+    for v0, v1, v2, mat in triangles:
+        if v0 == v1 or v1 == v2 or v0 == v2:
+            continue  # degenerate: renders nothing
+        by_mat.setdefault(mat, []).append((v0, v1, v2))
+    if not by_mat:
+        return _chunk(0x050E, struct.pack("<III", 0, 0, 0), stamp)
+
+    meshes = []
+    total = 0
+    for mat in sorted(by_mat):
+        if tristrip:
+            indices = build_tristrips(by_mat[mat])
+        else:
+            indices = [i for tri in by_mat[mat] for i in tri]
+        meshes.append((mat, indices))
+        total += len(indices)
+
+    payload = struct.pack("<III", 1 if tristrip else 0, len(meshes), total)
+    for mat, indices in meshes:
+        payload += struct.pack("<II", len(indices), mat)
+        payload += struct.pack(f"<{len(indices)}I", *indices)
+    return _chunk(0x050E, payload, stamp)
+
+
+def _write_texture(texture: Dict[str, Any], stamp: int) -> bytes:
+    ext_hex = texture.get("extensionData")
+    ext = bytes.fromhex(ext_hex) if ext_hex else default_texture_extension(stamp)
+    body = _struct_chunk(
+        struct.pack(
+            "<BBH",
+            texture.get("filterMode", 2),
+            texture.get("addressModes", 17),
+            texture.get("useMipLevels", 1),
+        ),
+        stamp,
+    )
+    body += _string_chunk(texture.get("diffuseTextureName", ""), stamp)
+    body += _string_chunk(texture.get("alphaTextureName", ""), stamp)
+    body += _chunk(0x0003, ext, stamp)
+    return _chunk(0x0006, body, stamp)
+
+
+def _write_material(mat: Dict[str, Any], stamp: int) -> bytes:
+    color = mat.get("color", {})
+    is_textured = 1 if (mat.get("isTextured") and mat.get("texture")) else 0
+    body = _struct_chunk(
+        struct.pack(
+            "<i4BiIfff",
+            mat.get("unusedFlags", 0),
+            color.get("r", 255) & 0xFF,
+            color.get("g", 255) & 0xFF,
+            color.get("b", 255) & 0xFF,
+            color.get("a", 255) & 0xFF,
+            mat.get("unusedInt2", DEFAULT_MATERIAL_UNUSED_INT2),
+            is_textured,
+            mat.get("ambient", 1.0),
+            mat.get("specular", 0.0),
+            mat.get("diffuse", 1.0),
+        ),
+        stamp,
+    )
+    if is_textured:
+        body += _write_texture(mat["texture"], stamp)
+    ext_hex = mat.get("extensionData")
+    if ext_hex:
+        ext = bytes.fromhex(ext_hex)
+    else:
+        ext = default_material_extension(mat.get("transparent", False), stamp)
+    body += _chunk(0x0003, ext, stamp)
+    return _chunk(0x0007, body, stamp)
+
+
+def _write_material_list(materials: List[Dict[str, Any]], stamp: int) -> bytes:
+    body = _struct_chunk(
+        struct.pack(f"<i{len(materials)}i", len(materials), *([-1] * len(materials))),
+        stamp,
+    )
+    for mat in materials:
+        body += _write_material(mat, stamp)
+    return _chunk(0x0008, body, stamp)
+
+
+def _bounds(verts: List[Tuple[float, float, float]]):
+    xs = [v[0] for v in verts]
+    ys = [v[1] for v in verts]
+    zs = [v[2] for v in verts]
+    return (max(xs), max(ys), max(zs)), (min(xs), min(ys), min(zs))
+
+
+def build_sector_tree(
+    vertices: List[Tuple[float, float, float]],
+    colors: List[Tuple[int, int, int, int]],
+    uvs: List[Tuple[float, float]],
+    triangles: List[Tuple[int, int, int, int]],
+    max_triangles: int = 1024,
+    max_vertices: int = 60000,
+) -> Dict[str, Any]:
+    """Recursively split triangles into a BSP tree of atomic sectors.
+
+    Median splits on the largest bounding-box axis, like the original RW world
+    importer. Triangles are never clipped — each goes wholly to one side and
+    the plane sector stores overlapping left/right extents (the shipped worlds
+    set rpWORLDSECTORSOVERLAP for exactly this reason).
+    Returns a tree of {"type": "atomic"|"plane", ...} nodes.
+    """
+
+    def leaf(tri_ids: List[int]) -> Dict[str, Any]:
+        remap: Dict[int, int] = {}
+        sec_verts: List[Tuple[float, float, float]] = []
+        sec_colors: List[Tuple[int, int, int, int]] = []
+        sec_uvs: List[Tuple[float, float]] = []
+        sec_tris = []
+        for ti in tri_ids:
+            v0, v1, v2, mat = triangles[ti]
+            idx = []
+            for v in (v0, v1, v2):
+                if v not in remap:
+                    remap[v] = len(sec_verts)
+                    sec_verts.append(vertices[v])
+                    sec_colors.append(colors[v])
+                    sec_uvs.append(uvs[v])
+                idx.append(remap[v])
+            sec_tris.append((idx[0], idx[1], idx[2], mat))
+        return {
+            "type": "atomic",
+            "vertices": sec_verts,
+            "colors": sec_colors,
+            "uvs": sec_uvs,
+            "triangles": sec_tris,
+        }
+
+    def tri_verts(ti: int):
+        v0, v1, v2, _ = triangles[ti]
+        return vertices[v0], vertices[v1], vertices[v2]
+
+    def split(tri_ids: List[int]) -> Dict[str, Any]:
+        vert_count = len({v for ti in tri_ids for v in triangles[ti][:3]})
+        if len(tri_ids) <= max_triangles and vert_count <= max_vertices:
+            return leaf(tri_ids)
+
+        vmax, vmin = _bounds([p for ti in tri_ids for p in tri_verts(ti)])
+        extents = [vmax[i] - vmin[i] for i in range(3)]
+        axis = extents.index(max(extents))
+
+        centroids = [
+            (sum(p[axis] for p in tri_verts(ti)) / 3.0, ti) for ti in tri_ids
+        ]
+        centroids.sort(key=lambda e: e[0])
+        mid = len(centroids) // 2
+        value = centroids[mid][0]
+        left_ids = [ti for _, ti in centroids[:mid]]
+        right_ids = [ti for _, ti in centroids[mid:]]
+        if not left_ids or not right_ids:  # all centroids equal — force split
+            left_ids = [ti for _, ti in centroids[: len(centroids) // 2]]
+            right_ids = [ti for _, ti in centroids[len(centroids) // 2 :]]
+
+        left_value = max(p[axis] for ti in left_ids for p in tri_verts(ti))
+        right_value = min(p[axis] for ti in right_ids for p in tri_verts(ti))
+        return {
+            "type": "plane",
+            "axis": axis,  # 0/1/2 -> plane type 0/4/8 (byte offset in RwV3d)
+            "value": value,
+            "leftValue": left_value,
+            "rightValue": right_value,
+            "left": split(left_ids),
+            "right": split(right_ids),
+        }
+
+    return split(list(range(len(triangles))))
+
+
+def _write_atomic_sector(
+    node: Dict[str, Any],
+    stamp: int,
+    tristrip: bool,
+    write_binmesh: bool = True,
+    coll_value: int = 0,
+) -> bytes:
+    verts = node["vertices"]
+    tris = node["triangles"]
+    if verts:
+        (bx, by, bz), (nx, ny, nz) = _bounds(verts)
+    else:
+        bx = by = bz = nx = ny = nz = 0.0
+
+    payload = struct.pack(
+        "<iii6fii",
+        0,  # matListWindowBase — triangles carry global material indices
+        len(tris),
+        len(verts),
+        bx, by, bz, nx, ny, nz,
+        coll_value,  # shipped files carry worldFlags & 0xFF here (or stack garbage)
+        0,  # unused
+    )
+    payload += struct.pack(f"<{len(verts) * 3}f", *[c for v in verts for c in v])
+    payload += struct.pack(
+        f"<{len(verts) * 4}B",
+        *[min(255, max(0, int(c))) for col in node["colors"] for c in col],
+    )
+    payload += struct.pack(f"<{len(verts) * 2}f", *[c for uv in node["uvs"] for c in uv])
+    payload += struct.pack(f"<{len(tris) * 4}H", *[i for t in tris for i in t])
+
+    ext = _sector_tfb_extension(stamp, bool(tris))
+    if tris:
+        # MaterialEffectsPLG sector extension — present (payload 1) on every
+        # shipped sector that has geometry.
+        ext = _chunk(0x0120, struct.pack("<I", 1), stamp) + ext
+    if write_binmesh:
+        ext = _binmesh_extension(tris, stamp, tristrip) + ext
+    body = _struct_chunk(payload, stamp) + _chunk(0x0003, ext, stamp)
+    return _chunk(0x0009, body, stamp)
+
+
+def _write_sector_node(
+    node: Dict[str, Any],
+    stamp: int,
+    tristrip: bool,
+    write_binmesh: bool = True,
+    coll_value: int = 0,
+) -> bytes:
+    if node["type"] == "atomic":
+        return _write_atomic_sector(node, stamp, tristrip, write_binmesh, coll_value)
+
+    left = node["left"]
+    right = node["right"]
+    payload = struct.pack(
+        "<ifiiff",
+        node["axis"] * 4,  # rwPLANE_X/Y/Z = byte offset into RwV3d
+        node["value"],
+        1 if left["type"] == "atomic" else 0,
+        1 if right["type"] == "atomic" else 0,
+        node["leftValue"],
+        node["rightValue"],
+    )
+    body = _struct_chunk(payload, stamp)
+    body += _write_sector_node(left, stamp, tristrip, write_binmesh, coll_value)
+    body += _write_sector_node(right, stamp, tristrip, write_binmesh, coll_value)
+    return _chunk(0x000A, body, stamp)
+
+
+def _count_sectors(node: Dict[str, Any]) -> Tuple[int, int]:
+    """Returns (numPlaneSectors, numAtomicSectors)."""
+    if node["type"] == "atomic":
+        return 0, 1
+    pl, al = _count_sectors(node["left"])
+    pr, ar = _count_sectors(node["right"])
+    return pl + pr + 1, al + ar
+
+
+def _collect_tree_leaves(node: Dict[str, Any]) -> List[Dict[str, Any]]:
+    if node["type"] == "atomic":
+        return [node]
+    return _collect_tree_leaves(node["left"]) + _collect_tree_leaves(node["right"])
+
+
+def build_world(
+    vertices: List[Tuple[float, float, float]],
+    colors: List[Tuple[int, int, int, int]],
+    uvs: List[Tuple[float, float]],
+    triangles: List[Tuple[int, int, int, int]],
+    materials: List[Dict[str, Any]],
+    world_flags: int = DEFAULT_WORLD_FLAGS,
+    stamp: int = DEFAULT_VERSION_STAMP,
+    world_extension: Optional[bytes] = None,
+    inverse_origin: Tuple[float, float, float] = (-0.0, -0.0, -0.0),
+    root_is_world_sector: int = 0,
+    max_triangles_per_sector: int = 1024,
+    tristrip: bool = True,
+    write_binmesh: bool = True,
+) -> bytes:
+    """Serialize a complete RW World (0x000B) the way the original tools did.
+
+    Geometry is in RenderWare space (Y up, same as the parsed files); triangle
+    tuples are (v0, v1, v2, globalMaterialIndex).
+    """
+    if not triangles:
+        raise ValueError("Cannot export a BSP without triangles")
+    if not materials:
+        raise ValueError("Cannot export a BSP without materials")
+
+    tree = build_sector_tree(
+        vertices, colors, uvs, triangles, max_triangles=max_triangles_per_sector
+    )
+    num_planes, num_atomics = _count_sectors(tree)
+    leaves = _collect_tree_leaves(tree)
+    total_tris = sum(len(l["triangles"]) for l in leaves)
+    total_verts = sum(len(l["vertices"]) for l in leaves)
+    (bx, by, bz), (nx, ny, nz) = _bounds(vertices)
+
+    if write_binmesh:
+        if tristrip:
+            world_flags |= 0x1
+        else:
+            world_flags &= ~0x1
+
+    world_struct = struct.pack(
+        "<i3f6I6f",
+        root_is_world_sector,
+        *inverse_origin,
+        total_tris,
+        total_verts,
+        num_planes,
+        num_atomics,
+        0,  # colSectorSize
+        world_flags & 0xFFFFFFFF,
+        bx, by, bz, nx, ny, nz,
+    )
+
+    body = _struct_chunk(world_struct, stamp)
+    body += _write_material_list(materials, stamp)
+    body += _write_sector_node(
+        tree, stamp, tristrip, write_binmesh, world_flags & 0xFF
+    )
+    if world_extension is None:
+        world_extension = default_world_extension(stamp)
+    body += _chunk(0x0003, world_extension, stamp)
+    return _chunk(0x000B, body, stamp)
+
+
+def write_bsp_file(filepath: str, *args, **kwargs) -> None:
+    """Build a world (see build_world) and write it to disk."""
+    data = build_world(*args, **kwargs)
+    with open(filepath, "wb") as f:
+        f.write(data)
 
 
 def write_mtl(filepath: str, materials: list, texture_prefix: str = "", mat_suffix: str = ""):

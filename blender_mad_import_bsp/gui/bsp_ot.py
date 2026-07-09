@@ -16,8 +16,8 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
 
     scale: FloatProperty(
         name="Scale",
-        description="Scale factor for imported geometry (Default 0.01 because RW Unit is 1cm but blender is 1m, we need to scale it a little larger because its too small otherwise and blender hates that)",
-        default=0.05,
+        description="Scale factor for imported geometry (RW unit is 1cm but Blender is 1m; scaled up a bit because Blender hates tiny geometry. Default 0.0625 is a power of two so positions survive a re-export bit-exactly)",
+        default=0.0625,
         min=0.000001,
         max=1000.0,
     )  # type: ignore
@@ -52,11 +52,12 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
         )
         return result or {"FINISHED"}
 
-    def import_bsp(self, context, filepath, scale=0.05, texture_prefix="", recalc_normals=False):
+    def import_bsp(self, context, filepath, scale=0.0625, texture_prefix="", recalc_normals=False):
         import bpy
         import bmesh
         import random
         import os
+        import json
 
         parsed_bsp = parse_bsp_file(filepath)
         sectors = collect_atomic_sectors(parsed_bsp.get("worldChunk", []))
@@ -69,23 +70,30 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
         bsp_name = os.path.splitext(os.path.basename(filepath))[0]
         bsp_dir = os.path.dirname(filepath)
 
-        # Pre-scan: determine which material indices have non-opaque vertex alpha
+        # Transparency ground truth: the TFB material chunk (0x800000F6) carries
+        # a blend-state field. 0 = the game draws the material fully opaque and
+        # ignores vertex/texture/material alpha — terrain base layers and plain
+        # walls often carry garbage vertex alpha of 0, so honoring it punches
+        # see-through holes wherever all stacked layers are alpha 0.
+        # Non-zero = alpha blending on (terrain overlays, decals, water, foliage).
+        # Only materials without the chunk fall back to the vertex-alpha scan.
         ALPHA_THRESHOLD = 254
         materials_with_vertex_alpha = set()
-        for sector in sectors:
-            if sector.get("isNativeData"):
-                continue
-            sector_colors = sector.get("colors", [])
-            sector_triangles = sector.get("triangles", [])
-            mat_base = sector.get("matListWindowBase", 0)
-            if not sector_colors:
-                continue
-            for tri in sector_triangles:
-                mat_idx = mat_base + tri[3]
-                for vi in (tri[0], tri[1], tri[2]):
-                    if vi < len(sector_colors) and sector_colors[vi][3] < ALPHA_THRESHOLD:
-                        materials_with_vertex_alpha.add(mat_idx)
-                        break
+        if any(mat.get("tfbBlendState") is None for mat in materials):
+            for sector in sectors:
+                if sector.get("isNativeData"):
+                    continue
+                sector_colors = sector.get("colors", [])
+                sector_triangles = sector.get("triangles", [])
+                mat_base = sector.get("matListWindowBase", 0)
+                if not sector_colors:
+                    continue
+                for tri in sector_triangles:
+                    mat_idx = mat_base + tri[3]
+                    for vi in (tri[0], tri[1], tri[2]):
+                        if vi < len(sector_colors) and sector_colors[vi][3] < ALPHA_THRESHOLD:
+                            materials_with_vertex_alpha.add(mat_idx)
+                            break
 
         # Create Blender materials
         blender_materials = []
@@ -93,6 +101,27 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
             bl_mat = bpy.data.materials.new(name=f"{bsp_name}_mat_{i}_{mat_suffix}")
             bl_mat.use_nodes = True
             bl_mat.use_backface_culling = False
+
+            # Stash the parsed material so the exporter can round-trip it
+            # byte-identically (incl. the TFB extension chunks).
+            stored = {
+                k: mat[k]
+                for k in (
+                    "unusedFlags", "color", "unusedInt2", "isTextured",
+                    "ambient", "specular", "diffuse", "extensionData",
+                )
+                if k in mat
+            }
+            if mat.get("texture"):
+                stored["texture"] = {
+                    k: mat["texture"][k]
+                    for k in (
+                        "filterMode", "addressModes", "useMipLevels",
+                        "diffuseTextureName", "alphaTextureName", "extensionData",
+                    )
+                    if k in mat["texture"]
+                }
+            bl_mat["bsp_material"] = json.dumps(stored)
 
             nodes = bl_mat.node_tree.nodes
             links = bl_mat.node_tree.links
@@ -111,13 +140,11 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
                 vcol_node.layer_name = "Color"
                 vcol_node.location = (-650, 300)
 
-                is_transparent = (
-                    a < 0.999
-                    or mat.get("isTransparent", False)
-                    or mat.get("hasAlpha", False)
-                    or mat.get("alphaBlend", False)
-                    or i in materials_with_vertex_alpha
-                )
+                tfb_blend = mat.get("tfbBlendState")
+                if tfb_blend is not None:
+                    is_transparent = tfb_blend != 0
+                else:
+                    is_transparent = a < 0.999 or i in materials_with_vertex_alpha
 
                 tex_node = None
                 if mat.get("isTextured") and mat.get("texture"):
@@ -199,7 +226,7 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
         all_face_materials = []
         all_uvs = []
         all_colors = []
-        vertex_offset = 0
+        seen_faces = set()
 
         for sector in sectors:
             if sector.get("isNativeData"):
@@ -212,7 +239,9 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
             if not vertices:
                 continue
 
-            for i, v in enumerate(vertices):
+            vertex_offset = len(all_verts)
+
+            def append_vertex(i, v):
                 all_verts.append((v[0] * scale, v[2] * scale, v[1] * scale))
                 all_uvs.append((uvs[i][0], 1.0 - uvs[i][1]) if uvs and i < len(uvs) else (0.0, 0.0))
                 if colors and i < len(colors):
@@ -221,6 +250,9 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
                 else:
                     all_colors.append((1.0, 1.0, 1.0, 1.0))
 
+            for i, v in enumerate(vertices):
+                append_vertex(i, v)
+
             num_sector_verts = len(vertices)
             for tri in triangles:
                 v0, v1, v2 = tri[0], tri[1], tri[2]
@@ -228,13 +260,21 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
                     continue
                 if v0 == v1 or v0 == v2 or v1 == v2:
                     continue
-                all_faces.append((
-                    v0 + vertex_offset,
-                    v2 + vertex_offset,
-                    v1 + vertex_offset,
-                ))
+                face = (v0 + vertex_offset, v2 + vertex_offset, v1 + vertex_offset)
+                key = frozenset(face)
+                if key in seen_faces:
+                    # mesh.validate() silently drops polygons reusing the same
+                    # vertex set (stacked terrain blend layers, double-sided
+                    # faces). Duplicate the vertices so the face survives.
+                    face = []
+                    for sv in (v0, v2, v1):
+                        face.append(len(all_verts))
+                        append_vertex(sv, vertices[sv])
+                    face = tuple(face)
+                else:
+                    seen_faces.add(key)
+                all_faces.append(face)
                 all_face_materials.append(mat_base + tri[3])
-            vertex_offset += len(vertices)
 
         if not all_faces:
             self.report({"ERROR"}, "No geometry found")
@@ -244,6 +284,21 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
         mesh = bpy.data.meshes.new(f"{bsp_name}_Mesh")
         obj = bpy.data.objects.new(bsp_name, mesh)
         context.collection.objects.link(obj)
+
+        # Stash world-level data so the exporter reproduces the original
+        # header, flags and TFB world extension on re-export.
+        obj["bsp_world"] = json.dumps({
+            "worldFlags": parsed_bsp.get("worldFlags", 0),
+            "stamp": parsed_bsp.get("renderWareVersion", 0),
+            "worldExtData": parsed_bsp.get("worldExtData", ""),
+            "inverseOrigin": [
+                parsed_bsp.get("inverseOrigin", {}).get("x", -0.0),
+                parsed_bsp.get("inverseOrigin", {}).get("y", -0.0),
+                parsed_bsp.get("inverseOrigin", {}).get("z", -0.0),
+            ],
+            "rootIsWorldSector": parsed_bsp.get("rootIsWorldSector", 0),
+            "importScale": scale,
+        })
 
         # Build material slots before from_pydata so we can assign per-polygon
         # indices before mesh.validate() runs. validate() can silently remove

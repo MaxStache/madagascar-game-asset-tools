@@ -110,7 +110,7 @@ import rwwBSP as rwwBSP
 #
 #root_dat.uvs = [rwwBSP.RW_UV(0, 0) for vert in vertices]
 #
-#root_dat.triangles = [rwwBSP.RW_World_Triangle(*tri) for tri in triangles]
+#root_dat.triangles = [rwwBSP.RW_Triangle(*tri) for tri in triangles]
 #
 #root_dat_data = (
 #    b"\x0e\x05\x00\x00\x0c\x00\x00\x00\x16\x00\x02\x1c\x00\x00\x00\x00"
@@ -156,7 +156,7 @@ for sector in rwwBSP._collect_atomic_sectors(orig.world_chunk.data):
     #sector.vertices = [
     #    rwwBSP.Vector3(vs[v].x, vs[v-1].y, vs[v].z) for v in range(len(sector.vertices))
     #]
-    sector.triangles = [rwwBSP.RW_World_Triangle(t.vertex1, t.vertex2, t.vertex3, t.materialIndex + 1) for t in sector.triangles]
+    sector.triangles = [rwwBSP.RW_Triangle(t.vertex1, t.vertex2, t.vertex3, t.materialIndex + 1) for t in sector.triangles]
     # sector.boxMax = rwwBSP.Vector3(sector.boxMax.x, sector.boxMax.y + 40, sector.boxMax.z)
     # sector.boxMin = rwwBSP.Vector3(sector.boxMin.x, sector.boxMin.y + 40, sector.boxMin.z)
 

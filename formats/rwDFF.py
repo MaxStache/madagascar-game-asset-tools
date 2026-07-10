@@ -1,21 +1,22 @@
 """
-rwwBSP.py — RenderWare World (.BSP) Library
+rwDFF.py — RenderWare Model (.DFF) Library
 ========================================================
 
-Read, write, export, and import Renderware World BSP files.
+Read, write, export, and import Renderware DFF files.
 
 """
 
-from enum import Enum
 import io
 import struct
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Union, Optional
+from typing import Union
 from lib.parser import Parser
-from rwConstants import RWSectionType, RWSectionType_TFB, DEFAULT_VERSION_STAMP
+from rwConstants import RWSectionType, DEFAULT_VERSION_STAMP
 from rw_basics import (
+    RW_UV,
     RW_GeometryTriangle,
+    RW_Matrix3x3,
     RWColor32,
     RWSphere,
     Vector3,
@@ -23,256 +24,9 @@ from rw_basics import (
     expect_chunk_type_or_raise,
     library_id_unpack,
 )
-from sections import RW_Texture
+from sections import RW_Material
 
 __version__ = "1.0.0"
-
-
-# ═══════════════════════════════════════════════════════
-#  Data Structures
-# ═══════════════════════════════════════════════════════
-
-
-
-@dataclass
-class RW_UV:
-    u: float = 0.0
-    v: float = 0.0
-
-
-@dataclass
-class RW_Matrix2x3:
-    row1: Vector3 = field(default_factory=Vector3)
-    row2: Vector3 = field(default_factory=Vector3)
-
-    def write(this, f):
-        this.row1.write(f)
-        this.row2.write(f)
-
-    def read(parser: Parser) -> "RW_Matrix2x3":
-        return RW_Matrix2x3(
-            row1=Vector3.read(parser),
-            row2=Vector3.read(parser),
-        )
-
-
-@dataclass
-class RW_Matrix3x3:
-    row1: Vector3 = field(default_factory=Vector3)
-    row2: Vector3 = field(default_factory=Vector3)
-    row3: Vector3 = field(default_factory=Vector3)
-
-    def write(this, f):
-        this.row1.write(f)
-        this.row2.write(f)
-        this.row3.write(f)
-
-    def read(parser: Parser) -> "RW_Matrix3x3":
-        return RW_Matrix3x3(
-            row1=Vector3.read(parser),
-            row2=Vector3.read(parser),
-            row3=Vector3.read(parser),
-        )
-
-
-@dataclass
-class RW_TFB_rwMATFXEFFECTUVTRANSFORM:
-    header: RWHeader = field(default_factory=RWHeader)
-    unk1: int = 0  # uint32
-    unk2: int = 0  # uint32
-    unk3: int = 0  # uint32
-    unk4: int = 0  # uint32
-    unk5: int = 0  # uint32
-    unk6: int = 0  # uint32
-    unk7: int = 0  # uint32
-    uv_transform_matrix: RW_Matrix2x3 = field(default_factory=lambda: RW_Matrix2x3())
-    unk8: int = 0  # uint32
-    unk9: int = 0  # uint32
-    unk10: int = 0  # uint32
-    unk11: int = 0  # uint8
-
-    def read(parser: Parser) -> "RW_TFB_rwMATFXEFFECTUVTRANSFORM":
-        uv_transform = RW_TFB_rwMATFXEFFECTUVTRANSFORM()
-        uv_transform.header = RWHeader.read(parser)
-        expect_chunk_type_or_raise(
-            uv_transform.header,
-            RWSectionType_TFB.rwID_tfbMATFXEFFECTUVTRANSFORM.value,
-            "RW_TFB_rwMATFXEFFECTUVTRANSFORM chunk type",
-        )
-        print(uv_transform.header.size)
-        p = Parser(parser.readBytes(uv_transform.header.size))
-        uv_transform.unk1 = p.readUint32()
-        uv_transform.unk2 = p.readUint32()
-        uv_transform.unk3 = p.readUint32()
-        uv_transform.unk4 = p.readUint32()
-        uv_transform.unk5 = p.readUint32()
-        uv_transform.unk6 = p.readUint32()
-        uv_transform.unk7 = p.readUint32()
-        uv_transform.uv_transform_matrix = RW_Matrix2x3.read(p)
-        uv_transform.unk8 = p.readUint32()
-        uv_transform.unk9 = p.readUint32()
-        uv_transform.unk10 = p.readUint32()
-        uv_transform.unk11 = p.readUint8()
-        return uv_transform
-
-
-class RW_MaterialEffectsPLG_Type(Enum):
-    rwMATFXEFFECTNULL = 0x00  # No Effect
-    rwMATFXEFFECTBUMPMAP = 0x01  # Bump Map
-    rwMATFXEFFECTENVMAP = 0x02  # Environment Map (Reflections)
-    rwMATFXEFFECTBUMPENVMAP = 0x03  # Bump Map/Environment Map
-    rwMATFXEFFECTDUAL = 0x04  # Dual Textures
-    rwMATFXEFFECTUVTRANSFORM = 0x05  # UV-Tranformation
-    rwMATFXEFFECTDUALUVTRANSFORM = 0x06  # Dual Textures/UV-Transformation
-
-
-@dataclass
-class RW_MaterialEffectsPLG:
-    header: RWHeader = field(default_factory=RWHeader)
-    effectId: int = 0  # uint32
-    effect1_type: int = 0x00
-    effect2_type: int = 0x00
-
-    @staticmethod
-    def read(parser: Parser) -> "RW_MaterialEffectsPLG":
-        mat_effect = RW_MaterialEffectsPLG()
-        mat_effect.header = RWHeader.read(parser)
-        expect_chunk_type_or_raise(
-            mat_effect.header,
-            RWSectionType.rwID_MATERIALEFFECTSPLUGIN.value,
-            "RW_MaterialEffectsPLG chunk type",
-        )
-        mat_effect.effectId = parser.readUint32()
-        mat_effect.effect1_type = parser.readUint32()
-        mat_effect.effect2_type = parser.readUint32()
-        return mat_effect
-
-
-@dataclass
-class RW_Material:
-    header: RWHeader = field(default_factory=RWHeader)
-    struct_header: RWHeader = field(default_factory=RWHeader)
-
-    flags: int = 0
-    color: RWColor32 = field(default_factory=RWColor32)
-    unused: int = 367978292  # always 367978292 in tested files
-    isTextured: int = 0
-
-    ambient: float = 0.0
-    specular: float = 0.0
-    diffuse: float = 0.0
-
-    texture: Optional[RW_Texture] = None
-
-    ext_header: RWHeader = field(default_factory=RWHeader)
-    extData: bytes = b""  # ext_header.payload_size
-
-    def parse_extensions(this):
-        buf = Parser(this.extData)
-        extensions = []
-
-        while buf.canRead(12):
-            header = RWHeader.read(buf)
-            buf.offset -= 12  # Rewind to include header in the extension data
-
-            if header.type == RWSectionType.rwID_MATERIALEFFECTSPLUGIN.value:
-                mat_effect = RW_MaterialEffectsPLG.read(buf)
-                extensions.append(mat_effect)
-            elif header.type == RWSectionType_TFB.rwID_tfbMATFXEFFECTUVTRANSFORM.value:
-                # uv_transform = RW_TFB_rwMATFXEFFECTUVTRANSFORM.read(buf)
-                # extensions.append(uv_transform)
-                _header = RWHeader.read(buf)
-                print(_header.size)
-                print(buf.readBytes(_header.size).hex())
-                # buf.skip(header.size)
-            else:
-                _header = RWHeader.read(buf)
-                buf.skip(header.size)
-                extensions.append("UNKNOWN")
-                print(hex(header.type), header.type)
-
-        return extensions
-
-    @staticmethod
-    def read(parser: Parser) -> "RW_Material":
-        mat = RW_Material()
-        mat.header = RWHeader.read(parser)
-        expect_chunk_type_or_raise(
-            mat.header,
-            RWSectionType.rwID_MATERIAL.value,
-            "RW_Material chunk type",
-        )
-        mat.struct_header = RWHeader.read(parser)
-        expect_chunk_type_or_raise(
-            mat.struct_header,
-            RWSectionType.rwID_STRUCT.value,
-            "RW_Material struct chunk type",
-        )
-
-        mat.flags = parser.readUint32()  # always 0 in tested files
-        mat.color = RWColor32.read(parser)
-        mat.unused = parser.readUint32()  # always 367978292 in tested files
-        mat.isTextured = parser.readUint32()
-
-        mat.ambient = parser.readFloat()
-        mat.specular = parser.readFloat()
-        mat.diffuse = parser.readFloat()
-
-        if mat.isTextured:
-            mat.texture = RW_Texture.read(parser)
-
-        mat.ext_header = RWHeader.read(parser)
-        expect_chunk_type_or_raise(
-            mat.ext_header,
-            RWSectionType.rwID_EXTENSION.value,
-            "RW_Material extension chunk type",
-        )
-        mat.extData = parser.readBytes(mat.ext_header.size)
-
-        return mat
-
-    def write(this, f, stamp):
-        buf = io.BytesIO()
-
-        struct_buf = io.BytesIO()
-
-        # region struct data
-        _write_u32(struct_buf, this.flags)
-        this.color.write(struct_buf)
-        _write_u32(struct_buf, this.unused)
-        _write_u32(struct_buf, this.isTextured)
-
-        _write_f32(struct_buf, this.ambient)
-        _write_f32(struct_buf, this.specular)
-        _write_f32(struct_buf, this.diffuse)
-        # endregion
-
-        buf.write(struct_buf.getvalue())
-
-        if this.isTextured and this.texture is not None:
-            this.texture.write(buf, stamp)
-
-        ext_header = RWHeader(
-            type=RWSectionType.rwID_EXTENSION.value,
-            size=len(this.extData),
-            library_id_stamp=stamp,
-        )
-        buf.write(ext_header.pack())
-        buf.write(this.extData)
-
-        rw_header = RWHeader(
-            type=RWSectionType.rwID_MATERIAL.value,
-            size=len(buf.getvalue()) + RWHeader().binSize,
-            library_id_stamp=stamp,
-        )
-        rw_struct_header = RWHeader(
-            type=RWSectionType.rwID_STRUCT.value,
-            size=len(struct_buf.getvalue()),
-            library_id_stamp=stamp,
-        )
-        f.write(rw_header.pack())
-        f.write(rw_struct_header.pack())
-        f.write(buf.getvalue())
 
 
 @dataclass

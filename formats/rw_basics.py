@@ -204,6 +204,45 @@ class RWSphere:
         this.location.write(f)
         _write_f32(f, this.radius)
 
+@dataclass
+class RW_UV:
+    u: float = 0.0
+    v: float = 0.0
+class RW_Vector2:
+    x: float = 0.0
+    y: float = 0.0
+@dataclass
+class RW_Matrix2x3:
+    row1: Vector3 = field(default_factory=Vector3)
+    row2: Vector3 = field(default_factory=Vector3)
+
+    def write(this, f):
+        this.row1.write(f)
+        this.row2.write(f)
+
+    def read(parser: Parser) -> "RW_Matrix2x3":
+        return RW_Matrix2x3(
+            row1=Vector3.read(parser),
+            row2=Vector3.read(parser),
+        )
+@dataclass
+class RW_Matrix3x3:
+    row1: Vector3 = field(default_factory=Vector3)
+    row2: Vector3 = field(default_factory=Vector3)
+    row3: Vector3 = field(default_factory=Vector3)
+
+    def write(this, f):
+        this.row1.write(f)
+        this.row2.write(f)
+        this.row3.write(f)
+
+    def read(parser: Parser) -> "RW_Matrix3x3":
+        return RW_Matrix3x3(
+            row1=Vector3.read(parser),
+            row2=Vector3.read(parser),
+            row3=Vector3.read(parser),
+        )
+
 
 def expect_chunk_type_or_raise(
     header: RWHeader, expected_type: int, error: str = "Wrong Chunk Type"

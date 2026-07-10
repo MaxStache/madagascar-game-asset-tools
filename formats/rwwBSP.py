@@ -665,7 +665,7 @@ class RW_World_AtomicSector:
 
         buf.write(sbuf.getvalue())
 
-        buf.write(this.extension_sector.pack(stamp))
+        this.extension_sector.write(buf, stamp)
 
         _write_u32(
             f, len(buf.getvalue()) + RWHeader().binSize

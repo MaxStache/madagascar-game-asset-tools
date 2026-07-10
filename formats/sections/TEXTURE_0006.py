@@ -5,7 +5,9 @@ from rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
 from dataclasses import dataclass, field
 import io
 
-from sections import RW_String
+from .STRING_0002 import RW_String
+from .EXTENSION_0003 import RW_Extension
+
 
 @dataclass
 class RW_Texture_Struct(RW_Section):
@@ -50,15 +52,14 @@ class RW_Texture_Struct(RW_Section):
 @dataclass
 class RW_Texture(RW_Section):
     header: RWHeader = field(default_factory=RWHeader)
-    
+
     struct: RW_Texture_Struct = field(default_factory=RW_Texture_Struct)
 
     diffuseTextureName: RW_String = field(default_factory=RW_String)
 
     alphaTextureName: RW_String = field(default_factory=RW_String)
 
-    ext_header: RWHeader = field(default_factory=RWHeader)
-    extData: bytes = b""  # ext_header.payload_size
+    extension: RW_Extension = field(default_factory=RW_Extension)
 
     @staticmethod
     def read(parser: Parser, parent_type=None) -> "RW_Texture":
@@ -76,13 +77,9 @@ class RW_Texture(RW_Section):
 
         texture.alphaTextureName = RW_String.read(parser)
 
-        texture.ext_header = RWHeader.read(parser)
-        expect_chunk_type_or_raise(
-            texture.ext_header,
-            RWSectionType.rwID_EXTENSION.value,
-            "RW_Texture extension chunk type",
+        texture.extension = RW_Extension.read(
+            parser, parent_type=RWSectionType.rwID_TEXTURE.value
         )
-        texture.extData = parser.readBytes(texture.ext_header.size)
 
         return texture
 
@@ -94,14 +91,8 @@ class RW_Texture(RW_Section):
         this.diffuseTextureName.write(buf, stamp)
 
         this.alphaTextureName.write(buf, stamp)
-       
-        ext_header = RWHeader(
-            type=RWSectionType.rwID_EXTENSION.value,
-            size=len(this.extData),
-            library_id_stamp=stamp,
-        )
-        buf.write(ext_header.pack())
-        buf.write(this.extData)
+
+        this.extension.write(buf, stamp)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_TEXTURE.value,

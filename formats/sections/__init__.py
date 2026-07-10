@@ -7,15 +7,13 @@ from .EXTENSION_0003 import RW_Extension
 from .BINMESHPLUGIN_050E import RW_BinMeshPlugin
 from .MATERIALEFFECTSPLUGIN_0120 import (
     RW_MaterialEffectsPlugin,
-    RW_MaterialEffectsPlugin_Effect,
-    RW_MaterialEffectsPlugin_EffectType,
-    RW_MaterialEffectsPlugin_Variant,
-    RW_MatFXEffectNull,
-    RW_MatFXEffectBumpMap,
-    RW_MatFXEffectEnvMap,
-    RW_MatFXEffectDual,
-    RW_MatFXEffectUVTransform,
 )
+
+from .MATERIAL_0007 import RW_Material
+
+# SKY (PS2)
+from .SKYMIPMAPVAL_0110 import RW_SkyMipmapVal
+# ----
 
 from .TFB.UNKNOWN1_800000FE import RW_TFB_UNKNOWN1
 from .TFB.UNKNOWN2_800000D4 import RW_TFB_UNKNOWN2
@@ -29,7 +27,7 @@ SECTION_REGISTRY: dict[int, RW_Section] = {
     RWSectionType.rwID_EXTENSION.value            : RW_Extension,
     RWSectionType.rwID_CAMERA.value               : RW_Section_NotImplemented,
     RWSectionType.rwID_TEXTURE.value              : RW_Texture,
-    RWSectionType.rwID_MATERIAL.value             : RW_Section_NotImplemented,
+    RWSectionType.rwID_MATERIAL.value             : RW_Material,
     RWSectionType.rwID_MATLIST.value              : RW_Section_NotImplemented,
     RWSectionType.rwID_ATOMICSECT.value           : RW_Section_NotImplemented,
     RWSectionType.rwID_PLANESECT.value            : RW_Section_NotImplemented,
@@ -81,7 +79,7 @@ SECTION_REGISTRY: dict[int, RW_Section] = {
     RWSectionType.rwID_PNGIMAGEPLUGIN.value       : RW_Section_NotImplemented,
     RWSectionType.rwID_BONEPLUGIN.value           : RW_Section_NotImplemented,
     RWSectionType.rwID_VRMLANIMPLUGIN.value       : RW_Section_NotImplemented,
-    RWSectionType.rwID_SKYMIPMAPVAL.value         : RW_Section_NotImplemented,
+    RWSectionType.rwID_SKYMIPMAPVAL.value         : RW_SkyMipmapVal,
     RWSectionType.rwID_MRMPLUGIN.value            : RW_Section_NotImplemented,
     RWSectionType.rwID_LODATMPLUGIN.value         : RW_Section_NotImplemented,
     RWSectionType.rwID_MEPLUGIN.value             : RW_Section_NotImplemented,
@@ -193,13 +191,7 @@ __all__ = [
     "RW_Extension",
     "RW_BinMeshPlugin",
     "RW_MaterialEffectsPlugin",
-    "RW_MaterialEffectsPlugin_Effect",
-    "RW_MaterialEffectsPlugin_EffectType",
-    "RW_MaterialEffectsPlugin_Variant",
-    "RW_MatFXEffectNull",
-    "RW_MatFXEffectBumpMap",
-    "RW_MatFXEffectEnvMap",
-    "RW_MatFXEffectDual",
-    "RW_MatFXEffectUVTransform",
+    "RW_SkyMipmapVal",
+    "RW_Material",
     "RW_TFB_UNKNOWN1",
 ]

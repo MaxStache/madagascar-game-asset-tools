@@ -1,21 +1,25 @@
-from rwConstants import RWSectionType
+#from rwConstants import RWSectionType
 from rwDFF import load_dff
-from rwwBSP import load_bsp, _collect_atomic_sectors
+#from rwwBSP import load_bsp
 
 from pathlib import Path
-from sections import RW_Extension
-from lib.parser import Parser
 
-trans = load_bsp("Levels/KingOfNY-unchanged/10_KingofNY9_Combined188_Trans.bsp")
-ext = trans.material_list.materials[5].extension
+import sys
+
+#from sections import RW_Extension
+#from lib.parser import Parser
+
+#trans = load_bsp("Levels/KingOfNY-unchanged/10_KingofNY9_Combined188_Trans.bsp")
+#ext = trans.material_list.materials[5].extension
  
-print(ext.children[0])
+#print(ext.children[0])
 
-with open("test_ext.bin", "rb") as f:
-    ext = RW_Extension.read(Parser(f.read()), RWSectionType.rwID_ATOMICSECT.value)
+#with open("test_ext.bin", "rb") as f:
+#    ext = RW_Extension.read(Parser(f.read()), RWSectionType.rwID_ATOMICSECT.value)
 
-    
+mydff = load_dff("Levels/KingOfNY-unchanged/170_marty.dff")
 
+sys.exit()
 
 all_dffs = list(Path("Levels/KingOfNY-unchanged/").glob("*.dff"))
 

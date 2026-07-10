@@ -1,7 +1,11 @@
 import struct
 from dataclasses import dataclass, field
-from rwConstants import RWSectionType
-from lib.parser import Parser
+try:
+    from rwConstants import RWSectionType
+    from lib.parser import Parser
+except ImportError:
+    from formats.rwConstants import RWSectionType
+    from formats.lib.parser import Parser
 
 
 def _write_u8(f, v):
@@ -242,6 +246,9 @@ class RW_Matrix3x3:
             row2=Vector3.read(parser),
             row3=Vector3.read(parser),
         )
+    
+    def __repr__(self):
+        return f"RW_Matrix3x3({self.row1}, {self.row2}, {self.row3})"
 
 
 def expect_chunk_type_or_raise(

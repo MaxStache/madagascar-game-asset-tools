@@ -2,10 +2,10 @@ from enum import Enum
 import io
 from dataclasses import dataclass, field
 
-from lib.writer import _write_u32
-from lib.parser import Parser
-from rwConstants import RWSectionType
-from rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from ..lib.writer import _write_u32
+from ..lib.parser import Parser
+from ..rwConstants import RWSectionType
+from ..rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
 
 class RW_BinMeshPlugin_Flags(Enum):
     TRIANGLE_LIST = 0

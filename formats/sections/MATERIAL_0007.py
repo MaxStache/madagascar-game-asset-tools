@@ -2,10 +2,10 @@ import io
 from dataclasses import dataclass, field
 from typing import Optional
 
-from lib.parser import Parser
-from lib.writer import _write_u32, _write_f32
-from rwConstants import RWSectionType
-from rw_basics import RW_Section, RWColor32, RWHeader, expect_chunk_type_or_raise
+from ..lib.parser import Parser
+from ..lib.writer import _write_u32, _write_f32
+from ..rwConstants import RWSectionType
+from ..rw_basics import RW_Section, RWColor32, RWHeader, expect_chunk_type_or_raise
 from .TEXTURE_0006 import RW_Texture
 from .EXTENSION_0003 import RW_Extension
 

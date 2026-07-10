@@ -4,6 +4,7 @@ from bpy.props import StringProperty, FloatProperty, BoolProperty
 
 from ..bspLib import parse_file as parse_bsp_file
 from ..bspLib import collect_atomic_sectors
+from .. import bspLib
 
 
 class IMPORT_OT_bsp(Operator, ImportHelper):
@@ -57,7 +58,6 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
         import bmesh
         import random
         import os
-        import json
 
         parsed_bsp = parse_bsp_file(filepath)
         sectors = collect_atomic_sectors(parsed_bsp.get("worldChunk", []))
@@ -102,26 +102,30 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
             bl_mat.use_nodes = True
             bl_mat.use_backface_culling = False
 
-            # Stash the parsed material so the exporter can round-trip it
-            # byte-identically (incl. the TFB extension chunks).
-            stored = {
-                k: mat[k]
-                for k in (
-                    "unusedFlags", "color", "unusedInt2", "isTextured",
-                    "ambient", "specular", "diffuse", "extensionData",
-                )
-                if k in mat
-            }
-            if mat.get("texture"):
-                stored["texture"] = {
-                    k: mat["texture"][k]
-                    for k in (
-                        "filterMode", "addressModes", "useMipLevels",
-                        "diffuseTextureName", "alphaTextureName", "extensionData",
-                    )
-                    if k in mat["texture"]
-                }
-            bl_mat["bsp_material"] = json.dumps(stored)
+            # Store all BSP material data in the PropertyGroup (replaces JSON blob)
+            bsp = bl_mat.bsp
+            bsp.has_data = True
+            bsp.unused_flags = mat.get("unusedFlags", 0)
+            color = mat.get("color", {"r": 255, "g": 255, "b": 255, "a": 255})
+            bsp.color = (
+                color.get("r", 255) / 255.0,
+                color.get("g", 255) / 255.0,
+                color.get("b", 255) / 255.0,
+                color.get("a", 255) / 255.0,
+            )
+            bsp.unused_int2 = mat.get("unusedInt2", bspLib.DEFAULT_MATERIAL_UNUSED_INT2)
+            bsp.ambient = mat.get("ambient", 1.0)
+            bsp.specular = mat.get("specular", 0.0)
+            bsp.diffuse = mat.get("diffuse", 1.0)
+
+            # Parse and store the TFB material extension (0x800000F6)
+            mat_ext = bspLib.parse_material_extension(mat.get("extensionData", ""))
+            bsp.ext.magic = mat_ext["magic"]
+            bsp.ext.flags = mat_ext["flags"]
+            bsp.ext.blend_state = mat_ext["blend_state"]
+            bsp.ext.alpha_ref = mat_ext["alpha_ref"]
+            bsp.ext.blend_func = mat_ext["blend_func"]
+            bsp.ext.extra_hex = mat_ext["extra_hex"]
 
             nodes = bl_mat.node_tree.nodes
             links = bl_mat.node_tree.links
@@ -148,7 +152,21 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
 
                 tex_node = None
                 if mat.get("isTextured") and mat.get("texture"):
-                    tex_name = mat["texture"].get("diffuseTextureName", "")
+                    bsp.is_textured = True
+                    tex = mat["texture"]
+
+                    # Parse and store texture sampling params + extension
+                    bsp.texture.filter_mode = tex.get("filterMode", 2)
+                    bsp.texture.address_modes = tex.get("addressModes", 17)
+                    bsp.texture.use_mip_levels = tex.get("useMipLevels", 1)
+
+                    tex_ext = bspLib.parse_texture_extension(tex.get("extensionData", ""))
+                    bsp.texture.ext.sky_mip_val = tex_ext["sky_mip_val"]
+                    bsp.texture.ext.tfb_magic = tex_ext["tfb_magic"]
+                    bsp.texture.ext.tfb_d1 = tex_ext["tfb_d1"]
+                    bsp.texture.ext.tfb_d2 = tex_ext["tfb_d2"]
+
+                    tex_name = tex.get("diffuseTextureName", "")
                     if tex_name:
                         tex_node = nodes.new(type="ShaderNodeTexImage")
                         tex_node.location = (-300, 300)
@@ -285,20 +303,20 @@ class IMPORT_OT_bsp(Operator, ImportHelper):
         obj = bpy.data.objects.new(bsp_name, mesh)
         context.collection.objects.link(obj)
 
-        # Stash world-level data so the exporter reproduces the original
-        # header, flags and TFB world extension on re-export.
-        obj["bsp_world"] = json.dumps({
-            "worldFlags": parsed_bsp.get("worldFlags", 0),
-            "stamp": parsed_bsp.get("renderWareVersion", 0),
-            "worldExtData": parsed_bsp.get("worldExtData", ""),
-            "inverseOrigin": [
-                parsed_bsp.get("inverseOrigin", {}).get("x", -0.0),
-                parsed_bsp.get("inverseOrigin", {}).get("y", -0.0),
-                parsed_bsp.get("inverseOrigin", {}).get("z", -0.0),
-            ],
-            "rootIsWorldSector": parsed_bsp.get("rootIsWorldSector", 0),
-            "importScale": scale,
-        })
+        # Store world-level BSP data in the PropertyGroup on the object
+        world_ext = bspLib.parse_world_extension(parsed_bsp.get("worldExtData", ""))
+        obj_bsp = obj.bsp
+        obj_bsp.has_data = True
+        obj_bsp.world_flags = parsed_bsp.get("worldFlags", bspLib.DEFAULT_WORLD_FLAGS)
+        obj_bsp.stamp = parsed_bsp.get("renderWareVersion", bspLib.DEFAULT_VERSION_STAMP)
+        obj_bsp.import_scale = scale
+        inv = parsed_bsp.get("inverseOrigin", {"x": -0.0, "y": -0.0, "z": -0.0})
+        obj_bsp.inv_origin = (inv.get("x", -0.0), inv.get("y", -0.0), inv.get("z", -0.0))
+        obj_bsp.root_is_world_sector = parsed_bsp.get("rootIsWorldSector", 0)
+        obj_bsp.ext.magic = world_ext["magic"]
+        obj_bsp.ext.d1 = world_ext["d1"]
+        obj_bsp.ext.d2 = world_ext["d2"]
+        obj_bsp.ext.d3 = world_ext["d3"]
 
         # Build material slots before from_pydata so we can assign per-polygon
         # indices before mesh.validate() runs. validate() can silently remove

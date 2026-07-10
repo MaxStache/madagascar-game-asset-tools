@@ -1,7 +1,7 @@
-from lib.writer import _write_u8, _write_u16
-from rwConstants import RWSectionType
-from lib.parser import Parser
-from rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from ..lib.writer import _write_u8, _write_u16
+from ..rwConstants import RWSectionType
+from ..lib.parser import Parser
+from ..rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
 from dataclasses import dataclass, field
 import io
 

@@ -158,7 +158,7 @@ class RWSectionType(Enum):
     
     # other
     rwID_ZModelerLock = 0xF21E
-    rwID_Frame = 0x0253F2FE
+    rwID_Frame = 0x0253F2FE # Rockstar Games
     
 
 class strfunc_func(Enum):

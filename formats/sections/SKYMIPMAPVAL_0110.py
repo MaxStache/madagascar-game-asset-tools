@@ -2,9 +2,9 @@ import io
 from dataclasses import dataclass, field
 import struct
 
-from lib.parser import Parser
-from rwConstants import RWSectionType
-from rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from ..lib.parser import Parser
+from ..rwConstants import RWSectionType
+from ..rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
 
 
 @dataclass

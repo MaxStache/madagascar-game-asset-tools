@@ -1,8 +1,8 @@
 import io
 from dataclasses import dataclass, field
 
-from lib.parser import Parser
-from rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from ...lib.parser import Parser
+from ...rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
 
 @dataclass
 class RW_TFB_UNKNOWN1(RW_Section):

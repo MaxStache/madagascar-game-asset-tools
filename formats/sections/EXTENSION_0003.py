@@ -1,9 +1,9 @@
 import io
 from dataclasses import dataclass, field
 
-from lib.parser import Parser
-from rwConstants import RWSectionType
-from rw_basics import (
+from ..lib.parser import Parser
+from ..rwConstants import RWSectionType
+from ..rw_basics import (
     RW_Section,
     RW_Section_NotImplemented,
     RWHeader,

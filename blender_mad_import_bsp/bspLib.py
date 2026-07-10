@@ -7,7 +7,7 @@ import random
 # Values used by the original TFB/RenderWare export tools for Madagascar.
 DEFAULT_VERSION_STAMP = 0x1C020016
 DEFAULT_WORLD_FLAGS = 0x4001004D  # triStrip|textured|preLit|modulateMatColor|1 UV set|sectorsOverlap
-DEFAULT_MATERIAL_UNUSED_INT2 = 0x1C2DE734
+DEFAULT_MATERIAL_UNUSED_INT2 = 0x32E6CF5C # 0x1C2DE734
 
 class BinaryReader:
     """Helper class to read binary data with offset tracking."""
@@ -569,6 +569,159 @@ def _string_chunk(s: str, stamp: int) -> bytes:
     raw = s.encode("ascii", errors="replace") + b"\x00"
     raw += b"\x00" * (-len(raw) % 4)
     return _chunk(0x0002, raw, stamp)
+
+
+def parse_material_extension(ext_hex: str) -> Dict[str, Any]:
+    """Parse the TFB material extension chunk (0x800000F6).
+
+    Payload layout (33 bytes): magic(4) flags(4) blendState(4) alphaRef(4) blendFunc(4) + 13 trailing bytes
+    Returns a dict with all fields for round-trip storage.
+    """
+    default: Dict[str, Any] = {
+        "magic": 0x0F0F000D,
+        "flags": 0x201,
+        "blend_state": 0,
+        "alpha_ref": 2,
+        "blend_func": 8,
+        "extra_hex": "00" * 13,
+    }
+    if not ext_hex:
+        return default
+    try:
+        ext_data = bytes.fromhex(ext_hex)
+    except ValueError:
+        return default
+
+    off = 0
+    while off + 12 <= len(ext_data):
+        ctype, csize, _ = struct.unpack_from("<IiI", ext_data, off)
+        off += 12
+        if csize < 0 or off + csize > len(ext_data):
+            break
+        if ctype == 0x800000F6 and csize >= 20:
+            magic, flags, blend_state, alpha_ref, blend_func = struct.unpack_from(
+                "<IIIII", ext_data, off
+            )
+            extra = ext_data[off + 20: off + csize]
+            return {
+                "magic": magic,
+                "flags": flags,
+                "blend_state": blend_state,
+                "alpha_ref": alpha_ref,
+                "blend_func": blend_func,
+                "extra_hex": extra.hex(),
+            }
+        off += csize
+    return default
+
+
+def write_material_extension_from_parsed(parsed: Dict[str, Any], stamp: int = DEFAULT_VERSION_STAMP) -> bytes:
+    """Serialize a parsed material extension dict back to RW bytes (full 0x800000F6 chunk)."""
+    try:
+        extra = bytes.fromhex(parsed.get("extra_hex", ""))
+    except ValueError:
+        extra = b""
+    if not extra:
+        extra = b"\x00" * 13
+    payload = struct.pack(
+        "<IIIII",
+        parsed.get("magic", 0x0F0F000D) & 0xFFFFFFFF,
+        parsed.get("flags", 0x201) & 0xFFFFFFFF,
+        parsed.get("blend_state", 0) & 0xFFFFFFFF,
+        parsed.get("alpha_ref", 2) & 0xFFFFFFFF,
+        parsed.get("blend_func", 8) & 0xFFFFFFFF,
+    ) + extra
+    return _chunk(0x800000F6, payload, stamp)
+
+
+def parse_texture_extension(ext_hex: str) -> Dict[str, Any]:
+    """Parse the texture extension: Sky Mipmap Val (0x0110) + TFB plugin (0x800000DD)."""
+    result: Dict[str, Any] = {
+        "sky_mip_val": 0x0F80,
+        "tfb_magic": 0x0F0F0004,
+        "tfb_d1": 0,
+        "tfb_d2": 0,
+    }
+    if not ext_hex:
+        return result
+    try:
+        ext_data = bytes.fromhex(ext_hex)
+    except ValueError:
+        return result
+
+    off = 0
+    while off + 12 <= len(ext_data):
+        ctype, csize, _ = struct.unpack_from("<IiI", ext_data, off)
+        off += 12
+        if csize < 0 or off + csize > len(ext_data):
+            break
+        if ctype == 0x0110 and csize >= 4:
+            result["sky_mip_val"] = struct.unpack_from("<I", ext_data, off)[0]
+        elif ctype == 0x800000DD and csize >= 12:
+            m, d1, d2 = struct.unpack_from("<III", ext_data, off)
+            result["tfb_magic"] = m
+            result["tfb_d1"] = d1
+            result["tfb_d2"] = d2
+        off += csize
+    return result
+
+
+def write_texture_extension_from_parsed(parsed: Dict[str, Any], stamp: int = DEFAULT_VERSION_STAMP) -> bytes:
+    """Serialize a parsed texture extension dict back to RW bytes."""
+    return (
+        _chunk(0x0110, struct.pack("<I", parsed.get("sky_mip_val", 0x0F80) & 0xFFFFFFFF), stamp)
+        + _chunk(
+            0x800000DD,
+            struct.pack(
+                "<III",
+                parsed.get("tfb_magic", 0x0F0F0004) & 0xFFFFFFFF,
+                parsed.get("tfb_d1", 0) & 0xFFFFFFFF,
+                parsed.get("tfb_d2", 0) & 0xFFFFFFFF,
+            ),
+            stamp,
+        )
+    )
+
+
+def parse_world_extension(ext_hex: str) -> Dict[str, Any]:
+    """Parse the world extension: TFB world plugin chunk (0x800000B0)."""
+    result: Dict[str, Any] = {"magic": 0x0F0F0003, "d1": 0, "d2": 0, "d3": 0}
+    if not ext_hex:
+        return result
+    try:
+        ext_data = bytes.fromhex(ext_hex)
+    except ValueError:
+        return result
+
+    off = 0
+    while off + 12 <= len(ext_data):
+        ctype, csize, _ = struct.unpack_from("<IiI", ext_data, off)
+        off += 12
+        if csize < 0 or off + csize > len(ext_data):
+            break
+        if ctype == 0x800000B0 and csize >= 16:
+            m, d1, d2, d3 = struct.unpack_from("<IIII", ext_data, off)
+            result["magic"] = m
+            result["d1"] = d1
+            result["d2"] = d2
+            result["d3"] = d3
+        off += csize
+    return result
+
+
+def write_world_extension_from_parsed(parsed: Dict[str, Any], stamp: int = DEFAULT_VERSION_STAMP) -> bytes:
+    """Serialize a parsed world extension dict back to RW bytes (full 0x800000B0 chunk)."""
+    return _chunk(
+        0x800000B0,
+        struct.pack(
+            "<IIII",
+            parsed.get("magic", 0x0F0F0003) & 0xFFFFFFFF,
+            parsed.get("d1", 0) & 0xFFFFFFFF,
+            parsed.get("d2", 0) & 0xFFFFFFFF,
+            parsed.get("d3", 0) & 0xFFFFFFFF,
+        ),
+        stamp,
+    )
 
 
 def default_material_extension(transparent: bool = False, stamp: int = DEFAULT_VERSION_STAMP) -> bytes:

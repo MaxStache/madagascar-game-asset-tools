@@ -142,6 +142,14 @@ class Parser:
     def readString(self, length: int, encoding="latin-1") -> str:
         b = self.readBytes(length)
         return b.decode(encoding)
+    
+    def readLengthPrefixedString(self, encoding="latin-1") -> str:
+        # u32 length prefix
+        # char[length]
+        # non-null-terminated, but may be padded to 4 bytes
+        length = self.readUint32()
+        b = self.readBytes(length)
+        return b.decode(encoding)
 
     def readGUID(self):
         guid_bytes = self.readBytes(16)

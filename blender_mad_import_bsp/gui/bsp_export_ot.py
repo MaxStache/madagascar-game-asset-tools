@@ -1,5 +1,3 @@
-import json
-
 from bpy.types import Operator
 from bpy_extras.io_utils import ExportHelper
 from bpy.props import StringProperty, FloatProperty, BoolProperty, IntProperty
@@ -7,22 +5,67 @@ from bpy.props import StringProperty, FloatProperty, BoolProperty, IntProperty
 from .. import bspLib
 
 
-def _material_to_bsp(bl_mat):
+def _material_to_bsp(bl_mat, stamp):
     """Build a bspLib material dict from a Blender material.
 
-    Imported materials carry the original parsed data in the "bsp_material"
-    custom property and round-trip byte-identically (incl. TFB extensions).
-    Anything else gets the defaults the original tools wrote, marked
-    transparent when the Blender material uses a blended surface.
+    Imported materials carry all original data in the bsp PropertyGroup and
+    round-trip byte-identically (incl. parsed TFB extensions).
+    Anything else gets defaults, marked transparent when the Blender material
+    uses a blended surface.
     """
-    if bl_mat is not None:
-        stored = bl_mat.get("bsp_material")
-        if stored:
-            try:
-                return json.loads(stored)
-            except (ValueError, TypeError):
-                pass
+    if bl_mat is not None and bl_mat.bsp.has_data:
+        bsp = bl_mat.bsp
+        cf = bsp.color
+        mat = {
+            "unusedFlags": bsp.unused_flags,
+            "color": {
+                "r": min(255, max(0, round(cf[0] * 255))),
+                "g": min(255, max(0, round(cf[1] * 255))),
+                "b": min(255, max(0, round(cf[2] * 255))),
+                "a": min(255, max(0, round(cf[3] * 255))),
+            },
+            "unusedInt2": bsp.unused_int2,
+            "isTextured": 1 if bsp.is_textured else 0,
+            "ambient": bsp.ambient,
+            "specular": bsp.specular,
+            "diffuse": bsp.diffuse,
+        }
+        # Rebuild TFB material extension from stored parsed fields
+        mat["extensionData"] = bspLib.write_material_extension_from_parsed(
+            {
+                "magic": bsp.ext.magic,
+                "flags": bsp.ext.flags,
+                "blend_state": bsp.ext.blend_state,
+                "alpha_ref": bsp.ext.alpha_ref,
+                "blend_func": bsp.ext.blend_func,
+                "extra_hex": bsp.ext.extra_hex,
+            },
+            stamp,
+        ).hex()
 
+        # Texture: sampling params from PropertyGroup, name from node tree
+        if bsp.is_textured:
+            tex_name = _tex_name_from_nodes(bl_mat)
+            tex_ext_bytes = bspLib.write_texture_extension_from_parsed(
+                {
+                    "sky_mip_val": bsp.texture.ext.sky_mip_val,
+                    "tfb_magic": bsp.texture.ext.tfb_magic,
+                    "tfb_d1": bsp.texture.ext.tfb_d1,
+                    "tfb_d2": bsp.texture.ext.tfb_d2,
+                },
+                stamp,
+            )
+            mat["texture"] = {
+                "filterMode": bsp.texture.filter_mode,
+                "addressModes": bsp.texture.address_modes,
+                "useMipLevels": bsp.texture.use_mip_levels,
+                "diffuseTextureName": tex_name,
+                "alphaTextureName": "",
+                "extensionData": tex_ext_bytes.hex(),
+            }
+        return mat
+
+    # Fallback for materials not imported from BSP
     mat = {
         "unusedFlags": 0,
         "color": {"r": 255, "g": 255, "b": 255, "a": 255},
@@ -42,20 +85,8 @@ def _material_to_bsp(bl_mat):
         transparent = True
     mat["transparent"] = transparent
 
-    tex_name = ""
-    if bl_mat.use_nodes and bl_mat.node_tree:
-        for node in bl_mat.node_tree.nodes:
-            if node.type == "TEX_IMAGE":
-                if node.label:
-                    tex_name = node.label
-                elif node.image:
-                    tex_name = node.image.name
-                break
+    tex_name = _tex_name_from_nodes(bl_mat)
     if tex_name:
-        for ext in (".png", ".PNG", ".dds", ".DDS", ".tga", ".TGA"):
-            if tex_name.endswith(ext):
-                tex_name = tex_name[: -len(ext)]
-                break
         mat["isTextured"] = 1
         mat["texture"] = {
             "filterMode": 2,
@@ -65,6 +96,22 @@ def _material_to_bsp(bl_mat):
             "alphaTextureName": "",
         }
     return mat
+
+
+def _tex_name_from_nodes(bl_mat):
+    """Extract the texture base name from a TEX_IMAGE node (label or image name)."""
+    if not (bl_mat and bl_mat.use_nodes and bl_mat.node_tree):
+        return ""
+    for node in bl_mat.node_tree.nodes:
+        if node.type == "TEX_IMAGE":
+            name = node.label or (node.image.name if node.image else "")
+            if name:
+                for ext in (".png", ".PNG", ".dds", ".DDS", ".tga", ".TGA"):
+                    if name.endswith(ext):
+                        name = name[: -len(ext)]
+                        break
+                return name
+    return ""
 
 
 class EXPORT_OT_bsp(Operator, ExportHelper):
@@ -133,32 +180,37 @@ class EXPORT_OT_bsp(Operator, ExportHelper):
             self.report({"ERROR"}, "No mesh objects to export")
             return {"CANCELLED"}
 
-        # World-level settings, stored by the importer for faithful re-export
+        # World-level settings from the BSP PropertyGroup, falling back to operator props
         world_kwargs = {}
         scale = self.scale
+        stamp = bspLib.DEFAULT_VERSION_STAMP
+
         if self.use_stored_settings:
             for o in [context.active_object] + objs:
-                stored = o.get("bsp_world") if o else None
-                if not stored:
+                if not (o and o.bsp.has_data):
                     continue
-                try:
-                    w = json.loads(stored)
-                except (ValueError, TypeError):
-                    continue
+                obj_bsp = o.bsp
+                stamp = obj_bsp.stamp & 0xFFFFFFFF
+                scale = obj_bsp.import_scale
                 world_kwargs = {
-                    "world_flags": w.get("worldFlags", bspLib.DEFAULT_WORLD_FLAGS),
-                    "stamp": w.get("stamp", bspLib.DEFAULT_VERSION_STAMP),
-                    "inverse_origin": tuple(w.get("inverseOrigin", (-0.0, -0.0, -0.0))),
-                    "root_is_world_sector": w.get("rootIsWorldSector", 0),
+                    "world_flags": obj_bsp.world_flags & 0xFFFFFFFF,
+                    "stamp": stamp,
+                    "inverse_origin": tuple(obj_bsp.inv_origin),
+                    "root_is_world_sector": obj_bsp.root_is_world_sector,
+                    "world_extension": bspLib.write_world_extension_from_parsed(
+                        {
+                            "magic": obj_bsp.ext.magic,
+                            "d1": obj_bsp.ext.d1,
+                            "d2": obj_bsp.ext.d2,
+                            "d3": obj_bsp.ext.d3,
+                        },
+                        stamp,
+                    ),
                 }
-                if w.get("worldExtData"):
-                    world_kwargs["world_extension"] = bytes.fromhex(w["worldExtData"])
-                if w.get("importScale"):
-                    scale = w["importScale"]
                 break
 
         try:
-            verts, cols, uvs, tris, materials = self._gather_geometry(context, objs, scale)
+            verts, cols, uvs, tris, materials = self._gather_geometry(context, objs, scale, stamp)
         except ValueError as exc:
             self.report({"ERROR"}, str(exc))
             return {"CANCELLED"}
@@ -187,7 +239,7 @@ class EXPORT_OT_bsp(Operator, ExportHelper):
         )
         return {"FINISHED"}
 
-    def _gather_geometry(self, context, objs, scale):
+    def _gather_geometry(self, context, objs, scale, stamp):
         import bpy  # noqa: F401
 
         depsgraph = context.evaluated_depsgraph_get() if self.apply_modifiers else None
@@ -203,7 +255,7 @@ class EXPORT_OT_bsp(Operator, ExportHelper):
             key = bl_mat.name if bl_mat else None
             if key not in mat_index_cache:
                 mat_index_cache[key] = len(materials)
-                materials.append(_material_to_bsp(bl_mat))
+                materials.append(_material_to_bsp(bl_mat, stamp))
             return mat_index_cache[key]
 
         inv = 1.0 / scale

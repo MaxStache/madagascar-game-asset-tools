@@ -1,15 +1,27 @@
-from rw_basics import RW_Section, RW_Section_NotImplemented
-from rwConstants import RWSectionType
+
+try:
+    from rw_basics import RW_Section, RW_Section_NotImplemented
+    from rwConstants import RWSectionType
+except ImportError:
+    from formats.rw_basics import RW_Section, RW_Section_NotImplemented
+    from formats.rwConstants import RWSectionType
 
 from .STRING_0002 import RW_String
 from .TEXTURE_0006 import RW_Texture
 from .EXTENSION_0003 import RW_Extension
 from .BINMESHPLUGIN_050E import RW_BinMeshPlugin
-from .MATERIALEFFECTSPLUGIN_0120 import (
-    RW_MaterialEffectsPlugin,
-)
-
+from .MATERIALEFFECTSPLUGIN_0120 import RW_MaterialEffectsPlugin
 from .MATERIAL_0007 import RW_Material
+from .RIGHTTORENDER_001F import RW_RightToRender
+from .USERDATAPLUGIN_011F import RW_UserDataPlugin
+from .HANIMPLUGIN_011E import RW_HAnimPlugin
+from .ATOMIC_0014 import RW_Atomic
+from .CLUMP_0010 import RW_Clump
+from .FRAMELIST_000E import RW_FrameList
+from .GEOMETRYLIST_001A import RW_GeometryList
+from .GEOMETRY_000F import RW_Geometry
+from .MATLIST_0008 import RW_MaterialList
+from .CAMERA_0005 import RW_Camera
 
 # SKY (PS2)
 from .SKYMIPMAPVAL_0110 import RW_SkyMipmapVal
@@ -25,32 +37,32 @@ SECTION_REGISTRY: dict[int, RW_Section] = {
     RWSectionType.rwID_STRUCT.value               : RW_Section_NotImplemented,
     RWSectionType.rwID_STRING.value               : RW_String,
     RWSectionType.rwID_EXTENSION.value            : RW_Extension,
-    RWSectionType.rwID_CAMERA.value               : RW_Section_NotImplemented,
+    RWSectionType.rwID_CAMERA.value               : RW_Camera,
     RWSectionType.rwID_TEXTURE.value              : RW_Texture,
     RWSectionType.rwID_MATERIAL.value             : RW_Material,
-    RWSectionType.rwID_MATLIST.value              : RW_Section_NotImplemented,
+    RWSectionType.rwID_MATLIST.value              : RW_MaterialList,
     RWSectionType.rwID_ATOMICSECT.value           : RW_Section_NotImplemented,
     RWSectionType.rwID_PLANESECT.value            : RW_Section_NotImplemented,
     RWSectionType.rwID_WORLD.value                : RW_Section_NotImplemented,
     RWSectionType.rwID_SPLINE.value               : RW_Section_NotImplemented,
     RWSectionType.rwID_MATRIX.value               : RW_Section_NotImplemented,
-    RWSectionType.rwID_FRAMELIST.value            : RW_Section_NotImplemented,
-    RWSectionType.rwID_GEOMETRY.value             : RW_Section_NotImplemented,
-    RWSectionType.rwID_CLUMP.value                : RW_Section_NotImplemented,
+    RWSectionType.rwID_FRAMELIST.value            : RW_FrameList,
+    RWSectionType.rwID_GEOMETRY.value             : RW_Geometry,
+    RWSectionType.rwID_CLUMP.value                : RW_Clump,
     RWSectionType.rwID_LIGHT.value                : RW_Section_NotImplemented,
     RWSectionType.rwID_UNICODESTRING.value        : RW_Section_NotImplemented,
-    RWSectionType.rwID_ATOMIC.value               : RW_Section_NotImplemented,
+    RWSectionType.rwID_ATOMIC.value               : RW_Atomic,
     RWSectionType.rwID_TEXTURENATIVE.value        : RW_Section_NotImplemented,
     RWSectionType.rwID_TEXDICTIONARY.value        : RW_Section_NotImplemented,
     RWSectionType.rwID_ANIMDATABASE.value         : RW_Section_NotImplemented,
     RWSectionType.rwID_IMAGE.value                : RW_Section_NotImplemented,
     RWSectionType.rwID_SKINANIMATION.value        : RW_Section_NotImplemented,
-    RWSectionType.rwID_GEOMETRYLIST.value         : RW_Section_NotImplemented,
+    RWSectionType.rwID_GEOMETRYLIST.value         : RW_GeometryList,
     RWSectionType.rwID_ANIMANIMATION.value        : RW_Section_NotImplemented,
     RWSectionType.rwID_TEAM.value                 : RW_Section_NotImplemented,
     RWSectionType.rwID_CROWD.value                : RW_Section_NotImplemented,
     RWSectionType.rwID_DMORPHANIMATION.value      : RW_Section_NotImplemented,
-    RWSectionType.rwID_RIGHTTORENDER.value        : RW_Section_NotImplemented,
+    RWSectionType.rwID_RIGHTTORENDER.value        : RW_RightToRender,
     RWSectionType.rwID_MTEFFECTNATIVE.value       : RW_Section_NotImplemented,
     RWSectionType.rwID_MTEFFECTDICT.value         : RW_Section_NotImplemented,
     RWSectionType.rwID_TEAMDICTIONARY.value       : RW_Section_NotImplemented,
@@ -93,8 +105,8 @@ SECTION_REGISTRY: dict[int, RW_Section] = {
     RWSectionType.rwID_STQPPPLUGIN.value          : RW_Section_NotImplemented,
     RWSectionType.rwID_PARTPPPLUGIN.value         : RW_Section_NotImplemented,
     RWSectionType.rwID_COLLISPLUGIN.value         : RW_Section_NotImplemented,
-    RWSectionType.rwID_HANIMPLUGIN.value          : RW_Section_NotImplemented,
-    RWSectionType.rwID_USERDATAPLUGIN.value       : RW_Section_NotImplemented,
+    RWSectionType.rwID_HANIMPLUGIN.value          : RW_HAnimPlugin,
+    RWSectionType.rwID_USERDATAPLUGIN.value       : RW_UserDataPlugin,
     RWSectionType.rwID_MATERIALEFFECTSPLUGIN.value: RW_MaterialEffectsPlugin,
     RWSectionType.rwID_PARTICLESYSTEMPLUGIN.value : RW_Section_NotImplemented,
     RWSectionType.rwID_DMORPHPLUGIN.value         : RW_Section_NotImplemented,
@@ -191,7 +203,16 @@ __all__ = [
     "RW_Extension",
     "RW_BinMeshPlugin",
     "RW_MaterialEffectsPlugin",
+    "RW_UserDataPlugin",
     "RW_SkyMipmapVal",
+    "RW_RightToRender",
     "RW_Material",
+    "RW_GeometryList",
+    "RW_Geometry",
+    "RW_MaterialList",
+    "RW_Atomic",
+    "RW_Camera",
+    "RW_Clump",
+    "RW_FrameList",
     "RW_TFB_UNKNOWN1",
 ]

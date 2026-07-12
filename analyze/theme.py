@@ -39,9 +39,9 @@ def configure_style(root):
     style = ttk.Style()
     style.theme_use("clam")
 
-    root.tk.call("tk", "scaling", 1.0)
-    if "tk::mac::ScrollFractions" in root.tk.call("info", "commands"):
-        root.tk.call("tk::mac::ScrollFractions", True)
+    #root.tk.call("tk", "scaling", 1.0)
+    #if "tk::mac::ScrollFractions" in root.tk.call("info", "commands"):
+    #    root.tk.call("tk::mac::ScrollFractions", True)
 
     style.configure("Treeview", rowheight=22)
 
@@ -183,4 +183,5 @@ def make_icons(size=15, padding_x=5):
         make_dot("#00D100", size, padding_x),
         make_dot("#1D9BF2", size, padding_x),
         make_dot("#9C9C9C", size, padding_x),
+        make_dot("#FFEE00", size, padding_x),
     )

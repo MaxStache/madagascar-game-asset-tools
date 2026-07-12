@@ -30,9 +30,12 @@ from formats.sections.ANIMANIMATION_001B import RW_AnimAnimation
 from formats.sections.SKYMIPMAPVAL_0110 import RW_SkyMipmapVal
 # ----
 
-from formats.sections.TFB.UNKNOWN1_800000FE import RW_TFB_UNKNOWN1
-from formats.sections.TFB.UNKNOWN2_800000D4 import RW_TFB_UNKNOWN2
-from formats.sections.TFB.UNKNOWN3_800000F6 import RW_TFB_UNKNOWN3
+# Rockstar Games
+from formats.sections.Rockstar.FRAME_0253F2FE import RW_Rockstar_Frame
+from formats.sections.Rockstar.SPECULARMATERIAL_0253F2F6 import RW_Rockstar_SpecularMaterial
+from formats.sections.Rockstar.REFLECTIONMATERIAL_0253F2FC import RW_Rockstar_ReflectionMaterial
+# ----
+
 
 # fmt: off
 SECTION_REGISTRY: dict[int, RW_Section] = {
@@ -187,12 +190,17 @@ SECTION_REGISTRY: dict[int, RW_Section] = {
     RWSectionType.rwID_UVANIMPARAM.value          : RW_Section_NotImplemented,
     RWSectionType.rwID_BINMESHPLUGIN.value        : RW_BinMeshPlugin,
     RWSectionType.rwID_NATIVEDATAPLUGIN.value     : RW_Section_NotImplemented,
-    # other
-    RWSectionType.rwID_ZModelerLock.value: RW_Section_NotImplemented,
-    RWSectionType.rwID_Frame.value       : RW_Section_NotImplemented,
 
+    # ZModeler
+    RWSectionType.rwID_ZModeler_ZModelerLock.value: RW_Section_NotImplemented,
 
-    # TFB - World
+    # Rockstar
+    RWSectionType.rwID_rockstar_Frame.value             : RW_Rockstar_Frame,
+    RWSectionType.rwID_rockstar_ReflectionMaterial.value: RW_Rockstar_ReflectionMaterial,
+    RWSectionType.rwID_rockstar_SpecularMaterial.value  : RW_Rockstar_SpecularMaterial,
+    RWSectionType.rwID_rockstar_Breakable.value         : RW_Section_NotImplemented,
+
+    # TFB
     0x800000D4: RW_Section_NotImplemented, # found on atomic world sector
     0x800000FE: RW_Section_NotImplemented, # found on atomic world sector
     0x800000B0: RW_Section_NotImplemented, # found on world 

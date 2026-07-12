@@ -4,8 +4,6 @@ from analyze.theme import COLORS
 
 
 def hexdump(widget, data, width=8, parse_end=0x0):
-    lines = []
-
     blocks_per_chunk = width // 8
     block_size = 8
 
@@ -24,21 +22,29 @@ def hexdump(widget, data, width=8, parse_end=0x0):
         widget.tag_configure(name, foreground=COLORS[name])
 
     read_tagging_offset = 0
+    prefix = ""
 
     if len(data) > 15_000:
-        widget.insert("1.0", "")
-        widget.insert("2.0", f"Data too long to display ({len(data)} bytes).")
-        widget.insert("3.0", "Showing first 15,000 bytes:")
-        widget.insert("4.0", "")
+        # Four header lines; data lines start at line 5, matching the offset.
+        prefix = (
+            "\n"
+            f"Data too long to display ({len(data)} bytes).\n"
+            "Showing first 15,000 bytes:\n"
+            "\n"
+        )
         data = data[:15_000]
         read_tagging_offset = 4
+
+    # Build the whole dump as one string and accumulate tag ranges, then issue
+    # a single insert and one tag_add per tag. Inserting line-by-line with a
+    # handful of tag_add calls each was thousands of Tcl round-trips per click.
+    text_parts = []
+    ranges = {"hex_offset": [], "hex_not_read": [], "hex_read": [], "hex_ascii": []}
 
     for off in range(0, len(data), width):
         line = off // width + 1 + read_tagging_offset
 
         chunk = data[off : off + width]
-
-        hex_part = 0
 
         chunk_blocks = [
             " ".join(f"{b:02X}" for b in chunk[i * 8 : (i + 1) * 8])
@@ -46,31 +52,34 @@ def hexdump(widget, data, width=8, parse_end=0x0):
         ]
 
         hex_part = "  ".join(chunk_blocks)
-
         hex_part = hex_part.ljust(width * 3 - 1)
 
         ascii_part = "".join(chr(b) if 32 <= b < 127 else "." for b in chunk)
 
         line_text = f"{off:08X}  {hex_part}  {ascii_part}\n"
-        widget.insert(f"{line}.0", line_text)
-        lines.append(line_text)
+        text_parts.append(line_text)
 
-        widget.tag_add("hex_offset", f"{line}.0", f"{line}.8")
+        ranges["hex_offset"] += [f"{line}.0", f"{line}.8"]
 
         end_written = len(line_text) - len(ascii_part)
-        widget.tag_add("hex_not_read", f"{line}.10", f"{line}.{end_written + 10}")
+        ranges["hex_not_read"] += [f"{line}.10", f"{line}.{end_written + 10}"]
 
         read_in_line = max(0, min(parse_end - off, len(chunk)))
         if read_in_line > 0:
             read_end_col = byte_col(read_in_line - 1) + 2
-            widget.tag_add("hex_read", f"{line}.10", f"{line}.{read_end_col}")
+            ranges["hex_read"] += [f"{line}.10", f"{line}.{read_end_col}"]
 
         ascii_part_start = 8 + len("  ") + len(hex_part) + len("  ")
-        widget.tag_add(
-            "hex_ascii",
+        ranges["hex_ascii"] += [
             f"{line}.{ascii_part_start}",
             f"{line}.{ascii_part_start + width}",
-        )
+        ]
+
+    widget.insert("1.0", prefix + "".join(text_parts))
+
+    for tag, idxs in ranges.items():
+        if idxs:
+            widget.tag_add(tag, *idxs)
 
     widget.tag_raise("hex_read")
 
@@ -78,7 +87,7 @@ def format_repr(
     text: str,
     indent_size: int = 4,
     max_str_len: int = 150,
-    max_list_items: int = 5,
+    max_list_items: int = 10,
 ) -> str:
     lines = []
 

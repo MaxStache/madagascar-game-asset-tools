@@ -49,6 +49,10 @@ def run(file_path):
     """Open ``file_path`` and launch the analyzer window."""
     leaf_bytes = {}
     tree_headers = {}
+    # Parsed-section cache keyed by tree iid. read_section re-parses a node's
+    # whole ancestor chain, so without this every click re-parses parents from
+    # scratch. Cleared on reload/reopen since the parsers or bytes change then.
+    section_cache = {}
 
     root = tk.Tk()
     root.title("RW Tree")
@@ -60,7 +64,7 @@ def run(file_path):
     configure_style(root)
 
     # --- icons ---
-    green_dot, blue_dot, gray_dot = make_icons()
+    green_dot, blue_dot, gray_dot, yellow_dot = make_icons()
 
     def populate(tree, parent, node):
         header, data, children = node
@@ -71,7 +75,8 @@ def run(file_path):
             sect = "Unknown"
         label = f"{sect}  (0x{header.type:X}, {header.size} B)"
 
-        color = blue_dot if children else green_dot
+        color = blue_dot if children else (green_dot if data else yellow_dot)
+
         is_implemented = (
             sections.SECTION_REGISTRY.get(header.type)
             not in [sections.RW_Section_NotImplemented, None]
@@ -118,6 +123,9 @@ def run(file_path):
         except Exception as e:
             print(f"\033[31;1;4mFailed to reload sections: {e}\033[0m")
             return
+
+        # Reloaded parsers may produce different results; drop cached parses.
+        section_cache.clear()
 
         # Refresh the details/hex view for whatever is currently selected.
         on_select(None)
@@ -226,8 +234,11 @@ def run(file_path):
     right.sashpos(0, 100)
 
     def read_section(iid):
-        root.title("RW Tree - parsing....")
         """Parse the section at `iid`, passing its parsed parent section (if any)."""
+        if iid in section_cache:
+            return section_cache[iid]
+
+        root.title("RW Tree - parsing....")
         header = tree_headers[iid]
         section = sections.SECTION_REGISTRY.get(header.type)
 
@@ -253,7 +264,9 @@ def run(file_path):
         if header.type == RWSectionType.rwID_STRUCT.value:
             struct = getattr(parent_section, "struct", None)
             if struct is not None:
-                return struct, parent_read_end
+                result = (struct, parent_read_end)
+                section_cache[iid] = result
+                return result
 
         sec_parser = Parser(header.pack() + leaf_bytes[iid], endian="little")
         parsed = section.read(
@@ -262,7 +275,9 @@ def run(file_path):
         )
 
         root.title("RW Tree")
-        return parsed, sec_parser.offset
+        result = (parsed, sec_parser.offset)
+        section_cache[iid] = result
+        return result
 
     def on_select(event):
         sel = tree.selection()
@@ -359,6 +374,7 @@ def run(file_path):
         tree.delete(*tree.get_children())
         leaf_bytes.clear()
         tree_headers.clear()
+        section_cache.clear()
         with open(file_path, "rb") as f:
             file_parser = Parser(f.read(), endian="little")
 

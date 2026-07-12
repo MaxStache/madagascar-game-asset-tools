@@ -5,8 +5,8 @@ class RWSectionType_TFB(Enum):
     rwID_tfbMATFXEFFECTUVTRANSFORM = 0x800000F6
 
 
-def MAKECHUNKID(vendorID, chunkID):
-    return ((vendorID & 0xFFFFFF) << 8) | (chunkID & 0xFF)
+def MAKECHUNKID(vendorID, identifier):
+    return ((vendorID & 0xFFFFFF) << 8) | (identifier & 0xFF)
 
 
 rwVENDORID_CORE = 0x000000
@@ -19,6 +19,8 @@ rwVENDORID_BETA = 0x000006
 rwVENDORID_CRITERIONRM = 0x000007
 rwVENDORID_CRITERIONRWA = 0x000008  # RW Audio
 rwVENDORID_CRITERIONRWP = 0x000009  # RW Physics
+
+rwVENDORID_ROCKSTAR = 0x0253F2  # Rockstar Games
 
 
 class RWSectionType(Enum):
@@ -174,9 +176,14 @@ class RWSectionType(Enum):
     rwID_BINMESHPLUGIN = 0x050E
     rwID_NATIVEDATAPLUGIN = 0x0510
 
-    # other
-    rwID_ZModelerLock = 0xF21E
-    rwID_Frame = 0x0253F2FE  # Rockstar Games
+    # ZModeler
+    rwID_ZModeler_ZModelerLock = 0xF21E
+
+    # Rockstar
+    rwID_rockstar_Frame = MAKECHUNKID(rwVENDORID_ROCKSTAR, 0xFE)
+    rwID_rockstar_ReflectionMaterial = MAKECHUNKID(rwVENDORID_ROCKSTAR, 0xFC)
+    rwID_rockstar_SpecularMaterial = MAKECHUNKID(rwVENDORID_ROCKSTAR, 0xF6)
+    rwID_rockstar_Breakable = MAKECHUNKID(rwVENDORID_ROCKSTAR, 0xFD)
 
     # RW Audio
     rwID_d = MAKECHUNKID

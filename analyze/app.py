@@ -57,7 +57,7 @@ def run(file_path):
 
 
     # --- ttk dark theme ---
-    configure_style()
+    configure_style(root)
 
     # --- icons ---
     green_dot, blue_dot, gray_dot = make_icons()
@@ -74,7 +74,7 @@ def run(file_path):
         color = blue_dot if children else green_dot
         is_implemented = (
             sections.SECTION_REGISTRY.get(header.type)
-            is not sections.RW_Section_NotImplemented
+            not in [sections.RW_Section_NotImplemented, None]
         ) or header.type == RWSectionType.rwID_STRUCT.value
 
         iid = tree.insert(
@@ -272,6 +272,9 @@ def run(file_path):
 
         iid = sel[0]
 
+        end_offset = 0
+        abc = None
+
         try:
             abc, end_offset = read_section(iid)
         except Exception as e:
@@ -287,7 +290,6 @@ def run(file_path):
             print(f"\033[31;1;4mFailed to parse section: {e}\033[0m")
             details_label.config(state="disabled")
             hexview.config(state="disabled")
-            return
 
         hexview.config(state="normal")
         hexview.delete("1.0", "end")
@@ -297,7 +299,10 @@ def run(file_path):
         
         root.title("RW Tree - preparing....")
 
-        pretty = pretty_object(abc)
+        if abc is None:
+            pretty = "# No parser registered for this section type."
+        else:
+            pretty = pretty_object(abc)
 
         details_label.config(state="normal")
         details_label.delete("1.0", "end")  # remove existing content

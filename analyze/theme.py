@@ -2,6 +2,7 @@
 
 import tkinter as tk
 from tkinter import ttk
+import math
 
 COLORS = {
     "bg": "#181818",
@@ -33,10 +34,16 @@ COLORS = {
 }
 
 
-def configure_style():
+def configure_style(root):
     """Apply the dark ``clam`` theme to ttk widgets. Requires a Tk root."""
     style = ttk.Style()
     style.theme_use("clam")
+
+    root.tk.call("tk", "scaling", 1.0)
+    if "tk::mac::ScrollFractions" in root.tk.call("info", "commands"):
+        root.tk.call("tk::mac::ScrollFractions", True)
+
+    style.configure("Treeview", rowheight=22)
 
     style.configure(
         "Treeview",
@@ -118,17 +125,62 @@ def configure_style():
     return style
 
 
-def make_icons(size=15, padding_x=5):
-    """Build the green/blue/gray dot icons used in the tree. Requires a Tk root."""
-    green_dot = tk.PhotoImage(width=size + padding_x * 2, height=size)
-    blue_dot = tk.PhotoImage(width=size + padding_x * 2, height=size)
-    gray_dot = tk.PhotoImage(width=size + padding_x * 2, height=size)
+def make_dot(color, size, padding_x):
+    img = tk.PhotoImage(width=size + padding_x * 2, height=size)
+
+    cx = size / 2
+    cy = size / 2
+    radius = size / 2 - 1
+
+    # Light source (top-left)
+    lx = cx - radius * 0.35
+    ly = cy - radius * 0.35
+
+    base = tuple(int(color[i:i+2], 16) for i in (1, 3, 5))
 
     for x in range(size):
         for y in range(size):
-            if (x - size // 2) ** 2 + (y - size // 2) ** 2 <= (size // 2 - 1) ** 2:
-                green_dot.put("#00D100", (x + padding_x, y))
-                blue_dot.put("#1D9BF2", (x + padding_x, y))
-                gray_dot.put("#9C9C9C", (x + padding_x, y))
+            dx = x - cx
+            dy = y - cy
+            dist = math.sqrt(dx * dx + dy * dy)
 
-    return green_dot, blue_dot, gray_dot
+            if dist <= radius:
+                # Edge shading
+                edge = dist / radius
+
+                # Highlight from light source
+                light_dist = math.sqrt((x - lx) ** 2 + (y - ly) ** 2) / radius
+                highlight = max(0, 1 - light_dist) ** 2
+
+                # Bottom-right inset shadow
+                shadow = max(0, (dx + dy) / (radius * 2))
+
+                factor = (
+                    0.75
+                    + highlight * 0.45
+                    - edge * 0.20
+                    - shadow * 0.25
+                )
+
+                factor = max(0.0, min(1.3, factor))
+
+                rgb = tuple(
+                    min(255, max(0, int(c * factor)))
+                    for c in base
+                )
+
+                img.put(
+                    "#%02X%02X%02X" % rgb,
+                    (x + padding_x, y)
+                )
+
+    return img
+
+
+def make_icons(size=15, padding_x=5):
+    """Build the green/blue/gray 3D dot icons used in the tree."""
+    return (
+        make_dot("#00D100", size, padding_x),
+        make_dot("#1D9BF2", size, padding_x),
+        make_dot("#9C9C9C", size, padding_x),
+    )

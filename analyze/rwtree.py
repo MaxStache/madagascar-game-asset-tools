@@ -10,7 +10,6 @@ Parser = parser.Parser
 
 CONTAINER_CHUNKS = {
     RWSectionType.rwID_CLUMP.value,
-    RWSectionType.rwID_Frame.value,
     RWSectionType.rwID_FRAMELIST.value,
     RWSectionType.rwID_GEOMETRY.value,
     RWSectionType.rwID_GEOMETRYLIST.value,
@@ -27,12 +26,26 @@ CONTAINER_CHUNKS = {
 
 def read_recursive(parser, depth=0):
     header = RWHeader.read(parser)
+
+    if header.size > parser.remaining():
+        # Malformed size field. Some files carry garbage in the high byte
+        # (e.g. 0x0100000C for a 12-byte struct); fall back to the low 24
+        # bits if that fits, otherwise clamp to what is actually left.
+        masked = header.size & 0x00FFFFFF
+        fixed = masked if masked <= parser.remaining() else parser.remaining()
+        print(
+            f"Warning: chunk 0x{header.type:X} at depth {depth} declares "
+            f"size {header.size:#x} but only {parser.remaining()} bytes "
+            f"remain; using {fixed}"
+        )
+        header.size = fixed
+
     data = parser.read(header.size)
 
     children = []
     if header.type in CONTAINER_CHUNKS:
         subparser = Parser(data, endian="little")
-        while subparser.remaining() > 0:
+        while subparser.remaining() >= RWHeader.BYTE_SIZE:
             children.append(read_recursive(subparser, depth + 1))
 
     return header, data, children

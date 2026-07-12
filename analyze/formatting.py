@@ -74,22 +74,102 @@ def hexdump(widget, data, width=8, parse_end=0x0):
 
     widget.tag_raise("hex_read")
 
-
-def format_repr(text: str, indent_size: int = 4, max_str_len: int = 150) -> str:
+def format_repr(
+    text: str,
+    indent_size: int = 4,
+    max_str_len: int = 150,
+    max_list_items: int = 5,
+) -> str:
     lines = []
-    indent = 0
 
+    indent = 0
     current = ""
+
+    # Stack of open brackets: "(" or "["
+    stack = []
+
+    # State for open lists
+    list_stack = []
+
     i = 0
 
     while i < len(text):
         char = text[i]
 
+        # ------------------------------------------------------------
+        # Skip the remainder of a truncated list
+        # ------------------------------------------------------------
+        if list_stack and list_stack[-1]["skipping"]:
+            state = list_stack[-1]
+
+            if char in "\"'":
+                quote = char
+                i += 1
+                while i < len(text):
+                    if text[i] == quote and text[i - 1] != "\\":
+                        break
+                    i += 1
+
+            elif char in "([":
+                stack.append(char)
+
+            elif char == ")":
+                if stack:
+                    stack.pop()
+
+            elif char == ",":
+                # Count remaining top-level list elements
+                if len(stack) == state["depth"]:
+                    state["skipped"] += 1
+
+            elif char == "]":
+                if len(stack) == state["depth"]:
+                    indent -= 1
+
+                    skipped = state["skipped"]
+                    if skipped > 0:
+                        skipped += 1  # final item
+
+                    lines.append(
+                        " " * (indent * indent_size)
+                        + f"# ... Truncated, {skipped} more object{'s' if skipped != 1 else ''})"
+                    )
+                    stack.pop()
+                    list_stack.pop()
+                    current = "]"
+                else:
+                    if stack:
+                        stack.pop()
+
+            i += 1
+            continue
+
+        # ------------------------------------------------------------
+        # Normal parsing
+        # ------------------------------------------------------------
         if char in "([":
+            stack.append(char)
+
+            if char == "[":
+                list_stack.append(
+                    {
+                        "depth": len(stack),
+                        "items": 0,
+                        "skipping": False,
+                        "skipped": 0,
+                    }
+                )
+
             # Empty brackets stay inline
             if i + 1 < len(text) and text[i + 1] in ")]":
                 current += char + text[i + 1]
+
+                stack.pop()
+                if char == "[":
+                    list_stack.pop()
+
                 i += 1
+
             else:
                 current += char
                 lines.append(" " * (indent * indent_size) + current.strip())
@@ -103,29 +183,51 @@ def format_repr(text: str, indent_size: int = 4, max_str_len: int = 150) -> str:
             indent -= 1
             current = char
 
-            # Don't output yet, comma might follow
+            if stack:
+                opening = stack.pop()
+
+                if opening == "[" and list_stack:
+                    list_stack.pop()
 
         elif char == ",":
-            current += char
+            current += ","
+
+            # Only count commas separating top-level list items
+            if (
+                list_stack
+                and stack
+                and stack[-1] == "["
+                and len(stack) == list_stack[-1]["depth"]
+            ):
+                list_stack[-1]["items"] += 1
+
+                if list_stack[-1]["items"] >= max_list_items:
+                    lines.append(" " * (indent * indent_size) + current.strip())
+                    current = ""
+                    list_stack[-1]["skipping"] = True
+                    i += 1
+                    continue
+
             lines.append(" " * (indent * indent_size) + current.strip())
             current = ""
 
         elif char in "\"'":
             quote = char
-            # Find the matching closing quote (handle escaped quotes)
             j = i + 1
+
             while j < len(text):
                 if text[j] == quote and text[j - 1] != "\\":
                     break
                 j += 1
 
             inner = text[i + 1 : j]
+
             if len(inner) > max_str_len:
                 current += quote + "TOO LONG TO DISPLAY" + quote
             else:
                 current += quote + inner + quote
 
-            i = j  # jump to closing quote
+            i = j
 
         else:
             current += char
@@ -137,14 +239,13 @@ def format_repr(text: str, indent_size: int = 4, max_str_len: int = 150) -> str:
 
     return "\n".join(lines)
 
-
 def pretty_object(obj, indent=0):
     representation = repr(obj)
 
-    if len(representation) > 50_000:
+    if len(representation) > 100_000:
         return (
-            "# CUTOFF AFTER 50.000 CHARACTERS!\n\n"
-            + format_repr(representation[:50_000], indent_size=4)
+            "# CUTOFF AFTER 100.000 CHARACTERS!\n\n"
+            + format_repr(representation[:100_000], indent_size=4)
             + "\n#                 ... (truncated) ...\n\n\n"
         )
     return format_repr(representation, indent_size=4)

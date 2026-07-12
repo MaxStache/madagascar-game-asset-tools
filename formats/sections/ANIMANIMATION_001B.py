@@ -15,6 +15,7 @@ from formats.lib.rw_basics import (
 
 KEYFRAME_PARENT_NONE_OFFSET = 0xFF30C9D8
 
+
 class RW_AnimAnimation_KeyframeType(IntEnum):
     # RW common
     UNCOMPRESSED = 0x1
@@ -34,18 +35,16 @@ class RW_AnimAnimation_CompressedKeyframe:
         default_factory=lambda: (0.0, 0.0, 0.0)
     )  # Quantized position components
 
-    prev_frame_off: int = field(
-        default=0
-    )  # Offset to the previous keyframe
+    prev_frame_off: int = field(default=0)  # Offset to the previous keyframe
 
     bone_id: int = field(default=-1)  # Bone ID
 
-    def read(parser: Parser, keyframe_offsets) -> "RW_AnimAnimation_CompressedKeyframe":
+    def read(parser: Parser) -> "RW_AnimAnimation_CompressedKeyframe":
         kf = RW_AnimAnimation_CompressedKeyframe()
 
         kf.time = parser.readFloat()  # in seconds
 
-        #print(kf.time)
+        # print(kf.time)
 
         kf.rotation = (  # Quantized quaternion components.Quantized quaternion components.
             parser.readFloat16(),  # x
@@ -139,15 +138,22 @@ class RW_AnimAnimation(RW_Section):
         bone_id = -1
 
         for idx in range(self.keyframe_count):
-            keyframe_offsets.append(idx * KEYFRAME_SIZE)
+            keyframe_offsets.append(idx * 24) # using 24 bytes for a keyframe, whyever
             keyframe_parser = Parser(parser.readBytes(KEYFRAME_SIZE))
 
             keyframe = RW_AnimAnimation_CompressedKeyframe.read(
-                keyframe_parser, keyframe_offsets
+                keyframe_parser
             )
 
-            self.keyframes.append(keyframe)
+            if keyframe.prev_frame_off & 0x3F000000:
+                bone_id = bone_id + 1 if keyframe.time == 0.0 else 0
+            else:
+                prev_kf_id = keyframe_offsets.index(keyframe.prev_frame_off)
+                bone_id = self.keyframes[prev_kf_id].bone_id
 
+            keyframe.bone_id = bone_id
+
+            self.keyframes.append(keyframe)
 
         self.pos_offset = Vector3.read(parser)
         self.pos_scale = Vector3.read(parser)

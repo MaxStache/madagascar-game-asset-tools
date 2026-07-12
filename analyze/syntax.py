@@ -115,6 +115,21 @@ def highlight(widget: tk.Text, code: str):
 
         elif t == tokenize.OP:
             tag = "punct"
+            if (
+                tok.string == "-"
+                and idx + 1 < len(toks)
+                and toks[idx + 1].type == tokenize.NUMBER
+            ):
+                prev_tok = toks[idx - 1] if idx > 0 else None
+                # Unary minus (after `(`, `=`, `,`, a keyword, or at the
+                # start) belongs to the number; after a value it is
+                # subtraction and stays punctuation.
+                if prev_tok is None or (
+                    prev_tok.type not in (tokenize.NUMBER, tokenize.STRING)
+                    and not (prev_tok.type == tokenize.NAME and not keyword.iskeyword(prev_tok.string))
+                    and not (prev_tok.type == tokenize.OP and prev_tok.string in ")]}")
+                ):
+                    tag = "number"
 
         if tag:
             r = ranges.setdefault(tag, [])

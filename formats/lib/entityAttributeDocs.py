@@ -12,7 +12,7 @@
 
 # RWS_MESSAGE(x, s, t, a, b, d)
 
-from .entityAtributeDocs.CFXPartSpray import CFXPARTSPRAY_ATTRIBUTES
+from formats.lib.entityAtributeDocs.CFXPartSpray import CFXPARTSPRAY_ATTRIBUTES
 
 
 CREATE_ENTITY_ATTRIBUTE_COMMANDS = {

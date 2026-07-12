@@ -1,30 +1,23 @@
-#from rwConstants import RWSectionType
-from rwDFF import load_dff
-#from rwwBSP import load_bsp
-
+# from rwConstants import RWSectionType
 from pathlib import Path
-
 import sys
 
-#from sections import RW_Extension
-#from lib.parser import Parser
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-#trans = load_bsp("Levels/KingOfNY-unchanged/10_KingofNY9_Combined188_Trans.bsp")
-#ext = trans.material_list.materials[5].extension
- 
-#print(ext.children[0])
+from formats.txd import load_txd
+from formats.sections.TEXTURENATIVE_0015 import RW_TextureNative
 
-#with open("test_ext.bin", "rb") as f:
-#    ext = RW_Extension.read(Parser(f.read()), RWSectionType.rwID_ATOMICSECT.value)
+dict = load_txd("Levels/banquet/3_TD_LEVEL FOLDER.txd")
 
-mydff = load_dff("Levels/KingOfNY-unchanged/170_marty.dff")
+#dict.textures[0].export_png("test.png")
+#
+#tex = RW_TextureNative.from_png("test.png", name="test")
+#
+#dict.add_texture(tex)
+#
+#orange = dict.find_texture_by_name("orange")
+#
+#dict.write("2_TD_LEVEL FOLDER.txd", stamp=0x3600, parent=None)
+#
 
-sys.exit()
-
-all_dffs = list(Path("Levels/KingOfNY-unchanged/").glob("*.dff"))
-
-for dff_path in all_dffs:
-    try:
-        mydff = load_dff(dff_path)
-    except Exception as e:
-        print(f"Failed to load {dff_path}: {e}")
+dict.export_all("Levels/banquet/textures")

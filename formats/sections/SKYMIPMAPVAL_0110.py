@@ -2,9 +2,9 @@ import io
 from dataclasses import dataclass, field
 import struct
 
-from ..lib.parser import Parser
-from ..rwConstants import RWSectionType
-from ..rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from formats.lib.parser import Parser
+from formats.lib.rwConstants import RWSectionType
+from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
 
 
 @dataclass
@@ -17,7 +17,7 @@ class RW_SkyMipmapVal(RW_Section):
     l_val: int = 0  # unsigned 2-bit integer
 
     @staticmethod
-    def read(parser: Parser, parent_type=None) -> "RW_SkyMipmapVal":
+    def read(parser: Parser, parent=None) -> "RW_SkyMipmapVal":
         skymmv = RW_SkyMipmapVal()
         skymmv.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -38,7 +38,7 @@ class RW_SkyMipmapVal(RW_Section):
 
         return skymmv
 
-    def write(this, f, stamp):
+    def write(this, f, stamp, parent=None):
         buf = io.BytesIO()
 
         # Pack K and L into a single 32-bit integer

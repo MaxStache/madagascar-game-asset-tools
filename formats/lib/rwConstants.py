@@ -23,7 +23,7 @@ class RWSectionType(Enum):
     rwID_LIGHT = 0x0012
     rwID_UNICODESTRING = 0x0013
     rwID_ATOMIC = 0x0014
-    rwID_TEXTURENATIVE = 0x0015
+    rwID_TEXTURENATIVE = 0x0015 # raster
     rwID_TEXDICTIONARY = 0x0016
     rwID_ANIMDATABASE = 0x0017
     rwID_IMAGE = 0x0018
@@ -159,6 +159,16 @@ class RWSectionType(Enum):
     # other
     rwID_ZModelerLock = 0xF21E
     rwID_Frame = 0x0253F2FE # Rockstar Games
+
+    # TFB
+    rwID_tfb_AtomicSec1 = 0x800000d4, # found on atomic world sector - 12B
+    rwID_tfb_AtomicSec2 = 0x800000fe, # found on atomic world sector - 16B
+    rwID_tfb_World1 = 0x800000b0, # found on world - 16B
+    rwID_tfb_Material1 = 0x800000f6, # found on material (in world) - 33B
+    rwID_tfb_Atomic1 = 0x800000ED, # found on atomic - 12B
+    rwID_tfb_Atomic2 = 0x800000FD, # found on atomic - 28B
+    rwID_tfb_Clump1 = 0x800000B1, # found on clump - 8B
+    rwID_tfb_TextureNative = 0x800000DD, # found on TextureNative - 12B
     
 
 class strfunc_func(Enum):

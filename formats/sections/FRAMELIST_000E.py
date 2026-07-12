@@ -1,36 +1,12 @@
 import io
 from dataclasses import dataclass, field
 
-from ..lib.writer import _write_u32, _write_s32
-from ..lib.parser import Parser
-from ..rwConstants import RWSectionType
-from ..rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise, Vector3, RW_Matrix3x3
+from formats.lib.writer import _write_u32
+from formats.lib.parser import Parser
+from formats.lib.rwConstants import RWSectionType
+from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise, RW_Frame
 
-from .EXTENSION_0003 import RW_Extension
-
-@dataclass
-class RW_Frame:
-    """https://gtamods.com/wiki/Frame_List_(RW_Section)"""
-    rotation_matrix: RW_Matrix3x3 = field(default_factory=RW_Matrix3x3)
-    position: Vector3 = field(default_factory=Vector3)
-    parent_idx: int = -1  # s32
-    matrix_flags: int = 0  # u32 - see https://gtamods.com/wiki/Talk:Frame_List_(RW_Section)#Flags_under_Frame_Data
-
-    @staticmethod
-    def read(parser: Parser) -> "RW_Frame":
-        frame = RW_Frame()
-        frame.rotation_matrix = RW_Matrix3x3.read(parser)
-        frame.position = Vector3.read(parser)
-        frame.parent_idx = parser.readInt32()
-        frame.matrix_flags = parser.readUint32()
-
-        return frame
-
-    def write(this, f):
-        this.rotation_matrix.write(f)
-        this.position.write(f)
-        _write_s32(f, this.parent_idx)
-        _write_u32(f, this.matrix_flags)
+from formats.sections.EXTENSION_0003 import RW_Extension
 
 @dataclass
 class RW_FrameList_Struct(RW_Section):
@@ -80,7 +56,7 @@ class RW_FrameList(RW_Section):
     extensions: list[RW_Extension] = field(default_factory=list)
 
     @staticmethod
-    def read(parser: Parser) -> "RW_FrameList":
+    def read(parser: Parser, parent=None) -> "RW_FrameList":
         framelist = RW_FrameList()
         framelist.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -94,7 +70,7 @@ class RW_FrameList(RW_Section):
         framelist.struct = RW_FrameList_Struct.read(parser)
 
         while parser.tell() < section_end:
-            extension = RW_Extension.read(parser)
+            extension = RW_Extension.read(parser, parent=framelist)
             framelist.extensions.append(extension)
 
         if parser.tell() != section_end:
@@ -104,13 +80,13 @@ class RW_FrameList(RW_Section):
 
         return framelist
 
-    def write(this, f, stamp):
+    def write(this, f, stamp, parent=None):
         buf = io.BytesIO()
 
         this.struct.write(buf, stamp)
 
         for extension in this.extensions:
-            extension.write(buf, stamp)
+            extension.write(buf, stamp, parent=this)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_FRAMELIST.value,

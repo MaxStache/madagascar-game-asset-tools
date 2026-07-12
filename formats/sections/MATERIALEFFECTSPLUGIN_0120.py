@@ -3,12 +3,12 @@ import io
 from dataclasses import dataclass, field
 from typing import ClassVar, Optional
 
-from ..lib.writer import _write_u32, _write_s32, _write_f32
-from ..lib.parser import Parser
-from ..rwConstants import RWSectionType
-from ..rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from formats.lib.writer import _write_u32, _write_s32, _write_f32
+from formats.lib.parser import Parser
+from formats.lib.rwConstants import RWSectionType
+from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
 
-from .TEXTURE_0006 import RW_Texture
+from formats.sections.TEXTURE_0006 import RW_Texture
 
 
 class RW_MaterialEffectsPlugin_EffectType(Enum):
@@ -26,18 +26,16 @@ class RW_MaterialEffectsPlugin_Variant(Enum):
     AtomicExtension = 1  # On Atomic
 
 
-def _parent_is_atomic(parent_type) -> bool:
+def _parent_is_atomic(parent) -> bool:
     """
     Whether the extension's parent chunk is an Atomic (or Atomic Sector).
 
-    ``parent_type`` may be a raw ``int`` (a ``RWSectionType.*.value``) or an
+    ``parent.header.type`` may be a raw ``int`` (a ``RWSectionType.*.value``) or an
     ``RWSectionType`` member, depending on the caller, so normalise to ``int``.
     """
-    if parent_type is None:
+    if parent is None:
         return False
-    if isinstance(parent_type, RWSectionType):
-        parent_type = parent_type.value
-    return parent_type in (
+    return parent.header.type in (
         RWSectionType.rwID_ATOMICSECT.value,
         RWSectionType.rwID_ATOMIC.value,
     )
@@ -238,7 +236,7 @@ class RW_MaterialEffectsPlugin(RW_Section):
     )  # always two slots
 
     @staticmethod
-    def read(parser: Parser, parent_type=None) -> "RW_MaterialEffectsPlugin":
+    def read(parser: Parser, parent=None) -> "RW_MaterialEffectsPlugin":
         matfx = RW_MaterialEffectsPlugin()
         matfx.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -247,7 +245,7 @@ class RW_MaterialEffectsPlugin(RW_Section):
             "RW_MaterialEffectsPlugin chunk type",
         )
 
-        if _parent_is_atomic(parent_type):
+        if _parent_is_atomic(parent):
             matfx.variant = RW_MaterialEffectsPlugin_Variant.AtomicExtension
             matfx.matFXEnabled = parser.readUint32()
         else:
@@ -259,7 +257,7 @@ class RW_MaterialEffectsPlugin(RW_Section):
 
         return matfx
 
-    def write(this, f, stamp):
+    def write(this, f, stamp, parent=None):
         buf = io.BytesIO()
 
         if this.variant == RW_MaterialEffectsPlugin_Variant.AtomicExtension:

@@ -2,7 +2,7 @@
 import sys
 import os
 import shutil
-from formats.rwConstants import RWSectionType
+from formats.lib.rwConstants import RWSectionType
 
 def testcommand(value):
     try:
@@ -23,7 +23,7 @@ def testcommand(value):
 
 def main():
     if len(sys.argv) < 3:
-        print("Usage: python cli.py testcommand <value>")
+        print("Usage: python cli.py secfile 0x<value>")
         return
 
     command = sys.argv[1]

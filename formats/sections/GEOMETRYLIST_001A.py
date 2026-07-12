@@ -1,12 +1,12 @@
 import io
 from dataclasses import dataclass, field
 
-from ..lib.writer import _write_u32
-from ..lib.parser import Parser
-from ..rwConstants import RWSectionType
-from ..rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from formats.lib.writer import _write_u32
+from formats.lib.parser import Parser
+from formats.lib.rwConstants import RWSectionType
+from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
 
-from .GEOMETRY_000F import RW_Geometry
+from formats.sections.GEOMETRY_000F import RW_Geometry
 
 @dataclass
 class RW_GeometryList_Struct(RW_Section):
@@ -50,7 +50,7 @@ class RW_GeometryList(RW_Section):
     geometries: list[RW_Geometry] = field(default_factory=list)  # RW_Geometry each
 
     @staticmethod
-    def read(parser: Parser) -> "RW_GeometryList":
+    def read(parser: Parser, parent=None) -> "RW_GeometryList":
         geolist = RW_GeometryList()
         geolist.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -67,13 +67,13 @@ class RW_GeometryList(RW_Section):
 
         return geolist
 
-    def write(this, f, stamp):
+    def write(this, f, stamp, parent=None):
         buf = io.BytesIO()
 
         this.struct.write(buf, stamp)
 
         for geo in this.geometries:
-            geo.write(buf, stamp)
+            geo.write(buf, stamp, parent=this)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_GEOMETRYLIST.value,

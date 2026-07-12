@@ -618,7 +618,7 @@ def decode(tex: NativeTexture, mipmap_index: int = 0) -> bytes:
     Returns:
         RGBA pixel data as bytes, length = width * height * 4.
     """
-    mip = tex.mipmaps[mipmap_index]
+    mip = tex.struct.mipmaps[mipmap_index]
     w, h = mip.width, mip.height
 
     if tex.palette and tex.dxt_compression == 0:
@@ -700,11 +700,9 @@ def _read_xbox_texture(f) -> NativeTexture:
 
     tex.version_stamp = native_header.library_id_stamp
     struct_header = RWHeader.read(f)
-    struct_start = f.tell()  # noqa: F841
 
     # Store entire raw struct data for byte-perfect round-trip
     tex._raw_struct_data = f.read(struct_header.size)
-    struct_end = f.tell() # noqa: F841
 
     # Now parse the fields from the raw data
     r = io.BytesIO(tex._raw_struct_data)
@@ -966,9 +964,6 @@ def _build_xbox_texture_data(tex: NativeTexture) -> bytes:
     total_texel_size = sum(len(mip.texels) for mip in tex.mipmaps)
     aligned_texel_size = (total_texel_size + 3) & ~3
     _write_u32(buf, aligned_texel_size)  # texelDataSize xbox field
-    
-    if tex.name == "melman_tissue2":
-        print(f"Total texel size: {total_texel_size}, aligned to {aligned_texel_size}")
 
     # Palette (BGRA on Xbox)
     for p in tex.palette:
@@ -1685,3 +1680,4 @@ Usage:
 
 if __name__ == "__main__":
     _cli()
+

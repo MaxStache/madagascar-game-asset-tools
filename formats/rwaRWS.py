@@ -1,34 +1,3 @@
-"""
-rwaRWS.py — RenderWare Audio Stream (.RWS) Library
-========================================================
-
-Read, write, decode, and encode Renderware Audio RWS files.
-Uses Pillow for PNG import/export.
-
-Usage:
-    import rwaRWS
-
-    # Read
-    rws = rwaRWS.load("file.rws")
-    for stream in rwaRWS.stream:
-        print(tex.name, tex.width, tex.height)
-
-    # Decode to RGBA
-    rgba = rwtxd.decode(tex)
-
-    # Export to PNG
-    rwtxd.export_png(tex, "output.png")
-
-    # Create from scratch
-    txd = rwtxd.TextureDictionary()
-    tex = rwtxd.create_texture("mytex", rgba_bytes, 64, 64)
-    txd.textures.append(tex)
-    rwtxd.save(txd, "output.txd")
-
-    # Import from PNG
-    tex = rwtxd.import_png("input.png", name="mytex")
-"""
-
 import io
 import struct
 from dataclasses import dataclass, field

@@ -1,10 +1,11 @@
 import struct
 from dataclasses import dataclass, field
+
 try:
-    from rwConstants import RWSectionType
+    from formats.lib.rwConstants import RWSectionType
     from lib.parser import Parser
 except ImportError:
-    from formats.rwConstants import RWSectionType
+    from formats.lib.rwConstants import RWSectionType
     from formats.lib.parser import Parser
 
 
@@ -82,6 +83,9 @@ def library_id_unpack(libid: int) -> tuple[int, int]:
 
     """
 
+    if libid is None:
+        return 0, 0
+
     libid &= 0xFFFFFFFF  # treat as RwUInt32
 
     if libid & 0xFFFF0000:
@@ -123,6 +127,7 @@ class RWHeader:
     @staticmethod
     def read(parser: Parser) -> "RWHeader":
         read_header = parser.readRWChunkHeader()
+        # print(f"Read RWHeader: type=0x{read_header['id']:X}, size={read_header['size']}, version=0x{read_header['version']:X}")
         return RWHeader(
             type=read_header["id"],
             size=read_header["size"],
@@ -144,12 +149,12 @@ class RWHeader:
     def build(self) -> str:
         version, build = library_id_unpack(self.library_id_stamp)
         return build
-    
+
     def print(self):
         print(self.__repr__())
 
     def __repr__(self):
-        return f"RWHeader(type={hex(self.type)}, size={self.size}, library_id_stamp={hex(self.library_id_stamp)}, version={hex(self.version)}, build={self.build})"
+        return f"RWHeader(type={hex(self.type)}, size={self.size}, library_id_stamp={hex(self.library_id_stamp if self.library_id_stamp else 0)}, version={hex(self.version)}, build={self.build})"
 
 
 @dataclass(frozen=True, slots=True)
@@ -170,6 +175,28 @@ class Vector3:
         _write_f32(f, this.x)
         _write_f32(f, this.y)
         _write_f32(f, this.z)
+
+@dataclass(frozen=True, slots=True)
+class Vector4:
+    x: float = 0.0
+    y: float = 0.0
+    z: float = 0.0
+    w: float = 0.0
+
+    @staticmethod
+    def read(parser: Parser) -> "Vector4":
+        return Vector4(
+            x=parser.readFloat(),
+            y=parser.readFloat(),
+            z=parser.readFloat(),
+            w=parser.readFloat(),
+        )
+
+    def write(this, f):
+        _write_f32(f, this.x)
+        _write_f32(f, this.y)
+        _write_f32(f, this.z)
+        _write_f32(f, this.w)
 
 
 @dataclass()
@@ -208,13 +235,18 @@ class RWSphere:
         this.location.write(f)
         _write_f32(f, this.radius)
 
+
 @dataclass
 class RW_UV:
     u: float = 0.0
     v: float = 0.0
+
+
 class RW_Vector2:
     x: float = 0.0
     y: float = 0.0
+
+
 @dataclass
 class RW_Matrix2x3:
     row1: Vector3 = field(default_factory=Vector3)
@@ -229,6 +261,8 @@ class RW_Matrix2x3:
             row1=Vector3.read(parser),
             row2=Vector3.read(parser),
         )
+
+
 @dataclass
 class RW_Matrix3x3:
     row1: Vector3 = field(default_factory=Vector3)
@@ -246,9 +280,33 @@ class RW_Matrix3x3:
             row2=Vector3.read(parser),
             row3=Vector3.read(parser),
         )
-    
+
     def __repr__(self):
         return f"RW_Matrix3x3({self.row1}, {self.row2}, {self.row3})"
+
+
+@dataclass
+class RW_Matrix4x4:
+    row1: Vector4 = field(default_factory=Vector4)
+    row2: Vector4 = field(default_factory=Vector4)
+    row3: Vector4 = field(default_factory=Vector4)
+    row4: Vector4 = field(default_factory=Vector4)
+
+    def write(this, f):
+        this.row1.write(f)
+        this.row2.write(f)
+        this.row3.write(f)
+        this.row4.write(f)
+
+    def read(parser: Parser) -> "RW_Matrix4x4":
+        row1 = Vector4.read(parser)
+        row2 = Vector4.read(parser)
+        row3 = Vector4.read(parser)
+        row4 = Vector4.read(parser)
+        return RW_Matrix4x4(row1=row1, row2=row2, row3=row3, row4=row4)
+
+    def __repr__(self):
+        return f"RW_Matrix4x4({self.row1}, {self.row2}, {self.row3}, {self.row4})"
 
 
 def expect_chunk_type_or_raise(
@@ -263,7 +321,7 @@ def expect_chunk_type_or_raise(
 @dataclass
 class RW_Section:
     @staticmethod
-    def read(parser: Parser) -> "RW_Section":
+    def read(parser: Parser, parent=None) -> "RW_Section":
         raise NotImplementedError("[read] This section type is not implemented yet.")
 
     @staticmethod
@@ -278,15 +336,14 @@ class RW_Section_NotImplemented(RW_Section):
     raw_data: bytes = b""  # header.payload_size
 
     @staticmethod
-    def read(parser: Parser, parent_type=None) -> "RW_Section_NotImplemented":
+    def read(parser: Parser, parent=None) -> "RW_Section_NotImplemented":
         sni = RW_Section_NotImplemented(RWHeader.read(parser))
 
         sni.raw_data = parser.readBytes(sni.header.size)
 
         return sni
 
-    @staticmethod
-    def write(this, f, stamp):
+    def write(this, f, stamp, parent=None):
         rw_header = RWHeader(
             type=this.header.type,
             size=len(this.raw_data),
@@ -294,6 +351,16 @@ class RW_Section_NotImplemented(RW_Section):
         )
         f.write(rw_header.pack())
         f.write(this.raw_data)
+
+    def __repr__(self):
+        output = f"RW_Section_NotImplemented(type={hex(self.header.type)}, size={self.header.size}, library_id_stamp={hex(self.header.library_id_stamp if self.header.library_id_stamp else 0)}, version={hex(self.header.version)}, build={self.header.build})"
+
+        output += f"\n# raw_data: {len(self.raw_data)} bytes"
+
+        if self.header.type == 0x1:
+            output += "\n# This is a struct, parsing is implemented on parent"
+
+        return output 
 
     def __init__(self, header):
         self.header = header
@@ -315,5 +382,30 @@ class RW_Section_NotImplemented(RW_Section):
             "\n"
             " To add support, create a parser in formats/sections.\n",
             "(or add existing one to \n       formats/sections/__init__.py - SECTION_REGISTRY)\n"
-            "\033[0m"
+            "\033[0m",
         )
+
+
+@dataclass
+class RW_Frame:
+    """https://gtamods.com/wiki/Frame_List_(RW_Section)"""
+    rotation_matrix: RW_Matrix3x3 = field(default_factory=RW_Matrix3x3)
+    position: Vector3 = field(default_factory=Vector3)
+    parent_idx: int = -1  # s32
+    matrix_flags: int = 0  # u32 - see https://gtamods.com/wiki/Talk:Frame_List_(RW_Section)#Flags_under_Frame_Data
+
+    @staticmethod
+    def read(parser: Parser) -> "RW_Frame":
+        frame = RW_Frame()
+        frame.rotation_matrix = RW_Matrix3x3.read(parser)
+        frame.position = Vector3.read(parser)
+        frame.parent_idx = parser.readInt32()
+        frame.matrix_flags = parser.readUint32()
+
+        return frame
+
+    def write(this, f):
+        this.rotation_matrix.write(f)
+        this.position.write(f)
+        _write_s32(f, this.parent_idx)
+        _write_u32(f, this.matrix_flags)

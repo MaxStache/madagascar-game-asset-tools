@@ -2,10 +2,10 @@ import io
 from dataclasses import dataclass, field
 from typing import Union
 
-from ..lib.parser import Parser
-from ..lib.writer import _write_u32
-from ..rwConstants import RWSectionType
-from ..rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from formats.lib.parser import Parser
+from formats.lib.writer import _write_u32, _write_f32
+from formats.lib.rwConstants import RWSectionType
+from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
 
 from enum import Enum
 
@@ -36,12 +36,12 @@ class RW_UserDataPlugin(RW_Section):
     entries: list[RW_UserDataPlugin_Entry] = field(default_factory=list)
 
     @staticmethod
-    def read(parser: Parser, parent_type=None) -> "RW_UserDataPlugin":
+    def read(parser: Parser, parent=None) -> "RW_UserDataPlugin":
         usrdataplg = RW_UserDataPlugin()
         usrdataplg.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             usrdataplg.header,
-            RWSectionType.rwID_USERDATAPLUGIN.value,  # TODO: REPLACE!
+            RWSectionType.rwID_USERDATAPLUGIN.value,
             "RW_UserDataPlugin chunk type",
         )
 
@@ -65,13 +65,32 @@ class RW_UserDataPlugin(RW_Section):
 
         return usrdataplg
 
-    def write(this, f, stamp):
+    def write(this, f, stamp, parent=None):
         buf = io.BytesIO()
 
-        # Writing here
+        _write_u32(buf, len(this.entries))
+
+        for entry in this.entries:
+            _write_u32(buf, len(entry.label))
+            buf.write(entry.label.encode("latin-1", errors="replace"))
+            _write_u32(buf, entry.dataType.value)
+            _write_u32(buf, entry.numberOfObjects)
+
+            if entry.dataType == RW_UserDataPlugin_EntryType.Integer:
+                for obj in entry.objects:
+                    _write_u32(buf, obj)
+            elif entry.dataType == RW_UserDataPlugin_EntryType.Float:
+                for obj in entry.objects:
+                    _write_f32(buf, obj)
+            elif entry.dataType == RW_UserDataPlugin_EntryType.String:
+                for obj in entry.objects:
+                    _write_u32(buf, len(obj))
+                    buf.write(obj.encode("latin-1", errors="replace"))
+            else:
+                raise ValueError(f"Unknown data type: {entry.dataType}")
 
         rw_header = RWHeader(
-            type=RWSectionType.rwID_USERDATAPLUGIN.value,  # TODO: REPLACE!
+            type=RWSectionType.rwID_USERDATAPLUGIN.value,
             size=len(buf.getvalue()),
             library_id_stamp=stamp,
         )

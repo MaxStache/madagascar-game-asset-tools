@@ -1,35 +1,38 @@
-
 try:
-    from rw_basics import RW_Section, RW_Section_NotImplemented
-    from rwConstants import RWSectionType
+    from formats.lib.rw_basics import RW_Section, RW_Section_NotImplemented
+    from formats.lib.rwConstants import RWSectionType
 except ImportError:
-    from formats.rw_basics import RW_Section, RW_Section_NotImplemented
-    from formats.rwConstants import RWSectionType
+    from formats.lib.rw_basics import RW_Section, RW_Section_NotImplemented
+    from formats.lib.rwConstants import RWSectionType
 
-from .STRING_0002 import RW_String
-from .TEXTURE_0006 import RW_Texture
-from .EXTENSION_0003 import RW_Extension
-from .BINMESHPLUGIN_050E import RW_BinMeshPlugin
-from .MATERIALEFFECTSPLUGIN_0120 import RW_MaterialEffectsPlugin
-from .MATERIAL_0007 import RW_Material
-from .RIGHTTORENDER_001F import RW_RightToRender
-from .USERDATAPLUGIN_011F import RW_UserDataPlugin
-from .HANIMPLUGIN_011E import RW_HAnimPlugin
-from .ATOMIC_0014 import RW_Atomic
-from .CLUMP_0010 import RW_Clump
-from .FRAMELIST_000E import RW_FrameList
-from .GEOMETRYLIST_001A import RW_GeometryList
-from .GEOMETRY_000F import RW_Geometry
-from .MATLIST_0008 import RW_MaterialList
-from .CAMERA_0005 import RW_Camera
+from formats.sections.STRING_0002 import RW_String
+from formats.sections.TEXTURE_0006 import RW_Texture
+from formats.sections.EXTENSION_0003 import RW_Extension
+from formats.sections.BINMESHPLUGIN_050E import RW_BinMeshPlugin
+from formats.sections.MATERIALEFFECTSPLUGIN_0120 import RW_MaterialEffectsPlugin
+from formats.sections.MATERIAL_0007 import RW_Material
+from formats.sections.RIGHTTORENDER_001F import RW_RightToRender
+from formats.sections.USERDATAPLUGIN_011F import RW_UserDataPlugin
+from formats.sections.HANIMPLUGIN_011E import RW_HAnimPlugin
+from formats.sections.ATOMIC_0014 import RW_Atomic
+from formats.sections.CLUMP_0010 import RW_Clump
+from formats.sections.FRAMELIST_000E import RW_FrameList
+from formats.sections.GEOMETRYLIST_001A import RW_GeometryList
+from formats.sections.GEOMETRY_000F import RW_Geometry
+from formats.sections.MATLIST_0008 import RW_MaterialList
+from formats.sections.CAMERA_0005 import RW_Camera
+from formats.sections.SKINPLUGIN_0116 import RW_SkinPlugin
+from formats.sections.TEXDICTIONARY_0016 import RW_TextureDictionary
+from formats.sections.TEXTURENATIVE_0015 import RW_TextureNative
+from formats.sections.ANIMANIMATION_001B import RW_AnimAnimation
 
 # SKY (PS2)
-from .SKYMIPMAPVAL_0110 import RW_SkyMipmapVal
+from formats.sections.SKYMIPMAPVAL_0110 import RW_SkyMipmapVal
 # ----
 
-from .TFB.UNKNOWN1_800000FE import RW_TFB_UNKNOWN1
-from .TFB.UNKNOWN2_800000D4 import RW_TFB_UNKNOWN2
-from .TFB.UNKNOWN3_800000F6 import RW_TFB_UNKNOWN3
+from formats.sections.TFB.UNKNOWN1_800000FE import RW_TFB_UNKNOWN1
+from formats.sections.TFB.UNKNOWN2_800000D4 import RW_TFB_UNKNOWN2
+from formats.sections.TFB.UNKNOWN3_800000F6 import RW_TFB_UNKNOWN3
 
 # fmt: off
 SECTION_REGISTRY: dict[int, RW_Section] = {
@@ -52,13 +55,13 @@ SECTION_REGISTRY: dict[int, RW_Section] = {
     RWSectionType.rwID_LIGHT.value                : RW_Section_NotImplemented,
     RWSectionType.rwID_UNICODESTRING.value        : RW_Section_NotImplemented,
     RWSectionType.rwID_ATOMIC.value               : RW_Atomic,
-    RWSectionType.rwID_TEXTURENATIVE.value        : RW_Section_NotImplemented,
-    RWSectionType.rwID_TEXDICTIONARY.value        : RW_Section_NotImplemented,
+    RWSectionType.rwID_TEXTURENATIVE.value        : RW_TextureNative,
+    RWSectionType.rwID_TEXDICTIONARY.value        : RW_TextureDictionary,
     RWSectionType.rwID_ANIMDATABASE.value         : RW_Section_NotImplemented,
     RWSectionType.rwID_IMAGE.value                : RW_Section_NotImplemented,
     RWSectionType.rwID_SKINANIMATION.value        : RW_Section_NotImplemented,
     RWSectionType.rwID_GEOMETRYLIST.value         : RW_GeometryList,
-    RWSectionType.rwID_ANIMANIMATION.value        : RW_Section_NotImplemented,
+    RWSectionType.rwID_ANIMANIMATION.value        : RW_AnimAnimation,
     RWSectionType.rwID_TEAM.value                 : RW_Section_NotImplemented,
     RWSectionType.rwID_CROWD.value                : RW_Section_NotImplemented,
     RWSectionType.rwID_DMORPHANIMATION.value      : RW_Section_NotImplemented,
@@ -97,7 +100,7 @@ SECTION_REGISTRY: dict[int, RW_Section] = {
     RWSectionType.rwID_MEPLUGIN.value             : RW_Section_NotImplemented,
     RWSectionType.rwID_LTMAPPLUGIN.value          : RW_Section_NotImplemented,
     RWSectionType.rwID_REFINEPLUGIN.value         : RW_Section_NotImplemented,
-    RWSectionType.rwID_SKINPLUGIN.value           : RW_Section_NotImplemented,
+    RWSectionType.rwID_SKINPLUGIN.value           : RW_SkinPlugin,
     RWSectionType.rwID_LABELPLUGIN.value          : RW_Section_NotImplemented,
     RWSectionType.rwID_PARTICLESPLUGIN.value      : RW_Section_NotImplemented,
     RWSectionType.rwID_GEOMTXPLUGIN.value         : RW_Section_NotImplemented,
@@ -190,9 +193,14 @@ SECTION_REGISTRY: dict[int, RW_Section] = {
 
 
     # TFB - World
-    0x800000d4: RW_TFB_UNKNOWN1,
-    0x800000fe: RW_TFB_UNKNOWN2,
-    0x800000f6: RW_TFB_UNKNOWN3,
+    0x800000D4: RW_Section_NotImplemented, # found on atomic world sector
+    0x800000FE: RW_Section_NotImplemented, # found on atomic world sector
+    0x800000B0: RW_Section_NotImplemented, # found on world 
+    0x800000F6: RW_Section_NotImplemented, # found on material (in world)
+    0x800000ED: RW_Section_NotImplemented, # found on atomic
+    0x800000FD: RW_Section_NotImplemented, # found on atomic
+    0x800000B1: RW_Section_NotImplemented, # found on clump
+    0x800000DD: RW_Section_NotImplemented, # found on TextureNative
 }
 # fmt: on
 
@@ -214,5 +222,8 @@ __all__ = [
     "RW_Camera",
     "RW_Clump",
     "RW_FrameList",
-    "RW_TFB_UNKNOWN1",
+    "RW_SkinPlugin",
+    "RW_AnimAnimation",
+    "RW_TextureNative",
+    "RW_TextureDictionary",
 ]

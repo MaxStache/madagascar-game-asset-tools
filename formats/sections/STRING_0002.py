@@ -1,7 +1,7 @@
-from ..lib.utils import bytes_pad4
-from ..rwConstants import RWSectionType
-from ..lib.parser import Parser
-from ..rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from formats.lib.utils import bytes_pad4
+from formats.lib.rwConstants import RWSectionType
+from formats.lib.parser import Parser
+from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
 from dataclasses import dataclass, field
 import io
 
@@ -11,7 +11,7 @@ class RW_String(RW_Section):
     content: str = ""  # header.payload_size
 
     @staticmethod
-    def read(parser: Parser, parent_type=None) -> "RW_String":
+    def read(parser: Parser, parent=None) -> "RW_String":
         string = RW_String()
 
         string.header = RWHeader.read(parser)
@@ -27,7 +27,7 @@ class RW_String(RW_Section):
       
         return string
 
-    def write(this, f, stamp):
+    def write(this, f, stamp, parent=None):
         buf = io.BytesIO()
 
         enc_string = bytes_pad4(

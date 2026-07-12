@@ -1,12 +1,14 @@
 import io
 from dataclasses import dataclass, field
 
-from ..lib.parser import Parser
-from ..lib.writer import _write_u32, _write_f32, _write_u16
-from ..rwConstants import RWSectionType
-from ..rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise, RWSphere, RW_UV, RWColor32, RW_GeometryTriangle, Vector3, library_id_unpack
+from formats.lib.parser import Parser
+from formats.lib.writer import _write_u32, _write_f32, _write_u16
+from formats.lib.rwConstants import RWSectionType
+from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise, RWSphere, RW_UV, RWColor32, RW_GeometryTriangle, Vector3, library_id_unpack
 
-from .MATLIST_0008 import RW_MaterialList
+from formats.sections.MATLIST_0008 import RW_MaterialList
+
+from formats.sections.EXTENSION_0003 import RW_Extension
 
 @dataclass
 class RpGeometryFlags:
@@ -222,10 +224,10 @@ class RW_Geometry_Struct(RW_Section):
             # endregion
 
             for tri in this.triangles:
-                _write_u16(buf, tri.v2)
-                _write_u16(buf, tri.v1)
-                _write_u16(buf, tri.material_index)
-                _write_u16(buf, tri.v3)
+                _write_u16(buf, tri.vertex2)
+                _write_u16(buf, tri.vertex1)
+                _write_u16(buf, tri.materialIndex)
+                _write_u16(buf, tri.vertex3)
 
             for mt in this.morphTargets:
                 mt.boundingSphere.write(buf)
@@ -256,11 +258,10 @@ class RW_Geometry(RW_Section):
 
     material_list: RW_MaterialList = field(default_factory=RW_MaterialList)
 
-    ext_header: RWHeader = field(default_factory=RWHeader)
-    extData: bytes = b""  # ext_header.payload_size
+    extension: RW_Extension = field(default_factory=RW_Extension)
 
     @staticmethod
-    def read(parser: Parser) -> "RW_Geometry":
+    def read(parser: Parser, parent=None) -> "RW_Geometry":
         geo = RW_Geometry()
         geo.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -272,29 +273,17 @@ class RW_Geometry(RW_Section):
         geo.struct = RW_Geometry_Struct.read(parser)
         geo.material_list = RW_MaterialList.read(parser)
 
-        geo.ext_header = RWHeader.read(parser)
-        expect_chunk_type_or_raise(
-            geo.ext_header,
-            RWSectionType.rwID_EXTENSION.value,
-            "RW_Geometry extension chunk type",
-        )
-        geo.extData = parser.readBytes(size=geo.ext_header.size)
+        geo.extension = RW_Extension.read(parser, parent=geo)
 
         return geo
 
-    def write(this, f, stamp):
+    def write(this, f, stamp, parent=None):
         buf = io.BytesIO()
 
         this.struct.write(buf, stamp)
-        this.material_list.write(buf, stamp)
+        this.material_list.write(buf, stamp, parent=this)
 
-        ext_header = RWHeader(
-            type=RWSectionType.rwID_EXTENSION.value,
-            size=len(this.extData),
-            library_id_stamp=stamp,
-        )
-        buf.write(ext_header.pack())
-        buf.write(this.extData)
+        this.extension.write(buf, stamp, parent=this)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_GEOMETRY.value,

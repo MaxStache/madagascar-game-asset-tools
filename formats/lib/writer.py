@@ -1,5 +1,6 @@
 import struct
 
+
 def _write_u8(f, v):
     f.write(struct.pack("<B", v))
 
@@ -18,3 +19,16 @@ def _write_s32(f, v):
 
 def _write_f32(f, v):
     f.write(struct.pack("<f", v))
+
+def _write_f16(f, v):
+    f.write(struct.pack("<e", v))
+
+
+def _write_fixedString(f, content="", size=32):
+    if len(content) > size:
+        raise ValueError(f"Content length {len(content)} exceeds fixed size {size}")
+    
+    encoded = content.encode("latin-1", errors="replace")
+    padded = encoded + b"\x00" * (size - len(encoded))
+
+    f.write(padded)

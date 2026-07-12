@@ -1,16 +1,16 @@
 import io
 from dataclasses import dataclass, field
 
-from ..lib.writer import _write_u32
-from ..lib.parser import Parser
-from ..rwConstants import RWSectionType
-from ..rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from formats.lib.writer import _write_u32
+from formats.lib.parser import Parser
+from formats.lib.rwConstants import RWSectionType
+from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
 
-from .EXTENSION_0003 import RW_Extension
-from .ATOMIC_0014 import RW_Atomic
-from .FRAMELIST_000E import RW_FrameList
-from .GEOMETRYLIST_001A import RW_GeometryList
-from .CAMERA_0005 import RW_Camera
+from formats.sections.EXTENSION_0003 import RW_Extension
+from formats.sections.ATOMIC_0014 import RW_Atomic
+from formats.sections.FRAMELIST_000E import RW_FrameList
+from formats.sections.GEOMETRYLIST_001A import RW_GeometryList
+from formats.sections.CAMERA_0005 import RW_Camera
 
 
 @dataclass
@@ -22,7 +22,7 @@ class RW_Clump_Struct:
     numCameras: int = 0  # u32 - only present after version 0x33000
 
     @staticmethod
-    def read(parser: Parser, parent_type=None) -> "RW_Clump_Struct":
+    def read(parser: Parser, parent=None) -> "RW_Clump_Struct":
         clump_s = RW_Clump_Struct()
         clump_s.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -69,7 +69,7 @@ class RW_Clump(RW_Section):
     extension: RW_Extension = field(default_factory=RW_Extension)
 
     @staticmethod
-    def read(parser: Parser, parent_type=None) -> "RW_Clump":
+    def read(parser: Parser, parent=None) -> "RW_Clump":
         clump = RW_Clump()
         clump.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -105,23 +105,27 @@ class RW_Clump(RW_Section):
             clump.camera_frame_indices.append(parser.readUint32())
             clump.cameras.append(RW_Camera.read(parser))
 
-        clump.extension = RW_Extension.read(parser)
+        clump.extension = RW_Extension.read(parser, parent=clump)
 
         return clump
 
-    def write(this, f, stamp):
+    def write(this, f, stamp, parent=None):
         buf = io.BytesIO()
 
         this.struct.write(buf, stamp)
 
+        this.frame_list.write(buf, stamp, parent=this)
+
+        this.geometry_list.write(buf, stamp, parent=this)
+
         for atomic in this.atomics:
-            atomic.write(buf, stamp)
+            atomic.write(buf, stamp, parent=this)
 
         for cam in range(this.struct.numCameras):
             _write_u32(buf, this.camera_frame_indices[cam])
-            this.cameras[cam].write(buf, stamp)
+            this.cameras[cam].write(buf, stamp, parent=this)
 
-        this.extension.write(buf, stamp)
+        this.extension.write(buf, stamp, parent=this)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_CLUMP.value,

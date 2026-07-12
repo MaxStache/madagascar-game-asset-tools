@@ -1,12 +1,12 @@
 import io
 from dataclasses import dataclass, field
 
-from ..lib.writer import _write_u32, _write_s32
-from ..lib.parser import Parser
-from ..rwConstants import RWSectionType
-from ..rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from formats.lib.writer import _write_u32, _write_s32
+from formats.lib.parser import Parser
+from formats.lib.rwConstants import RWSectionType
+from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
 
-from .MATERIAL_0007 import RW_Material
+from formats.sections.MATERIAL_0007 import RW_Material
 
 @dataclass
 class RW_MaterialList_Struct(RW_Section):
@@ -23,8 +23,8 @@ class RW_MaterialList_Struct(RW_Section):
     )  # uint32 each material_count
 
     @staticmethod
-    def read(parser: Parser) -> "RW_MaterialList":
-        matlist_s = RW_MaterialList()
+    def read(parser: Parser) -> "RW_MaterialList_Struct":
+        matlist_s = RW_MaterialList_Struct()
         matlist_s.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             matlist_s.header,
@@ -41,10 +41,10 @@ class RW_MaterialList_Struct(RW_Section):
 
         return matlist_s
 
-    def write(this, f, stamp):
+    def write(this, f, stamp, parent=None):
         buf = io.BytesIO()
 
-        _write_u32(buf,  len(this.meterialIndices))
+        _write_u32(buf,  len(this.materialIndices))
 
         for idx in this.materialIndices:
             _write_s32(buf, idx)
@@ -68,7 +68,7 @@ class RW_MaterialList(RW_Section):
     )  # RW_Material each material_count
 
     @staticmethod
-    def read(parser: Parser) -> "RW_MaterialList":
+    def read(parser: Parser, parent=None) -> "RW_MaterialList":
         matlist = RW_MaterialList()
         matlist.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -85,8 +85,10 @@ class RW_MaterialList(RW_Section):
 
         return matlist
 
-    def write(this, f, stamp):
+    def write(this, f, stamp, parent=None):
         buf = io.BytesIO()
+
+        this.struct.write(buf, stamp)
 
         if len(this.struct.materialIndices) != len(this.materials):
             raise ValueError(
@@ -94,7 +96,7 @@ class RW_MaterialList(RW_Section):
             )
 
         for mat in this.materials:
-            mat.write(buf, stamp)
+            mat.write(buf, stamp, parent=this)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_MATLIST.value,

@@ -1,9 +1,10 @@
 import io
 from dataclasses import dataclass, field
 
-from ..lib.parser import Parser
-from ..rwConstants import RWSectionType
-from ..rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from formats.lib.writer import _write_u32
+from formats.lib.parser import Parser
+from formats.lib.rwConstants import RWSectionType
+from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
 
 @dataclass
 class RpBoneFlags:
@@ -94,7 +95,7 @@ class RW_HAnimPlugin(RW_Section):
     # endif
 
     @staticmethod
-    def read(parser: Parser, parent_type=None) -> "RW_HAnimPlugin":
+    def read(parser: Parser, parent=None) -> "RW_HAnimPlugin":
         hanim = RW_HAnimPlugin()
         hanim.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -121,10 +122,21 @@ class RW_HAnimPlugin(RW_Section):
 
         return hanim
 
-    def write(this, f, stamp):
+    def write(this, f, stamp, parent=None):
         buf = io.BytesIO()
 
-        # Writing here
+        _write_u32(buf, this.hAnimVersion)
+        _write_u32(buf, this.nodeId)
+        _write_u32(buf, this.numNodes)
+
+        if this.numNodes > 0:
+            _write_u32(buf, this.flags.encode())
+            _write_u32(buf, this.keyFrameSize)
+
+            for bone in this.bones:
+                _write_u32(buf, bone.nodeId)
+                _write_u32(buf, bone.nodeIndex)
+                _write_u32(buf, bone.flags.encode())
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_HANIMPLUGIN.value,  # TODO: REPLACE!

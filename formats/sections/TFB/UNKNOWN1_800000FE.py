@@ -1,8 +1,8 @@
 import io
 from dataclasses import dataclass, field
 
-from ...lib.parser import Parser
-from ...rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from formats.lib.parser import Parser
+from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
 
 @dataclass
 class RW_TFB_UNKNOWN1(RW_Section):
@@ -10,7 +10,7 @@ class RW_TFB_UNKNOWN1(RW_Section):
     
 
     @staticmethod
-    def read(parser: Parser, parent_type=None) -> "RW_TFB_UNKNOWN1":
+    def read(parser: Parser, parent=None) -> "RW_TFB_UNKNOWN1":
         unk1 = RW_TFB_UNKNOWN1()
         unk1.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -24,7 +24,7 @@ class RW_TFB_UNKNOWN1(RW_Section):
 
         return unk1
 
-    def write(this, f, stamp):
+    def write(this, f, stamp, parent=None):
         buf = io.BytesIO()
 
         # Writing here

@@ -1,12 +1,12 @@
 import io
 from dataclasses import dataclass, field
 
-from ..lib.writer import _write_u32, _write_f32
-from ..lib.parser import Parser
-from ..rwConstants import RWSectionType
-from ..rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from formats.lib.writer import _write_u32, _write_f32
+from formats.lib.parser import Parser
+from formats.lib.rwConstants import RWSectionType
+from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
 
-from .EXTENSION_0003 import RW_Extension
+from formats.sections.EXTENSION_0003 import RW_Extension
 
 @dataclass
 class RpCameraProjectionMode:
@@ -74,7 +74,7 @@ class RW_Camera_Struct(RW_Section):
 
         return cam_s
 
-    def write(this, f, stamp):
+    def write(this, f, stamp, parent=None):
         buf = io.BytesIO()
 
         _write_f32(buf, this.horizontalFOVTangent)
@@ -103,7 +103,7 @@ class RW_Camera(RW_Section):
     extension: RW_Extension = field(default_factory=RW_Extension)
 
     @staticmethod
-    def read(parser: Parser) -> "RW_Camera":
+    def read(parser: Parser, parent=None) -> "RW_Camera":
         cam = RW_Camera()
         cam.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -114,16 +114,16 @@ class RW_Camera(RW_Section):
 
         cam.struct = RW_Camera_Struct.read(parser)
 
-        cam.extension = RW_Extension.read(parser)
+        cam.extension = RW_Extension.read(parser, parent=cam)
 
         return cam
 
-    def write(this, f, stamp):
+    def write(this, f, stamp, parent=None):
         buf = io.BytesIO()
 
-        this.struct.write(buf, stamp)
+        this.struct.write(buf, stamp, parent=this)
 
-        this.extension.write(buf, stamp)
+        this.extension.write(buf, stamp, parent=this)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_CAMERA.value,

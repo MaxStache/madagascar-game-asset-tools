@@ -5,21 +5,21 @@ from formats.lib.parser import Parser
 from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
 
 @dataclass
-class RW_TFB_UNKNOWN2(RW_Section):
+class RW_TFB_UNKNOWN4(RW_Section):
     header: RWHeader = field(default_factory=RWHeader)
     
 
     @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_TFB_UNKNOWN2":
-        unk2= RW_TFB_UNKNOWN2()
+    def read(parser: Parser, parent=None) -> "RW_TFB_UNKNOWN4":
+        unk2= RW_TFB_UNKNOWN4()
         unk2.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             unk2.header,
-            0x800000fe,
-            "RW_TFB_UNKNOWN2 chunk type",
+            0x800000ed,
+            "RW_TFB_UNKNOWN4 chunk type",
         )
 
-        #print(f"RW_TFB_UNKNOWN2: {unk2.header}")
+        #print(f"RW_TFB_UNKNOWN3: {unk2.header}")
         #print(f"    : {parser.readBytes(unk2.header.size).hex()}")
 
         return unk2
@@ -30,7 +30,7 @@ class RW_TFB_UNKNOWN2(RW_Section):
         # Writing here
 
         rw_header = RWHeader(
-            type=0x800000fe,
+            type=0x800000ed,
             size=len(buf.getvalue()),
             library_id_stamp=stamp,
         )

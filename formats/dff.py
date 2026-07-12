@@ -7,10 +7,8 @@ Read, write, export, and import Renderware DFF files.
 """
 from pathlib import Path
 from typing import Union
-from lib.parser import Parser
-from sections import RW_Clump
-
-__version__ = "1.0.0"
+from formats.lib.parser import Parser
+from formats.sections import RW_Clump
 
 def load_dff(filepath: Union[str, Path]) -> RW_Clump:
     """Load a DFF file from disk
@@ -25,4 +23,18 @@ def load_dff(filepath: Union[str, Path]) -> RW_Clump:
     with open(filepath, "rb") as f:
         parser = Parser(f.read(), endian="little")
 
-    return RW_Clump.read(parser, parent_type=None)
+    return RW_Clump.read(parser, parent=None)
+
+def loads_dff(data: bytes) -> RW_Clump:
+    """Load a DFF from stream
+
+    Args:
+        bytestream: Bytes of the .dff.
+
+    Returns:
+        Parsed RW_Clump.
+    """
+
+    parser = Parser(data, endian="little")
+
+    return RW_Clump.read(parser, parent=None)

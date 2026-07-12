@@ -2,10 +2,10 @@ from enum import Enum
 import io
 from dataclasses import dataclass, field
 
-from ..lib.writer import _write_u32
-from ..lib.parser import Parser
-from ..rwConstants import RWSectionType
-from ..rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from formats.lib.writer import _write_u32
+from formats.lib.parser import Parser
+from formats.lib.rwConstants import RWSectionType
+from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
 
 class RW_BinMeshPlugin_Flags(Enum):
     TRIANGLE_LIST = 0
@@ -52,7 +52,7 @@ class RW_BinMeshPlugin(RW_Section):
 
 
     @staticmethod
-    def read(parser: Parser, parent_type=None) -> "RW_BinMeshPlugin":
+    def read(parser: Parser, parent=None) -> "RW_BinMeshPlugin":
         binmesh = RW_BinMeshPlugin()
         binmesh.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -75,7 +75,7 @@ class RW_BinMeshPlugin(RW_Section):
 
         return binmesh
 
-    def write(this, f, stamp):
+    def write(this, f, stamp, parent=None):
         buf = io.BytesIO()
 
         _write_u32(buf, this.flags.value)

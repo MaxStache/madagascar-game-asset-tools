@@ -1,12 +1,12 @@
 import io
 from dataclasses import dataclass, field
 
-from ..lib.writer import _write_u32
-from ..lib.parser import Parser
-from ..rwConstants import RWSectionType
-from ..rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from formats.lib.writer import _write_u32
+from formats.lib.parser import Parser
+from formats.lib.rwConstants import RWSectionType
+from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
 
-from .EXTENSION_0003 import RW_Extension
+from formats.sections.EXTENSION_0003 import RW_Extension
 
 @dataclass
 class RpAtomicFlags:
@@ -67,7 +67,7 @@ class RW_Atomic_Struct(RW_Section):
 
         return atomic_s
 
-    def write(this, f, stamp):
+    def write(this, f, stamp, parent=None):
         buf = io.BytesIO()
 
         _write_u32(buf, this.frame_index)  # frame_index
@@ -92,7 +92,7 @@ class RW_Atomic(RW_Section):
     extension: RW_Extension = field(default_factory=RW_Extension)
 
     @staticmethod
-    def read(parser: Parser) -> "RW_Atomic":
+    def read(parser: Parser, parent=None) -> "RW_Atomic":
         atomic = RW_Atomic()
         atomic.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -103,16 +103,16 @@ class RW_Atomic(RW_Section):
 
         atomic.struct = RW_Atomic_Struct.read(parser)
 
-        atomic.extension = RW_Extension.read(parser)
+        atomic.extension = RW_Extension.read(parser, parent=atomic)
 
         return atomic
 
-    def write(this, f, stamp):
+    def write(this, f, stamp, parent=None):
         buf = io.BytesIO()
 
-        this.struct.write(buf, stamp)
+        this.struct.write(buf, stamp, parent=this)
 
-        this.extension.write(buf, stamp)
+        this.extension.write(buf, stamp, parent=this)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_ATOMIC.value,

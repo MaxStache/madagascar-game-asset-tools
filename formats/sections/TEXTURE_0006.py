@@ -1,12 +1,12 @@
-from ..lib.writer import _write_u8, _write_u16
-from ..rwConstants import RWSectionType
-from ..lib.parser import Parser
-from ..rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from formats.lib.writer import _write_u8, _write_u16
+from formats.lib.rwConstants import RWSectionType
+from formats.lib.parser import Parser
+from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
 from dataclasses import dataclass, field
 import io
 
-from .STRING_0002 import RW_String
-from .EXTENSION_0003 import RW_Extension
+from formats.sections.STRING_0002 import RW_String
+from formats.sections.EXTENSION_0003 import RW_Extension
 
 
 @dataclass
@@ -33,7 +33,7 @@ class RW_Texture_Struct(RW_Section):
 
         return texture_s
 
-    def write(this, f, stamp):
+    def write(this, f, stamp, parent=None):
         buf = io.BytesIO()
 
         _write_u8(buf, this.filterMode)
@@ -62,7 +62,7 @@ class RW_Texture(RW_Section):
     extension: RW_Extension = field(default_factory=RW_Extension)
 
     @staticmethod
-    def read(parser: Parser, parent_type=None) -> "RW_Texture":
+    def read(parser: Parser, parent=None) -> "RW_Texture":
         texture = RW_Texture()
         texture.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -77,22 +77,20 @@ class RW_Texture(RW_Section):
 
         texture.alphaTextureName = RW_String.read(parser)
 
-        texture.extension = RW_Extension.read(
-            parser, parent_type=RWSectionType.rwID_TEXTURE.value
-        )
+        texture.extension = RW_Extension.read(parser, parent=texture)
 
         return texture
 
-    def write(this, f, stamp):
+    def write(this, f, stamp, parent=None):
         buf = io.BytesIO()
 
         this.struct.write(buf, stamp)
 
-        this.diffuseTextureName.write(buf, stamp)
+        this.diffuseTextureName.write(buf, stamp, parent=this)
 
-        this.alphaTextureName.write(buf, stamp)
+        this.alphaTextureName.write(buf, stamp, parent=this)
 
-        this.extension.write(buf, stamp)
+        this.extension.write(buf, stamp, parent=this)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_TEXTURE.value,

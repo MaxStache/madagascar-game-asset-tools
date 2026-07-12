@@ -2,12 +2,12 @@ import io
 from dataclasses import dataclass, field
 from typing import Optional
 
-from ..lib.parser import Parser
-from ..lib.writer import _write_u32, _write_f32
-from ..rwConstants import RWSectionType
-from ..rw_basics import RW_Section, RWColor32, RWHeader, expect_chunk_type_or_raise
-from .TEXTURE_0006 import RW_Texture
-from .EXTENSION_0003 import RW_Extension
+from formats.lib.parser import Parser
+from formats.lib.writer import _write_u32, _write_f32
+from formats.lib.rwConstants import RWSectionType
+from formats.lib.rw_basics import RW_Section, RWColor32, RWHeader, expect_chunk_type_or_raise
+from formats.sections.TEXTURE_0006 import RW_Texture
+from formats.sections.EXTENSION_0003 import RW_Extension
 
 
 @dataclass
@@ -24,7 +24,7 @@ class RW_Material_Struct(RW_Section):
     diffuse: float = 0.0
 
     @staticmethod
-    def read(parser: Parser, parent_type=None) -> "RW_Material_Struct":
+    def read(parser: Parser, parent=None) -> "RW_Material_Struct":
         mat_s = RW_Material_Struct()
         mat_s.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -78,7 +78,7 @@ class RW_Material(RW_Section):
     extension: RW_Extension = field(default_factory=RW_Extension)
 
     @staticmethod
-    def read(parser: Parser, parent_type=None) -> "RW_Material":
+    def read(parser: Parser, parent=None) -> "RW_Material":
         mat = RW_Material()
         mat.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -88,25 +88,25 @@ class RW_Material(RW_Section):
         )
 
         mat.struct = RW_Material_Struct.read(
-            parser, parent_type=RWSectionType.rwID_MATERIAL.value
+            parser, parent=mat
         )
 
         if mat.struct.isTextured:
             mat.texture = RW_Texture.read(parser)
 
-        mat.extension = RW_Extension.read(parser, parent_type=RWSectionType.rwID_MATERIAL.value)
+        mat.extension = RW_Extension.read(parser, parent=mat)
 
         return mat
 
-    def write(this, f, stamp):
+    def write(this, f, stamp, parent=None):
         buf = io.BytesIO()
 
         this.struct.write(buf, stamp)
 
         if this.struct.isTextured and this.texture is not None:
-            this.texture.write(buf, stamp)
+            this.texture.write(buf, stamp, parent=this)
 
-        this.extension.write(buf, stamp)
+        this.extension.write(buf, stamp, parent=this)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_MATERIAL.value,

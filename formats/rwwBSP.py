@@ -17,8 +17,8 @@ from sections import RW_Extension, RW_BinMeshPlugin
 from sections.BINMESHPLUGIN_050E import RW_BinMeshPlugin_Flags
 
 from lib.parser import Parser
-from rwConstants import RWSectionType, RWSectionType_TFB, DEFAULT_VERSION_STAMP
-from rw_basics import RWColor32, Vector3, RWHeader, RW_Triangle
+from formats.lib.rwConstants import RWSectionType, RWSectionType_TFB, DEFAULT_VERSION_STAMP
+from formats.lib.rw_basics import RWColor32, Vector3, RWHeader, RW_Triangle
 
 __version__ = "1.0.0"
 

@@ -1,9 +1,9 @@
 import io
 from dataclasses import dataclass, field
 
-from ..lib.parser import Parser
-from ..rwConstants import RWSectionType
-from ..rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from formats.lib.parser import Parser
+from formats.lib.rwConstants import RWSectionType
+from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
 
 @dataclass
 class RW_SectionNameHere(RW_Section):
@@ -11,7 +11,7 @@ class RW_SectionNameHere(RW_Section):
     
 
     @staticmethod
-    def read(parser: Parser, parent_type=None) -> "RW_SectionNameHere":
+    def read(parser: Parser, parent=None) -> "RW_SectionNameHere":
         namehere = RW_SectionNameHere()
         namehere.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -22,7 +22,7 @@ class RW_SectionNameHere(RW_Section):
 
         return namehere
 
-    def write(this, f, stamp):
+    def write(this, f, stamp, parent=None):
         buf = io.BytesIO()
 
         # Writing here

@@ -1,21 +1,21 @@
 import io
 
 from lib.parser import Parser
-import rwSTREAM as rwSTREAM
-from rwConstants import strfunc_func, DEFAULT_VERSION_STAMP
+import formats.stream as stream_lib
+from formats.lib.rwConstants import strfunc_func
 import struct
 
-stream = rwSTREAM.load_stream("kingofny.stream")
+stream = stream_lib.load_stream("kingofny.stream")
 
-func = rwSTREAM.RW_strfunc_SetFrozenMode()
-func2 = rwSTREAM.RW_strfunc_EnableDirectorsCamera()
-func3 = rwSTREAM.RW_strfunc_DeleteAllEntities()
+func = stream_lib.RW_strfunc_SetFrozenMode()
+func2 = stream_lib.RW_strfunc_EnableDirectorsCamera()
+func3 = stream_lib.RW_strfunc_DeleteAllEntities()
 
 #stream.append(func)
 stream.append(func3)
 
 stream.save("kingofny.stream_PATCHED")
-rwSTREAM.write_log(stream, "kingofny_log.txt")
+stream.write_log(stream, "kingofny_log.txt")
 
 exit()
 
@@ -32,7 +32,7 @@ def modify_int_in_stream(stream, sec_index, attr_offset, new_value):
 
     stream.contents[sec_index].data = bytes(writeobj)
 
-    rwSTREAM.write_log(stream, "banquet_stream_AFTER.txt")
+    stream_lib.write_log(stream, "banquet_stream_AFTER.txt")
 
 
 def translate_matrix(matrix_bytes: bytes, dx: float, dy: float, dz: float) -> bytes:
@@ -55,10 +55,10 @@ def translate_matrix(matrix_bytes: bytes, dx: float, dy: float, dz: float) -> by
 
 
 for e in stream.contents:
-    chunk_type = rwSTREAM._getStrfuncFromChunkType(e.header.type)
+    chunk_type = stream._getStrfuncFromChunkType(e.header.type)
     if chunk_type == strfunc_func.sf_CreateEntity:
         parser = Parser(e.data, endian="little")
-        create_call = rwSTREAM.RW_strfunc_CreateEntity.read(parser)
+        create_call = stream.RW_strfunc_CreateEntity.read(parser)
 
         class_thing = create_call.find_first_class_with_command("CAttributeHandler", 0)
         if class_thing is not None:
@@ -88,23 +88,23 @@ for e in stream.contents:
 
 
 
-new_sec = rwSTREAM.RW_strfunc_EnableDirectorsCamera()
+new_sec = stream.RW_strfunc_EnableDirectorsCamera()
 stream.append(new_sec)
 
-rwSTREAM.write_log(stream, "kingofny_stream_new.txt")
+stream.write_log(stream, "kingofny_stream_new.txt")
 
 stream.save("../../Desktop/Madagascar/Game/Levels/kingofny.stream")
 
 
-gs = rwSTREAM.load_stream("global.stream")
+gs = stream.load_stream("global.stream")
 
 for e in gs.contents:
-    chunk_type = rwSTREAM._getStrfuncFromChunkType(e.header.type)
+    chunk_type = stream._getStrfuncFromChunkType(e.header.type)
     if chunk_type == strfunc_func.sf_CreateEntity:
         parser = Parser(e.data, endian="little")
         buf = io.BytesIO(e.data)
 
-        create_call = rwSTREAM.RW_strfunc_CreateEntity.read(parser)
+        create_call = stream.RW_strfunc_CreateEntity.read(parser)
 
         class_thing = create_call.find_first_class("CDebugTools")
         if class_thing is not None:
@@ -129,6 +129,6 @@ for e in gs.contents:
         e.data = buf.getvalue()
 
 
-rwSTREAM.write_log(gs, "global_stream.txt")
+stream.write_log(gs, "global_stream.txt")
 
 gs.save("../../Desktop/Madagascar/Game/Levels/global.stream")

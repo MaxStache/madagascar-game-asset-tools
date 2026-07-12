@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import BinaryIO, Union
 from lib.parser import Parser
-from rwConstants import (
+from formats.lib.rwConstants import (
     RWSectionType,
     strfunc_func,
     MAKECHUNKID,

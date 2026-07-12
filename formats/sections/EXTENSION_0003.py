@@ -1,9 +1,9 @@
 import io
 from dataclasses import dataclass, field
 
-from ..lib.parser import Parser
-from ..rwConstants import RWSectionType
-from ..rw_basics import (
+from formats.lib.parser import Parser
+from formats.lib.rwConstants import RWSectionType
+from formats.lib.rw_basics import (
     RW_Section,
     RW_Section_NotImplemented,
     RWHeader,
@@ -18,8 +18,8 @@ class RW_Extension(RW_Section):
     children: list[RW_Section] = field(default_factory=list)
 
     @staticmethod
-    def read(parser: Parser, parent_type=None) -> "RW_Extension":
-        from . import SECTION_REGISTRY
+    def read(parser: Parser, parent=None) -> "RW_Extension":
+        from formats.sections import SECTION_REGISTRY
 
         ext = RW_Extension()
         ext.header = RWHeader.read(parser)
@@ -44,17 +44,17 @@ class RW_Extension(RW_Section):
                 sub_parser.readBytes(header.size + RWHeader.BYTE_SIZE)
             ) # Seperate parser for child section to avoid offset issues if child isnt consuming full section size
 
-            child_instance = child.read(child_parser, parent_type)
+            child_instance = child.read(child_parser, parent)
 
             ext.children.append(child_instance)
 
         return ext
 
-    def write(this, f, stamp):
+    def write(this, f, stamp, parent=None):
         buf = io.BytesIO()
 
         for child in this.children:
-            child.write(buf, stamp)
+            child.write(buf, stamp, parent=parent)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_EXTENSION.value,

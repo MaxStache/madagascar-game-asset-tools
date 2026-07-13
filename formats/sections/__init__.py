@@ -36,6 +36,14 @@ from formats.sections.Rockstar.SPECULARMATERIAL_0253F2F6 import RW_Rockstar_Spec
 from formats.sections.Rockstar.REFLECTIONMATERIAL_0253F2FC import RW_Rockstar_ReflectionMaterial
 # ----
 
+# RWA - RenderWare Audio
+from formats.sections.RWA.WAVEDICT_0809 import RW_WaveDict
+from formats.sections.RWA.WAVEDICT_DICT_080A import RW_WaveDict_Dict
+from formats.sections.RWA.WAVEDICT_WAVE_080C import RW_WaveDict_Wave
+from formats.sections.RWA.WAVE_0802 import RWA_Wave
+from formats.sections.RWA.WAVESTRUCT_0803 import RWA_WaveStruct
+from formats.sections.RWA.WAVEDATA_0804 import RWA_WaveData
+# ----
 
 # fmt: off
 SECTION_REGISTRY: dict[int, RW_Section] = {
@@ -190,6 +198,15 @@ SECTION_REGISTRY: dict[int, RW_Section] = {
     RWSectionType.rwID_UVANIMPARAM.value          : RW_Section_NotImplemented,
     RWSectionType.rwID_BINMESHPLUGIN.value        : RW_BinMeshPlugin,
     RWSectionType.rwID_NATIVEDATAPLUGIN.value     : RW_Section_NotImplemented,
+
+    # RWA - RenderWare Audio
+    RWSectionType.rwaID_WAVEDICT.value: RW_WaveDict,
+    RWSectionType.rwaID_WAVEDICT_DICT.value: RW_WaveDict_Dict,
+    RWSectionType.rwaID_WAVEDICT_WAVE.value: RW_WaveDict_Wave,
+    RWSectionType.rwaID_WAVE.value: RWA_Wave,
+    RWSectionType.rwaID_WAVESTRUCT.value: RWA_WaveStruct,
+    RWSectionType.rwaID_WAVEDATA.value: RWA_WaveData,
+    # ---
 
     # ZModeler
     RWSectionType.rwID_ZModeler_ZModelerLock.value: RW_Section_NotImplemented,

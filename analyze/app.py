@@ -255,9 +255,13 @@ def run(file_path):
         ):
             parent_iid = tree.parent(parent_iid)
 
-        parent_section, parent_read_end = (
-            read_section(parent_iid) if parent_iid else (None, None)
-        )
+        try:
+            parent_section, parent_read_end = (
+                read_section(parent_iid) if parent_iid else (None, None)
+            )
+        except Exception as e:
+            print("###### FOLLOWING ERROR OCCURED DURING PARENT PARSE ######")
+            raise e
 
         # A STRUCT (0x1) has no standalone parser — the owning section parses it
         # into `.struct`. Show that parsed struct rather than the raw fallback.
@@ -315,7 +319,7 @@ def run(file_path):
         root.title("RW Tree - preparing....")
 
         if abc is None:
-            pretty = "# No parser registered for this section type."
+            pretty = "# No parser registered for this section type or error occurred during parsing."
         else:
             pretty = pretty_object(abc)
 

@@ -31,6 +31,7 @@ COLORS = {
     "hex_not_read": "#6C727E",
     "hex_offset": "#8B9AA7",
     "hex_ascii": "#5D7080",
+    "hex_ascii_read": "#8FB4CC",
 }
 
 

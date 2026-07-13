@@ -18,6 +18,7 @@ def hexdump(widget, data, width=8, parse_end=0x0):
         "hex_not_read",
         "hex_offset",
         "hex_ascii",
+        "hex_ascii_read",
     ):
         widget.tag_configure(name, foreground=COLORS[name])
 
@@ -39,7 +40,13 @@ def hexdump(widget, data, width=8, parse_end=0x0):
     # a single insert and one tag_add per tag. Inserting line-by-line with a
     # handful of tag_add calls each was thousands of Tcl round-trips per click.
     text_parts = []
-    ranges = {"hex_offset": [], "hex_not_read": [], "hex_read": [], "hex_ascii": []}
+    ranges = {
+        "hex_offset": [],
+        "hex_not_read": [],
+        "hex_read": [],
+        "hex_ascii": [],
+        "hex_ascii_read": [],
+    }
 
     for off in range(0, len(data), width):
         line = off // width + 1 + read_tagging_offset
@@ -75,6 +82,12 @@ def hexdump(widget, data, width=8, parse_end=0x0):
             f"{line}.{ascii_part_start + width}",
         ]
 
+        if read_in_line > 0:
+            ranges["hex_ascii_read"] += [
+                f"{line}.{ascii_part_start}",
+                f"{line}.{ascii_part_start + read_in_line}",
+            ]
+
     widget.insert("1.0", prefix + "".join(text_parts))
 
     for tag, idxs in ranges.items():
@@ -82,6 +95,35 @@ def hexdump(widget, data, width=8, parse_end=0x0):
             widget.tag_add(tag, *idxs)
 
     widget.tag_raise("hex_read")
+    widget.tag_raise("hex_ascii_read")
+
+def truncate_repr_strings(text: str, max_str_len: int = 150) -> str:
+    result = []
+    i = 0
+
+    while i < len(text):
+        if text[i] in "\"'":
+            quote = text[i]
+            j = i + 1
+
+            while j < len(text):
+                if text[j] == quote and text[j - 1] != "\\":
+                    break
+                j += 1
+
+            inner = text[i + 1:j]
+
+            if len(inner) > max_str_len:
+                result.append(quote + "TOO LONG TO DISPLAY" + quote)
+            else:
+                result.append(text[i:j + 1])
+
+            i = j + 1
+        else:
+            result.append(text[i])
+            i += 1
+
+    return "".join(result)
 
 def format_repr(
     text: str,
@@ -248,13 +290,13 @@ def format_repr(
 
     return "\n".join(lines)
 
-def pretty_object(obj, indent=0):
-    representation = repr(obj)
+def pretty_object(obj):
+    representation = truncate_repr_strings(repr(obj))
 
-    if len(representation) > 100_000:
+    if len(representation) > 200_000:
         return (
-            "# CUTOFF AFTER 100.000 CHARACTERS!\n\n"
-            + format_repr(representation[:100_000], indent_size=4)
+            "# CUTOFF AFTER 200.000 CHARACTERS!\n\n"
+            + format_repr(representation[:200_000], indent_size=4)
             + "\n#                 ... (truncated) ...\n\n\n"
         )
     return format_repr(representation, indent_size=4)

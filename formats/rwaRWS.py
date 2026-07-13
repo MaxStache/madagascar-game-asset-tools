@@ -524,7 +524,7 @@ def _2057_read_stream_chunk(parser: Parser) -> AudioStream_2057_Stream:
     stream.header = RWHeader.read(parser)
 
     expect_chunk_type_or_raise(
-        stream.header, CHUNK_RWSSTREAM_2057_STREAM, "Not a 2057 RWS (STREAM)"
+        stream.header, CHUNK_RWSSTREAM_2057_STREAM, "Not a 2057 RWS (STREAM)" # -> rwaID_WAVE
     )
 
     buf = Parser(parser.readBytes(stream.header.size), endian="little")
@@ -580,23 +580,24 @@ def load_2057(filepath: Union[str, Path]) -> AudioStream_2057:
         rws.header = RWHeader.read(parser)
 
         expect_chunk_type_or_raise(
-            rws.header, CHUNK_RWSSTREAM_2057, "Not a 2057 RWS (TOP)"
+            rws.header, CHUNK_RWSSTREAM_2057, "Not a 2057 RWS (TOP)" # -> rwaID_WAVEDICT
         )
 
         rws.file_header = RWHeader.read(parser)
 
         expect_chunk_type_or_raise(
             rws.file_header,
-            CHUNK_RWSSTREAM_2057_FILE_HEADER,
+            CHUNK_RWSSTREAM_2057_FILE_HEADER, # -> rwaID_WAVEDICT_DICT
             "Not a 2057 RWS (FILE_HEADER)",
         )
 
-        rws._unk1 = parser.readBytes(0x34)
+        rws._unk1 = parser.readBytes(0x34) # 52 unknown bytes
         rws.name = parser.readCString()
         rws._unk2 = parser.readBytes(rws.file_header.size - 0x34 - len(rws.name) - 1)
 
-        rws.file_data = AudioStream_2057_Data()
+        rws.file_data = AudioStream_2057_Data() # -> rwaID_WAVEDICT_WAVE
         rws.file_data.data_header = RWHeader.read(parser)
+
         rws.file_data.total_subsongs = parser.readUint32()
 
         streams = []
@@ -610,3 +611,6 @@ def load_2057(filepath: Union[str, Path]) -> AudioStream_2057:
         rws.file_data.subsongs = streams
 
     return rws
+
+if __name__ == "__main__":
+    load_2057("Levels/KingOfNY/4_WavDictXBOX.rws")

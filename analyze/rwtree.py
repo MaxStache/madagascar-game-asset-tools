@@ -21,6 +21,18 @@ CONTAINER_CHUNKS = {
     RWSectionType.rwID_ATOMIC.value,
     RWSectionType.rwID_TEXTURE.value,
     RWSectionType.rwID_LIGHT.value,
+
+    #RW AUDIO
+    RWSectionType.rwaID_WAVEDICT.value,
+    RWSectionType.rwaID_WAVEDICT_WAVE.value,
+    RWSectionType.rwaID_WAVE.value,
+}
+
+# Containers that carry their own fields before the first child chunk.
+# Maps chunk type -> number of payload bytes to skip when descending.
+CONTAINER_PREFIX_BYTES = {
+    # uint32 total_subsongs, see formats/sections/RWA/WAVEDICT_WAVE_080C.py
+    RWSectionType.rwaID_WAVEDICT_WAVE.value: 4,
 }
 
 
@@ -45,6 +57,7 @@ def read_recursive(parser, depth=0):
     children = []
     if header.type in CONTAINER_CHUNKS:
         subparser = Parser(data, endian="little")
+        subparser.skip(CONTAINER_PREFIX_BYTES.get(header.type, 0))
         while subparser.remaining() >= RWHeader.BYTE_SIZE:
             children.append(read_recursive(subparser, depth + 1))
 

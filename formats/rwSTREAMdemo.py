@@ -1,5 +1,11 @@
 import io
 
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+
 from lib.parser import Parser
 import formats.stream as stream_lib
 from formats.lib.rwConstants import strfunc_func
@@ -15,7 +21,7 @@ func3 = stream_lib.RW_strfunc_DeleteAllEntities()
 stream.append(func3)
 
 stream.save("kingofny.stream_PATCHED")
-stream.write_log(stream, "kingofny_log.txt")
+stream.write_log("kingofny_log.txt")
 
 exit()
 

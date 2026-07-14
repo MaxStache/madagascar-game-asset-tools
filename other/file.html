@@ -77,7 +77,7 @@
                 <th>Vendor ID</th>
                 <th>Chunk ID</th>
                 <th>Combined ID</th>
-                <th>Combined ID (Decimal)</th>
+                <th>Combined ID</th>
             </tr>
         </thead>
         <tbody></tbody>
@@ -94,7 +94,10 @@
             { name: "rwVENDORID_BETA", id: 0x000006 },
             { name: "rwVENDORID_CRITERIONRM", id: 0x000007 },
             { name: "rwVENDORID_CRITERIONRWA", id: 0x000008 },
-            { name: "rwVENDORID_CRITERIONRWP", id: 0x000009 }
+            { name: "rwVENDORID_CRITERIONRWP", id: 0x000009 },
+            { name: "Rockstar", id: 0x0253F2 },
+            { name: "ToysForBob", id: 0x800000 },
+            { name: "ZModeler", id: 0x0000F2 },
         ];
 
         const chunkInput = document.getElementById("chunk");
@@ -120,7 +123,7 @@
                 <td><code>0x${v.id.toString(16).padStart(6, "0")}</code></td>
                 <td><code>0x${chunkValue.toString(16).padStart(2, "0")}</code></td>
                 <td><code>0x${combined.toString(16).padStart(8, "0")}</code></td>
-                <td><code>${combined}</code></td>
+                <td><code>0x${combined}</code></td>
             </tr>
         `;
             });
@@ -144,7 +147,7 @@
                 <td><code>0x${v.id.toString(16).padStart(6, "0")}</code></td>
                 <td><code>${isMatch ? '0x' + chunkPart.toString(16).padStart(2, '0') : '—'}</code></td>
                 <td><code>${isMatch ? 'MATCH' : ''}</code></td>
-                <td><code>${combinedValue}</code></td>
+                <td><code>0x${combinedValue.toString(16)}</code></td>
             </tr>
         `;
             });
@@ -155,7 +158,7 @@
                 <td><code>0x${vendorPart.toString(16).padStart(6, "0")}</code></td>
                 <td><code>0x${chunkPart.toString(16).padStart(2, "0")}</code></td>
                 <td>MATCH</td>
-                <td><code>${combinedValue}</code></td>
+                <td><code>0x${combinedValue.toString(16)}</code></td>
             </tr>
         `;
             }

@@ -1,27 +1,35 @@
-from enum import Enum
+from enum import Enum, IntEnum
 
 
 class RWSectionType_TFB(Enum):
     rwID_tfbMATFXEFFECTUVTRANSFORM = 0x800000F6
 
 
-def MAKECHUNKID(vendorID, identifier):
-    return ((vendorID & 0xFFFFFF) << 8) | (identifier & 0xFF)
+def MAKECHUNKID(vId, sId):
+    """
+    vId = vendorID
+    sId = section identifier
+    """
+    return ((vId & 0xFFFFFF) << 8) | (sId & 0xFF)
 
+class RwVendor(IntEnum):
+    # --- RW / Criterion ---
+    CORE = 0x000000  # Core engine
+    CRITERIONTK = 0x000001  # Toolkit utilities (Rt* libraries).
+    REDLINERACER = 0x000002 # Internal Redline Racer module.
+    CSLRD = 0x000003
+    CRITERIONINT = 0x000004
+    CRITERIONWORLD = 0x000005  # World
+    BETA = 0x000006
+    CRITERIONRM = 0x000007
+    CRITERIONRWA = 0x000008  # RW Audio
+    CRITERIONRWP = 0x000009  # RW Physics
 
-rwVENDORID_CORE = 0x000000  # Core
-rwVENDORID_CRITERIONTK = 0x000001  # Toolkit
-rwVENDORID_REDLINERACER = 0x000002
-rwVENDORID_CSLRD = 0x000003
-rwVENDORID_CRITERIONINT = 0x000004
-rwVENDORID_CRITERIONWORLD = 0x000005  # World
-rwVENDORID_BETA = 0x000006
-rwVENDORID_CRITERIONRM = 0x000007
-rwaVENDORID_CRITERIONRWA = 0x000008  # RW Audio
-rwVENDORID_CRITERIONRWP = 0x000009  # RW Physics
+    # --- Third-Party ---
+    ZModeler = 0x0000F2  # ZModeler
 
-rwVENDORID_ROCKSTAR = 0x0253F2  # Rockstar
-rwVENDORID_TFB = 0x800000  # Toys for Bob
+    ROCKSTAR = 0x0253F2  # Rockstar Games
+    TFB = 0x800000  # Toys for Bob
 
 
 # fmt: off
@@ -45,7 +53,7 @@ class RWSectionType(Enum):
     rwID_LIGHT                 = 0x0012
     rwID_UNICODESTRING         = 0x0013
     rwID_ATOMIC                = 0x0014
-    rwID_TEXTURENATIVE         = 0x0015  # also known as Raster
+    rwID_TEXTURENATIVE         = 0x0015                                        # also known as Raster
     rwID_TEXDICTIONARY         = 0x0016
     rwID_ANIMDATABASE          = 0x0017
     rwID_IMAGE                 = 0x0018
@@ -69,154 +77,155 @@ class RWSectionType(Enum):
     rwID_CHUNKGROUPEND         = 0x002A
     rwID_UVANIMDICT            = 0x002B
     rwID_COLLTREE              = 0x002C
-    rwID_METRICSPLUGIN         = 0x0101
-    rwID_SPLINEPLUGIN          = 0x0102
-    rwID_STEREOPLUGIN          = 0x0103
-    rwID_VRMLPLUGIN            = 0x0104
-    rwID_MORPHPLUGIN           = 0x0105
-    rwID_PVSPLUGIN             = 0x0106
-    rwID_MEMLEAKPLUGIN         = 0x0107
-    rwID_ANIMPLUGIN            = 0x0108
-    rwID_GLOSSPLUGIN           = 0x0109
-    rwID_LOGOPLUGIN            = 0x010A
-    rwID_MEMINFOPLUGIN         = 0x010B
-    rwID_RANDOMPLUGIN          = 0x010C
-    rwID_PNGIMAGEPLUGIN        = 0x010D
-    rwID_BONEPLUGIN            = 0x010E
-    rwID_VRMLANIMPLUGIN        = 0x010F
-    rwID_SKYMIPMAPVAL          = 0x0110
-    rwID_MRMPLUGIN             = 0x0111
-    rwID_LODATMPLUGIN          = 0x0112
-    rwID_MEPLUGIN              = 0x0113
-    rwID_LTMAPPLUGIN           = 0x0114
-    rwID_REFINEPLUGIN          = 0x0115
-    rwID_SKINPLUGIN            = 0x0116
-    rwID_LABELPLUGIN           = 0x0117
-    rwID_PARTICLESPLUGIN       = 0x0118
-    rwID_GEOMTXPLUGIN          = 0x0119
-    rwID_SYNTHCOREPLUGIN       = 0x011A
-    rwID_STQPPPLUGIN           = 0x011B
-    rwID_PARTPPPLUGIN          = 0x011C
-    rwID_COLLISPLUGIN          = 0x011D
-    rwID_HANIMPLUGIN           = 0x011E
-    rwID_USERDATAPLUGIN        = 0x011F
-    rwID_MATERIALEFFECTSPLUGIN = 0x0120
-    rwID_PARTICLESYSTEMPLUGIN  = 0x0121
-    rwID_DMORPHPLUGIN          = 0x0122
-    rwID_PATCHPLUGIN           = 0x0123
-    rwID_TEAMPLUGIN            = 0x0124
-    rwID_CROWDPPPLUGIN         = 0x0125
-    rwID_MIPSPLITPLUGIN        = 0x0126
-    rwID_ANISOTPLUGIN          = 0x0127
-    rwID_GCNMATPLUGIN          = 0x0129
-    rwID_GPVSPLUGIN            = 0x012A
-    rwID_XBOXMATPLUGIN         = 0x012B
-    rwID_MULTITEXPLUGIN        = 0x012C
-    rwID_CHAINPLUGIN           = 0x012D
-    rwID_TOONPLUGIN            = 0x012E
-    rwID_PTANKPLUGIN           = 0x012F
-    rwID_PRTSTDPLUGIN          = 0x0130
-    rwID_PDSPLUGIN             = 0x0131
-    rwID_PRTADVPLUGIN          = 0x0132
-    rwID_NORMMAPPLUGIN         = 0x0133
-    rwID_ADCPLUGIN             = 0x0134
-    rwID_UVANIMPLUGIN          = 0x0135
-    rwID_CHARSEPLUGIN          = 0x0180
-    rwID_NOHSWORLDPLUGIN       = 0x0181
-    rwID_IMPUTILPLUGIN         = 0x0182
-    rwID_SLERPPLUGIN           = 0x0183
-    rwID_OPTIMPLUGIN           = 0x0184
-    rwID_TLWORLDPLUGIN         = 0x0185
-    rwID_DATABASEPLUGIN        = 0x0186
-    rwID_RAYTRACEPLUGIN        = 0x0187
-    rwID_RAYPLUGIN             = 0x0188
-    rwID_LIBRARYPLUGIN         = 0x0189
-    rwID_2DPLUGIN              = 0x0190
-    rwID_TILERENDPLUGIN        = 0x0191
-    rwID_JPEGIMAGEPLUGIN       = 0x0192
-    rwID_TGAIMAGEPLUGIN        = 0x0193
-    rwID_GIFIMAGEPLUGIN        = 0x0194
-    rwID_QUATPLUGIN            = 0x0195
-    rwID_SPLINEPVSPLUGIN       = 0x0196
-    rwID_MIPMAPPLUGIN          = 0x0197
-    rwID_MIPMAPKPLUGIN         = 0x0198
-    rwID_2DFONT                = 0x0199
-    rwID_INTSECPLUGIN          = 0x019A
-    rwID_TIFFIMAGEPLUGIN       = 0x019B
-    rwID_PICKPLUGIN            = 0x019C
-    rwID_BMPIMAGEPLUGIN        = 0x019D
-    rwID_RASIMAGEPLUGIN        = 0x019E
-    rwID_SKINFXPLUGIN          = 0x019F
-    rwID_VCATPLUGIN            = 0x01A0
-    rwID_2DPATH                = 0x01A1
-    rwID_2DBRUSH               = 0x01A2
-    rwID_2DOBJECT              = 0x01A3
-    rwID_2DSHAPE               = 0x01A4
-    rwID_2DSCENE               = 0x01A5
-    rwID_2DPICKREGION          = 0x01A6
-    rwID_2DOBJECTSTRING        = 0x01A7
-    rwID_2DANIMPLUGIN          = 0x01A8
-    rwID_2DANIM                = 0x01A9
-    rwID_2DKEYFRAME            = 0x01B0
-    rwID_2DMAESTRO             = 0x01B1
-    rwID_BARYCENTRIC           = 0x01B2
-    rwID_PITEXDICTIONARYTK     = 0x01B3
-    rwID_TOCTOOLKIT            = 0x01B4
-    rwID_TPLTOOLKIT            = 0x01B5
-    rwID_ALTPIPETOOLKIT        = 0x01B6
-    rwID_ANIMTOOLKIT           = 0x01B7
-    rwID_SKINSPLITTOOKIT       = 0x01B8
-    rwID_CMPKEYTOOLKIT         = 0x01B9
-    rwID_GEOMCONDPLUGIN        = 0x01BA
-    rwID_WINGPLUGIN            = 0x01BB
-    rwID_GENCPIPETOOLKIT       = 0x01BC
-    rwID_LTMAPCNVTOOLKIT       = 0x01BD
-    rwID_FILESYSTEMPLUGIN      = 0x01BE
-    rwID_DICTTOOLKIT           = 0x01BF
-    rwID_UVANIMLINEAR          = 0x01C0
-    rwID_UVANIMPARAM           = 0x01C1
-    rwID_BINMESHPLUGIN         = 0x050E
-    rwID_NATIVEDATAPLUGIN      = 0x0510
+    rwID_METRICSPLUGIN         = MAKECHUNKID(RwVendor.CRITERIONTK, 0x01)
+    rwID_SPLINEPLUGIN          = MAKECHUNKID(RwVendor.CRITERIONTK, 0x02)
+    rwID_STEREOPLUGIN          = MAKECHUNKID(RwVendor.CRITERIONTK, 0x03)
+    rwID_VRMLPLUGIN            = MAKECHUNKID(RwVendor.CRITERIONTK, 0x04)
+    rwID_MORPHPLUGIN           = MAKECHUNKID(RwVendor.CRITERIONTK, 0x05)
+    rwID_PVSPLUGIN             = MAKECHUNKID(RwVendor.CRITERIONTK, 0x06)
+    rwID_MEMLEAKPLUGIN         = MAKECHUNKID(RwVendor.CRITERIONTK, 0x07)
+    rwID_ANIMPLUGIN            = MAKECHUNKID(RwVendor.CRITERIONTK, 0x08)
+    rwID_GLOSSPLUGIN           = MAKECHUNKID(RwVendor.CRITERIONTK, 0x09)
+    rwID_LOGOPLUGIN            = MAKECHUNKID(RwVendor.CRITERIONTK, 0x0A)
+    rwID_MEMINFOPLUGIN         = MAKECHUNKID(RwVendor.CRITERIONTK, 0x0B)
+    rwID_RANDOMPLUGIN          = MAKECHUNKID(RwVendor.CRITERIONTK, 0x0C)
+    rwID_PNGIMAGEPLUGIN        = MAKECHUNKID(RwVendor.CRITERIONTK, 0x0D)
+    rwID_BONEPLUGIN            = MAKECHUNKID(RwVendor.CRITERIONTK, 0x0E)
+    rwID_VRMLANIMPLUGIN        = MAKECHUNKID(RwVendor.CRITERIONTK, 0x0F)
+    rwID_SKYMIPMAPVAL          = MAKECHUNKID(RwVendor.CRITERIONTK, 0x10)
+    rwID_MRMPLUGIN             = MAKECHUNKID(RwVendor.CRITERIONTK, 0x11)
+    rwID_LODATMPLUGIN          = MAKECHUNKID(RwVendor.CRITERIONTK, 0x12)
+    rwID_MEPLUGIN              = MAKECHUNKID(RwVendor.CRITERIONTK, 0x13)
+    rwID_LTMAPPLUGIN           = MAKECHUNKID(RwVendor.CRITERIONTK, 0x14)
+    rwID_REFINEPLUGIN          = MAKECHUNKID(RwVendor.CRITERIONTK, 0x15)
+    rwID_SKINPLUGIN            = MAKECHUNKID(RwVendor.CRITERIONTK, 0x16)
+    rwID_LABELPLUGIN           = MAKECHUNKID(RwVendor.CRITERIONTK, 0x17)
+    rwID_PARTICLESPLUGIN       = MAKECHUNKID(RwVendor.CRITERIONTK, 0x18)
+    rwID_GEOMTXPLUGIN          = MAKECHUNKID(RwVendor.CRITERIONTK, 0x19)
+    rwID_SYNTHCOREPLUGIN       = MAKECHUNKID(RwVendor.CRITERIONTK, 0x1A)
+    rwID_STQPPPLUGIN           = MAKECHUNKID(RwVendor.CRITERIONTK, 0x1B)
+    rwID_PARTPPPLUGIN          = MAKECHUNKID(RwVendor.CRITERIONTK, 0x1C)
+    rwID_COLLISPLUGIN          = MAKECHUNKID(RwVendor.CRITERIONTK, 0x1D)
+    rwID_HANIMPLUGIN           = MAKECHUNKID(RwVendor.CRITERIONTK, 0x1E)
+    rwID_USERDATAPLUGIN        = MAKECHUNKID(RwVendor.CRITERIONTK, 0x1F)
+    rwID_MATERIALEFFECTSPLUGIN = MAKECHUNKID(RwVendor.CRITERIONTK, 0x20)
+    rwID_PARTICLESYSTEMPLUGIN  = MAKECHUNKID(RwVendor.CRITERIONTK, 0x21)
+    rwID_DMORPHPLUGIN          = MAKECHUNKID(RwVendor.CRITERIONTK, 0x22)
+    rwID_PATCHPLUGIN           = MAKECHUNKID(RwVendor.CRITERIONTK, 0x23)
+    rwID_TEAMPLUGIN            = MAKECHUNKID(RwVendor.CRITERIONTK, 0x24)
+    rwID_CROWDPPPLUGIN         = MAKECHUNKID(RwVendor.CRITERIONTK, 0x25)
+    rwID_MIPSPLITPLUGIN        = MAKECHUNKID(RwVendor.CRITERIONTK, 0x26)
+    rwID_ANISOTPLUGIN          = MAKECHUNKID(RwVendor.CRITERIONTK, 0x27)
+    rwID_GCNMATPLUGIN          = MAKECHUNKID(RwVendor.CRITERIONTK, 0x29)
+    rwID_GPVSPLUGIN            = MAKECHUNKID(RwVendor.CRITERIONTK, 0x2A)
+    rwID_XBOXMATPLUGIN         = MAKECHUNKID(RwVendor.CRITERIONTK, 0x2B)
+    rwID_MULTITEXPLUGIN        = MAKECHUNKID(RwVendor.CRITERIONTK, 0x2C)
+    rwID_CHAINPLUGIN           = MAKECHUNKID(RwVendor.CRITERIONTK, 0x2D)
+    rwID_TOONPLUGIN            = MAKECHUNKID(RwVendor.CRITERIONTK, 0x2E)
+    rwID_PTANKPLUGIN           = MAKECHUNKID(RwVendor.CRITERIONTK, 0x2F)
+    rwID_PRTSTDPLUGIN          = MAKECHUNKID(RwVendor.CRITERIONTK, 0x30)
+    rwID_PDSPLUGIN             = MAKECHUNKID(RwVendor.CRITERIONTK, 0x31)
+    rwID_PRTADVPLUGIN          = MAKECHUNKID(RwVendor.CRITERIONTK, 0x32)
+    rwID_NORMMAPPLUGIN         = MAKECHUNKID(RwVendor.CRITERIONTK, 0x33)
+    rwID_ADCPLUGIN             = MAKECHUNKID(RwVendor.CRITERIONTK, 0x34)
+    rwID_UVANIMPLUGIN          = MAKECHUNKID(RwVendor.CRITERIONTK, 0x35)
+    rwID_CHARSEPLUGIN          = MAKECHUNKID(RwVendor.CRITERIONTK, 0x80)
+    rwID_NOHSWORLDPLUGIN       = MAKECHUNKID(RwVendor.CRITERIONTK, 0x81)
+    rwID_IMPUTILPLUGIN         = MAKECHUNKID(RwVendor.CRITERIONTK, 0x82)
+    rwID_SLERPPLUGIN           = MAKECHUNKID(RwVendor.CRITERIONTK, 0x83)
+    rwID_OPTIMPLUGIN           = MAKECHUNKID(RwVendor.CRITERIONTK, 0x84)
+    rwID_TLWORLDPLUGIN         = MAKECHUNKID(RwVendor.CRITERIONTK, 0x85)
+    rwID_DATABASEPLUGIN        = MAKECHUNKID(RwVendor.CRITERIONTK, 0x86)
+    rwID_RAYTRACEPLUGIN        = MAKECHUNKID(RwVendor.CRITERIONTK, 0x87)
+    rwID_RAYPLUGIN             = MAKECHUNKID(RwVendor.CRITERIONTK, 0x88)
+    rwID_LIBRARYPLUGIN         = MAKECHUNKID(RwVendor.CRITERIONTK, 0x89)
+    rwID_2DPLUGIN              = MAKECHUNKID(RwVendor.CRITERIONTK, 0x90)
+    rwID_TILERENDPLUGIN        = MAKECHUNKID(RwVendor.CRITERIONTK, 0x91)
+    rwID_JPEGIMAGEPLUGIN       = MAKECHUNKID(RwVendor.CRITERIONTK, 0x92)
+    rwID_TGAIMAGEPLUGIN        = MAKECHUNKID(RwVendor.CRITERIONTK, 0x93)
+    rwID_GIFIMAGEPLUGIN        = MAKECHUNKID(RwVendor.CRITERIONTK, 0x94)
+    rwID_QUATPLUGIN            = MAKECHUNKID(RwVendor.CRITERIONTK, 0x95)
+    rwID_SPLINEPVSPLUGIN       = MAKECHUNKID(RwVendor.CRITERIONTK, 0x96)
+    rwID_MIPMAPPLUGIN          = MAKECHUNKID(RwVendor.CRITERIONTK, 0x97)
+    rwID_MIPMAPKPLUGIN         = MAKECHUNKID(RwVendor.CRITERIONTK, 0x98)
+    rwID_2DFONT                = MAKECHUNKID(RwVendor.CRITERIONTK, 0x99)
+    rwID_INTSECPLUGIN          = MAKECHUNKID(RwVendor.CRITERIONTK, 0x9A)
+    rwID_TIFFIMAGEPLUGIN       = MAKECHUNKID(RwVendor.CRITERIONTK, 0x9B)
+    rwID_PICKPLUGIN            = MAKECHUNKID(RwVendor.CRITERIONTK, 0x9C)
+    rwID_BMPIMAGEPLUGIN        = MAKECHUNKID(RwVendor.CRITERIONTK, 0x9D)
+    rwID_RASIMAGEPLUGIN        = MAKECHUNKID(RwVendor.CRITERIONTK, 0x9E)
+    rwID_SKINFXPLUGIN          = MAKECHUNKID(RwVendor.CRITERIONTK, 0x9F)
+    rwID_VCATPLUGIN            = MAKECHUNKID(RwVendor.CRITERIONTK, 0xA0)
+    rwID_2DPATH                = MAKECHUNKID(RwVendor.CRITERIONTK, 0xA1)
+    rwID_2DBRUSH               = MAKECHUNKID(RwVendor.CRITERIONTK, 0xA2)
+    rwID_2DOBJECT              = MAKECHUNKID(RwVendor.CRITERIONTK, 0xA3)
+    rwID_2DSHAPE               = MAKECHUNKID(RwVendor.CRITERIONTK, 0xA4)
+    rwID_2DSCENE               = MAKECHUNKID(RwVendor.CRITERIONTK, 0xA5)
+    rwID_2DPICKREGION          = MAKECHUNKID(RwVendor.CRITERIONTK, 0xA6)
+    rwID_2DOBJECTSTRING        = MAKECHUNKID(RwVendor.CRITERIONTK, 0xA7)
+    rwID_2DANIMPLUGIN          = MAKECHUNKID(RwVendor.CRITERIONTK, 0xA8)
+    rwID_2DANIM                = MAKECHUNKID(RwVendor.CRITERIONTK, 0xA9)
+    rwID_2DKEYFRAME            = MAKECHUNKID(RwVendor.CRITERIONTK, 0xB0)
+    rwID_2DMAESTRO             = MAKECHUNKID(RwVendor.CRITERIONTK, 0xB1)
+    rwID_BARYCENTRIC           = MAKECHUNKID(RwVendor.CRITERIONTK, 0xB2)
+    rwID_PITEXDICTIONARYTK     = MAKECHUNKID(RwVendor.CRITERIONTK, 0xB3)
+    rwID_TOCTOOLKIT            = MAKECHUNKID(RwVendor.CRITERIONTK, 0xB4)
+    rwID_TPLTOOLKIT            = MAKECHUNKID(RwVendor.CRITERIONTK, 0xB5)
+    rwID_ALTPIPETOOLKIT        = MAKECHUNKID(RwVendor.CRITERIONTK, 0xB6)
+    rwID_ANIMTOOLKIT           = MAKECHUNKID(RwVendor.CRITERIONTK, 0xB7)
+    rwID_SKINSPLITTOOKIT       = MAKECHUNKID(RwVendor.CRITERIONTK, 0xB8)
+    rwID_CMPKEYTOOLKIT         = MAKECHUNKID(RwVendor.CRITERIONTK, 0xB9)
+    rwID_GEOMCONDPLUGIN        = MAKECHUNKID(RwVendor.CRITERIONTK, 0xBA)
+    rwID_WINGPLUGIN            = MAKECHUNKID(RwVendor.CRITERIONTK, 0xBB)
+    rwID_GENCPIPETOOLKIT       = MAKECHUNKID(RwVendor.CRITERIONTK, 0xBC)
+    rwID_LTMAPCNVTOOLKIT       = MAKECHUNKID(RwVendor.CRITERIONTK, 0xBD)
+    rwID_FILESYSTEMPLUGIN      = MAKECHUNKID(RwVendor.CRITERIONTK, 0xBE)
+    rwID_DICTTOOLKIT           = MAKECHUNKID(RwVendor.CRITERIONTK, 0xBF)
+    rwID_UVANIMLINEAR          = MAKECHUNKID(RwVendor.CRITERIONTK, 0xC0)
+    rwID_UVANIMPARAM           = MAKECHUNKID(RwVendor.CRITERIONTK, 0xC1)
+    rwID_BINMESHPLUGIN         = MAKECHUNKID(RwVendor.CRITERIONWORLD, 0x0E)
+    rwID_NATIVEDATAPLUGIN      = MAKECHUNKID(RwVendor.CRITERIONWORLD, 0x10)
 
     # ZModeler
-    rwID_ZModeler_ZModelerLock = 0xF21E
+    rwID_ZModeler_ZModelerLock = MAKECHUNKID(RwVendor.ZModeler, 0x1E)
+
 
     # Rockstar
-    rwID_rockstar_Frame              = MAKECHUNKID(rwVENDORID_ROCKSTAR, 0xFE)
-    rwID_rockstar_ReflectionMaterial = MAKECHUNKID(rwVENDORID_ROCKSTAR, 0xFC)
-    rwID_rockstar_SpecularMaterial   = MAKECHUNKID(rwVENDORID_ROCKSTAR, 0xF6)
-    rwID_rockstar_Breakable          = MAKECHUNKID(rwVENDORID_ROCKSTAR, 0xFD)
+    rwID_rockstar_Frame              = MAKECHUNKID(RwVendor.ROCKSTAR, 0xFE)
+    rwID_rockstar_ReflectionMaterial = MAKECHUNKID(RwVendor.ROCKSTAR, 0xFC)
+    rwID_rockstar_SpecularMaterial   = MAKECHUNKID(RwVendor.ROCKSTAR, 0xF6)
+    rwID_rockstar_Breakable          = MAKECHUNKID(RwVendor.ROCKSTAR, 0xFD)
 
     # RW Audio, DAT = DATA, HDR = HEADER
        # single object definition alias
-    rwaID_OBJDEFALIAS      = MAKECHUNKID(rwaVENDORID_CRITERIONRWA, 0x00)
-    rwaID_OBJDEFALIAS_DATA = MAKECHUNKID(rwaVENDORID_CRITERIONRWA, 0x01)
+    rwaID_OBJDEFALIAS      = MAKECHUNKID(RwVendor.CRITERIONRWA, 0x00)
+    rwaID_OBJDEFALIAS_DATA = MAKECHUNKID(RwVendor.CRITERIONRWA, 0x01)
        # single wave
-    rwaID_WAVE       = MAKECHUNKID(rwaVENDORID_CRITERIONRWA, 0x02)
-    rwaID_WAVESTRUCT = MAKECHUNKID(rwaVENDORID_CRITERIONRWA, 0x03)
-    rwaID_WAVEDATA   = MAKECHUNKID(rwaVENDORID_CRITERIONRWA, 0x04)
+    rwaID_WAVE       = MAKECHUNKID(RwVendor.CRITERIONRWA, 0x02)
+    rwaID_WAVESTRUCT = MAKECHUNKID(RwVendor.CRITERIONRWA, 0x03)
+    rwaID_WAVEDATA   = MAKECHUNKID(RwVendor.CRITERIONRWA, 0x04)
        # object dictionary
-    rwaID_OBJDICT                = MAKECHUNKID(rwaVENDORID_CRITERIONRWA, 0x05)
-    rwaID_OBJDICTOBJDEFALIAS     = MAKECHUNKID(rwaVENDORID_CRITERIONRWA, 0x06)
-    rwaID_OBJDICTOBJDEFALIAS_HDR = MAKECHUNKID(rwaVENDORID_CRITERIONRWA, 0x07)
-    rwaID_OBJDICTOBJDEFALIAS_DAT = MAKECHUNKID(rwaVENDORID_CRITERIONRWA, 0x08)
+    rwaID_OBJDICT                = MAKECHUNKID(RwVendor.CRITERIONRWA, 0x05)
+    rwaID_OBJDICTOBJDEFALIAS     = MAKECHUNKID(RwVendor.CRITERIONRWA, 0x06)
+    rwaID_OBJDICTOBJDEFALIAS_HDR = MAKECHUNKID(RwVendor.CRITERIONRWA, 0x07)
+    rwaID_OBJDICTOBJDEFALIAS_DAT = MAKECHUNKID(RwVendor.CRITERIONRWA, 0x08)
        # wave dictionary
-    rwaID_WAVEDICT              = MAKECHUNKID(rwaVENDORID_CRITERIONRWA, 0x09)
-    rwaID_WAVEDICT_DICT         = MAKECHUNKID(rwaVENDORID_CRITERIONRWA, 0x0A)
-    rwaID_WAVEDICT_WAVE_HDR     = MAKECHUNKID(rwaVENDORID_CRITERIONRWA, 0x0B)
-    rwaID_WAVEDICT_WAVE         = MAKECHUNKID(rwaVENDORID_CRITERIONRWA, 0x0C)
-    rwaID_WAVEDICT_WAVEDATA_HDR = MAKECHUNKID(rwaVENDORID_CRITERIONRWA, 0x0D)
-    rwaID_WAVEDICT_WAVEDATA     = MAKECHUNKID(rwaVENDORID_CRITERIONRWA, 0x0E)
+    rwaID_WAVEDICT              = MAKECHUNKID(RwVendor.CRITERIONRWA, 0x09)
+    rwaID_WAVEDICT_DICT         = MAKECHUNKID(RwVendor.CRITERIONRWA, 0x0A)
+    rwaID_WAVEDICT_WAVE_HDR     = MAKECHUNKID(RwVendor.CRITERIONRWA, 0x0B)
+    rwaID_WAVEDICT_WAVE         = MAKECHUNKID(RwVendor.CRITERIONRWA, 0x0C)
+    rwaID_WAVEDICT_WAVEDATA_HDR = MAKECHUNKID(RwVendor.CRITERIONRWA, 0x0D)
+    rwaID_WAVEDICT_WAVEDATA     = MAKECHUNKID(RwVendor.CRITERIONRWA, 0x0E)
 
     # TFB
-    rwID_tfb_AtomicSec1    = MAKECHUNKID(rwVENDORID_TFB, 0xD4)  # found on atomic world sector - 12B
-    rwID_tfb_AtomicSec2    = MAKECHUNKID(rwVENDORID_TFB, 0xFE)  # found on atomic world sector - 16B
-    rwID_tfb_World1        = MAKECHUNKID(rwVENDORID_TFB, 0xB0)  # found on world - 16B
-    rwID_tfb_Material1     = MAKECHUNKID(rwVENDORID_TFB, 0xF6)  # found on material (in world) - 33B
-    rwID_tfb_Atomic1       = MAKECHUNKID(rwVENDORID_TFB, 0xED)  # found on atomic - 12B
-    rwID_tfb_Atomic2       = MAKECHUNKID(rwVENDORID_TFB, 0xFD)  # found on atomic - 28B
-    rwID_tfb_Clump1        = MAKECHUNKID(rwVENDORID_TFB, 0xB1)  # found on clump - 8B
-    rwID_tfb_TextureNative = MAKECHUNKID(rwVENDORID_TFB, 0xDD)  # found on TextureNative - 12B
+    rwID_tfb_AtomicSec1    = MAKECHUNKID(RwVendor.TFB, 0xD4)  # found on atomic world sector - 12B
+    rwID_tfb_AtomicSec2    = MAKECHUNKID(RwVendor.TFB, 0xFE)  # found on atomic world sector - 16B
+    rwID_tfb_World1        = MAKECHUNKID(RwVendor.TFB, 0xB0)  # found on world - 16B
+    rwID_tfb_Material1     = MAKECHUNKID(RwVendor.TFB, 0xF6)  # found on material (in world) - 33B
+    rwID_tfb_Atomic1       = MAKECHUNKID(RwVendor.TFB, 0xED)  # found on atomic - 12B
+    rwID_tfb_Atomic2       = MAKECHUNKID(RwVendor.TFB, 0xFD)  # found on atomic - 28B
+    rwID_tfb_Clump1        = MAKECHUNKID(RwVendor.TFB, 0xB1)  # found on clump - 8B
+    rwID_tfb_TextureNative = MAKECHUNKID(RwVendor.TFB, 0xDD)  # found on TextureNative - 12B
 
 # fmt: on
 

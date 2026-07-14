@@ -5,10 +5,9 @@ from pathlib import Path
 from typing import BinaryIO, Union
 from lib.parser import Parser
 from formats.lib.rwConstants import (
-    RWSectionType,
     strfunc_func,
     MAKECHUNKID,
-    rwVENDORID_CRITERIONRM,
+    RwVendor,
 )
 import uuid
 from lib.entityAttributeDocs import CREATE_ENTITY_ATTRIBUTE_COMMANDS
@@ -47,37 +46,6 @@ class RWHeader:
             size=read_header["size"],
             library_id_stamp=read_header["version"],
         )
-
-    def getIsComplex(self) -> bool:
-        t = self.type
-
-        if t in (
-            RWSectionType.rwID_STRUCT.value,
-            RWSectionType.rwID_STRING.value,
-            RWSectionType.rwID_EXTENSION.value,
-            RWSectionType.rwID_MATRIX.value,
-            RWSectionType.rwID_UNICODESTRING.value,
-        ):
-            return False
-
-        if t in (
-            RWSectionType.rwID_CAMERA.value,
-            RWSectionType.rwID_TEXTURE.value,
-            RWSectionType.rwID_MATERIAL.value,
-            RWSectionType.rwID_MATLIST.value,
-            RWSectionType.rwID_ATOMICSECT.value,
-            RWSectionType.rwID_PLANESECT.value,
-            RWSectionType.rwID_WORLD.value,
-            RWSectionType.rwID_FRAMELIST.value,
-            RWSectionType.rwID_GEOMETRY.value,
-            RWSectionType.rwID_CLUMP.value,
-            RWSectionType.rwID_LIGHT.value,
-            RWSectionType.rwID_ATOMIC.value,
-            RWSectionType.rwID_GEOMETRYLIST.value,
-        ):
-            return True
-
-        return False
 
     @property
     def version(self) -> str:
@@ -277,7 +245,7 @@ def _SectorClass_to_RW_StreamFileSector(sector) -> RW_StreamFileSector:
     if not hasattr(sector, "get_raw_data"):
         raise ValueError("Object does not have a get_raw_data method")
 
-    chunk_type = MAKECHUNKID(rwVENDORID_CRITERIONRM, sector.strfunc.value)
+    chunk_type = MAKECHUNKID(RwVendor.CRITERIONRM, sector.strfunc.value)
     chunk_data = sector.get_raw_data()
 
     new_sector = RW_StreamFileSector(
@@ -321,6 +289,36 @@ class RW_StreamFile:
         result = _SectorClass_to_RW_StreamFileSector(sectorClass)
         self.contents[index] = result
 
+    def write_log(this, output_path: Union[str, Path]):
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write("Read a file stream\n\n")
+            for idx, e in enumerate(this.contents):
+                f.write(f"{'═' * 20} Sector {idx} {'═' * 20}\n")
+                f.write(
+                    f"Length: {e.header.size} Type: {e.header.type} ({_getStrfuncFromChunkType(e.header.type).name})\n"
+                )
+
+                # CreateEntity
+                if e.header.type == _strfunc_to_chunktype(strfunc_func.sf_CreateEntity):
+                    _write_log_strfunc_CreateEntity(f, idx, e)
+
+                # PlacementNew
+                elif e.header.type == _strfunc_to_chunktype(strfunc_func.sf_PlacementNew):
+                    _write_log_strFunc_PlacementNew(f, idx, e)
+
+                # LoadEmbeddedAsset
+                elif e.header.type == _strfunc_to_chunktype(
+                    strfunc_func.sf_LoadEmbeddedAsset
+                ):
+                    _write_log_strfunc_LoadEmbeddedAsset(f, idx, e)
+
+                # Unhandled
+                else:
+                    f.write("\t[No view defined]\n")
+                    f.write("\t[Raw Data:]\n")
+                    f.write(f"\t\t{e.data.hex()}\n")
+
+
 
 # ═══════════════════════════════════════════════════════
 #  helpers
@@ -349,17 +347,6 @@ def _write_f32(f, v):
 
 def _write_bytes(f, data):
     f.write(data)
-
-
-def _read_fixed_string(f, length: int) -> str:
-    raw = f.read(length)
-    null = raw.find(b"\x00")
-    return (raw[:null] if null >= 0 else raw).decode("ascii", errors="replace")
-
-
-def _write_fixed_string(f, s: str, length: int):
-    encoded = s.encode("ascii", errors="replace")[: length - 1]
-    f.write(encoded + b"\x00" * (length - len(encoded)))
 
 
 def _write_header(f, chunk_type: int, size: int, stamp: int = None):
@@ -404,7 +391,7 @@ def load_stream(filepath: Union[str, Path]) -> RW_StreamFile:
 
 def _getStrfuncFromChunkType(chunk_type: int) -> str:
     for func in strfunc_func:
-        if MAKECHUNKID(rwVENDORID_CRITERIONRM, func.value) == chunk_type:
+        if MAKECHUNKID(RwVendor.CRITERIONRM, func.value) == chunk_type:
             return func
     return None
 
@@ -687,34 +674,4 @@ def _write_log_strfunc_LoadEmbeddedAsset(f, idx, e: RW_StreamFileSector):
 
 
 def _strfunc_to_chunktype(strfunc: strfunc_func) -> int:
-    return MAKECHUNKID(rwVENDORID_CRITERIONRM, strfunc.value)
-
-
-def write_log(stream: RW_StreamFile, output_path: Union[str, Path]):
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write("Read a file stream\n\n")
-        for idx, e in enumerate(stream.contents):
-            f.write(f"{'═' * 20} Sector {idx} {'═' * 20}\n")
-            f.write(
-                f"Length: {e.header.size} Type: {e.header.type} ({_getStrfuncFromChunkType(e.header.type).name})\n"
-            )
-
-            # CreateEntity
-            if e.header.type == _strfunc_to_chunktype(strfunc_func.sf_CreateEntity):
-                _write_log_strfunc_CreateEntity(f, idx, e)
-
-            # PlacementNew
-            elif e.header.type == _strfunc_to_chunktype(strfunc_func.sf_PlacementNew):
-                _write_log_strFunc_PlacementNew(f, idx, e)
-
-            # LoadEmbeddedAsset
-            elif e.header.type == _strfunc_to_chunktype(
-                strfunc_func.sf_LoadEmbeddedAsset
-            ):
-                _write_log_strfunc_LoadEmbeddedAsset(f, idx, e)
-
-            # Unhandled
-            else:
-                f.write("\t[No view defined]\n")
-                f.write("\t[Raw Data:]\n")
-                f.write(f"\t\t{e.data.hex()}\n")
+    return MAKECHUNKID(RwVendor.CRITERIONRM, strfunc.value)

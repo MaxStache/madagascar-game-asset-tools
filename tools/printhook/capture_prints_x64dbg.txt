@@ -1,0 +1,25 @@
+x64dbg quick capture — no DLL, no build
+=======================================
+
+Fastest way to see every game/script print. Game.exe has a fixed image base
+(0x00400000, no ASLR), so the logger sits at absolute 0x0043E6F0.
+
+1. File > Open  ->  Game.exe   (or Attach to a running instance)
+2. Let it reach the system breakpoint / entry.
+3. Open the Command box (bottom) and paste these three lines:
+
+       bp 0x0043E6F0
+       SetBreakpointLog 0x0043E6F0, "TFB> {s:[esp+4]}"
+       SetBreakpointCondition 0x0043E6F0, 0
+
+   - bp .................... breakpoint on the logger
+   - SetBreakpointLog ...... prints the format string (= the message; script
+                             print text is passed verbatim as the format arg)
+   - SetBreakpointCondition 0  never pauses, only logs
+
+4. Run (F9). Watch the Log tab — every print streams there.
+
+Notes
+- Messages that use %d/%s args show the template, not the expanded value.
+  For fully expanded output, use the d3d8.dll proxy instead (build.bat).
+- If you attach instead of launch, set the bp after modules are loaded.

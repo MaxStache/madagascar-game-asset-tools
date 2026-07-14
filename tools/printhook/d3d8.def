@@ -1,0 +1,6 @@
+LIBRARY d3d8
+EXPORTS
+    Direct3DCreate8      = Fwd_Direct3DCreate8
+    ValidatePixelShader  = Fwd_ValidatePixelShader
+    ValidateVertexShader = Fwd_ValidateVertexShader
+    DebugSetMute         = Fwd_DebugSetMute

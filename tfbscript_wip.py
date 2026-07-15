@@ -17,7 +17,8 @@ TABLE3 = []
 UNIMPLEMENTED_OPCODES = set()
 
 FILTER_OUT_PLUS_MINUS_ZERO_IN_RHS = True  # if true (Ref: Script Time::value + Int32: 0) will be printed as (Ref: Script Time::value)
-SHOW_RHS_TYPES = False # if true will show types like "Int32: 0"
+SHOW_RHS_TYPES = False  # if true will show types like "Int32: 0"
+
 
 class OpParser(Parser):
     def readRef(self):
@@ -63,19 +64,22 @@ class CheckFOVMode(IntEnum):
     consider_obstructions = 1
 
 
+# fmt: off
 class MembershipCombiner(IntEnum):
     """Membership combiner for OpChangeMembership."""
 
-    include = (0,)
-    exclude = (1,)
-    intersect_with = (2,)
-    be_replaced_by = (3,)
-    add = (4,)
-    exclude_all = (5,)
+    include        = 0
+    exclude        = 1
+    intersect_with = 2
+    be_replaced_by = 3  
+    add            = 4  # add all elements of set_b to set_a (set_a becomes the union of set_a and set_b)
+    exclude_all    = 5  # unknown
 
     def symbol(self) -> str:
         # assumes format is "set_a.<membership_combiner>(element_a)" or "set_a.<membership_combiner>(set_b)"
-        return ("include", "remove", "replaceWith", "add", "removeAll")[self.value]
+        return ("include", "remove", "intersectWith", "replaceWith", "add", "removeAll")[self.value]
+
+# fmt: on
 
 
 class CombineMode(IntEnum):
@@ -152,7 +156,9 @@ def CRelOp(
 def CRHS(
     rhs,
 ):
-    return rhs_to_string(rhs, ENABLE_ANSI_COLORING, FILTER_OUT_PLUS_MINUS_ZERO_IN_RHS, SHOW_RHS_TYPES)
+    return rhs_to_string(
+        rhs, ENABLE_ANSI_COLORING, FILTER_OUT_PLUS_MINUS_ZERO_IN_RHS, SHOW_RHS_TYPES
+    )
 
 
 def CNum(
@@ -268,7 +274,9 @@ def render_line(instructions, op_names, i, prefix):
 
         else:
             sender_ref = p.readRef()  # who must have sent it (context to match)
-            rel_op = RelOp(p.readUint8())  # comparison operator (name table @ 0x00602f98)
+            rel_op = RelOp(
+                p.readUint8()
+            )  # comparison operator (name table @ 0x00602f98)
             value = p.readRHS()  # comparison Value
 
             line = BUILD_LINE(
@@ -849,11 +857,14 @@ def parse_tfbscirpt_file(filename):
             indent = depth[i]
             if i in else_start:
                 # else-branch sibling of the enclosing branch node (one level out)
-                #print("   " * (indent - 1) + "ELSE:")
+                # print("   " * (indent - 1) + "ELSE:")
                 pass
 
             prefix = "   " * indent
-            line = render_line(instructions, op_names, i, prefix) + f"  // then_num {instr['then_count']}, else_num {instr['else_count']}"
+            line = (
+                render_line(instructions, op_names, i, prefix)
+                + f"  // then_num {instr['then_count']}, else_num {instr['else_count']}"
+            )
             print(line)
 
             if instr["d"] > 0:
@@ -867,7 +878,7 @@ def parse_tfbscirpt_file(filename):
 # 567_RW_Balloon_Spawner.ai
 # 543_ME_Ring_Detector.ai
 if __name__ == "__main__":
-    #parse_tfbscirpt_file("Levels/KingOfNY-unchanged/887_MusicMaster.ai")
+    # parse_tfbscirpt_file("Levels/KingOfNY-unchanged/887_MusicMaster.ai")
     for filename in glob.glob("Levels/KingOfNY/*.ai"):
         print(f"\n\nParsing {filename}...")
         parse_tfbscirpt_file(filename)

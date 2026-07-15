@@ -12298,7 +12298,7 @@ CHECK VALUE state_verify_card::user::value == 1  // then_num 20, else_num 0
                            SET VALUE [~each].field[0x07] to 0  // then_num 0, else_num 0
                      //   // then_num 0, else_num 0
                      // Preserve, then hide onscreen, pre-error button prompt sprites.  // then_num 0, else_num 0
-                     CHANGE MEMBERSHIP restore_button_prompts_after_message::set::sprite.replaceWith(button_prompts::set::sprite)  // then_num 0, else_num 0
+                     CHANGE MEMBERSHIP restore_button_prompts_after_message::set::sprite.add(button_prompts::set::sprite)  // then_num 0, else_num 0
                      CHANGE MEMBERSHIP button_prompts::set::sprite.remove(button_prompts::set::sprite)  // then_num 0, else_num 0
                PRINT " <------------------------------------- card_changed? = 0.  go to <SAVING> process." on self  // then_num 0, else_num 0
                SET VALUE state_verify_card::user::value to 10  // then_num 0, else_num 0
@@ -12319,7 +12319,7 @@ CHECK VALUE self.field[0x01] == (self.field[0x01])  // then_num 10, else_num 0
          SET VALUE [~each].field[0x07] to 0  // then_num 0, else_num 0
    //   // then_num 0, else_num 0
    // Preserve, then hide onscreen, pre-error button prompt sprites.  // then_num 0, else_num 0
-   CHANGE MEMBERSHIP restore_button_prompts_after_message::set::sprite.replaceWith(button_prompts::set::sprite)  // then_num 0, else_num 0
+   CHANGE MEMBERSHIP restore_button_prompts_after_message::set::sprite.add(button_prompts::set::sprite)  // then_num 0, else_num 0
    CHANGE MEMBERSHIP button_prompts::set::sprite.remove(button_prompts::set::sprite)  // then_num 0, else_num 0
 //   // then_num 0, else_num 0
 // Go ahead with Save  // then_num 0, else_num 0
@@ -12514,7 +12514,7 @@ CHECK VALUE error_restore_sprites::set::sprite > 0  // then_num 6, else_num 0
 SET VALUE MEM_error_background::sprite.[visible] to 0  // then_num 0, else_num 0
 //   // then_num 0, else_num 0
 // Restore the pre-error button prompt sprites.  // then_num 0, else_num 0
-CHANGE MEMBERSHIP button_prompts::set::sprite.replaceWith(restore_button_prompts_after_message::set::sprite)  // then_num 0, else_num 0
+CHANGE MEMBERSHIP button_prompts::set::sprite.add(restore_button_prompts_after_message::set::sprite)  // then_num 0, else_num 0
 FIND VARIABLE force_button_prompt_update?::user::value in Button_Prompter::actor  // then_num 1, else_num 0
    SET VALUE [~found_variable] to 1  // then_num 0, else_num 0
 CHANGE MEMBERSHIP restore_button_prompts_after_message::set::sprite.remove(restore_button_prompts_after_message::set::sprite)  // then_num 0, else_num 0
@@ -12711,7 +12711,7 @@ CHECK VALUE state_display_message::user::value == 6  // then_num 15, else_num 0
    // What is the message to be displayed?  // then_num 0, else_num 0
    SET *REFERENCE *selection_message::user::sprite to MEM_error_access::sprite  // then_num 0, else_num 0
    // What are the selectable options?  // then_num 0, else_num 0
-   CHANGE MEMBERSHIP selection_options_sprites::set::sprite.replaceWith(MEM_sel_opt_cont_w_out::sprite)  // then_num 0, else_num 0
+   CHANGE MEMBERSHIP selection_options_sprites::set::sprite.add(MEM_sel_opt_cont_w_out::sprite)  // then_num 0, else_num 0
    CHANGE MEMBERSHIP selection_options_sprites::set::sprite.include(MEM_sel_opt_retry::sprite)  // then_num 0, else_num 0
    // What is the default option?  // then_num 0, else_num 0
    SET *REFERENCE *selection_selected_option::user::sprite to MEM_sel_opt_retry::sprite  // then_num 0, else_num 0
@@ -12742,7 +12742,7 @@ CHECK VALUE state_display_message::user::value == 8  // then_num 15, else_num 0
    // What is the message to be displayed?  // then_num 0, else_num 0
    SET *REFERENCE *selection_message::user::sprite to MEM_error_wrong_device::sprite  // then_num 0, else_num 0
    // What are the selectable options?  // then_num 0, else_num 0
-   CHANGE MEMBERSHIP selection_options_sprites::set::sprite.replaceWith(MEM_sel_opt_cont_w_out::sprite)  // then_num 0, else_num 0
+   CHANGE MEMBERSHIP selection_options_sprites::set::sprite.add(MEM_sel_opt_cont_w_out::sprite)  // then_num 0, else_num 0
    CHANGE MEMBERSHIP selection_options_sprites::set::sprite.include(MEM_sel_opt_retry::sprite)  // then_num 0, else_num 0
    // What is the default option?  // then_num 0, else_num 0
    SET *REFERENCE *selection_selected_option::user::sprite to MEM_sel_opt_retry::sprite  // then_num 0, else_num 0
@@ -12925,7 +12925,7 @@ CHECK VALUE new_menu_list_ID::user::value == 1  // then_num 19, else_num 0
    SET BEHAVIOR Title: Process List Menu::behavior  // then_num 0, else_num 0
    CHANGE MEMBERSHIP clean_up_sprites::set::sprite.include(Title_Menu_Sprites::set::sprite)  // then_num 0, else_num 0
    CHANGE MEMBERSHIP clean_up_sprites::set::sprite.include(MEM_Title_menu_title::sprite)  // then_num 0, else_num 0
-   CHANGE MEMBERSHIP button_prompts::set::sprite.replaceWith(prompt_main_menu::sprite)  // then_num 0, else_num 0
+   CHANGE MEMBERSHIP button_prompts::set::sprite.add(prompt_main_menu::sprite)  // then_num 0, else_num 0
    FOR EACH in Title_Menu_Sprites::set::sprite (forward)  // then_num 1, else_num 0
       SET VALUE [~each].field[0x07] to 1  // then_num 0, else_num 0
    SET *REFERENCE *menu_previous_selection::user::sprite to Title_Menu_Sprites::set::sprite@1  // then_num 0, else_num 0
@@ -14203,7 +14203,7 @@ CHECK VALUE Hardware Target::value == 2  // then_num 12, else_num 0
       // What is the message to be displayed?  // then_num 0, else_num 0
       SET *REFERENCE *selection_message::user::sprite to MEM_error_no_card_load::sprite  // then_num 0, else_num 0
       // What are the selectable options?  // then_num 0, else_num 0
-      CHANGE MEMBERSHIP selection_options_sprites::set::sprite.replaceWith(MEM_sel_opt_cont_wo_load::sprite)  // then_num 0, else_num 0
+      CHANGE MEMBERSHIP selection_options_sprites::set::sprite.add(MEM_sel_opt_cont_wo_load::sprite)  // then_num 0, else_num 0
       CHANGE MEMBERSHIP selection_options_sprites::set::sprite.include(MEM_sel_opt_retry::sprite)  // then_num 0, else_num 0
       // What is the default option?  // then_num 0, else_num 0
       SET *REFERENCE *selection_selected_option::user::sprite to MEM_sel_opt_retry::sprite  // then_num 0, else_num 0
@@ -14431,9 +14431,9 @@ FOR EACH in selection_options_sprites::set::sprite (forward)  // then_num 3, els
    INCREMENT VALUE temp::user::value  // then_num 0, else_num 0
 // Button Prompts  // then_num 0, else_num 0
 IF/ELSE (CHECK VALUE selection_back_prompt?::user::value == 1)  // then_num 4, else_num 0
-      CHANGE MEMBERSHIP button_prompts::set::sprite.replaceWith(MEM_prompt_back::sprite)  // then_num 0, else_num 0
+      CHANGE MEMBERSHIP button_prompts::set::sprite.add(MEM_prompt_back::sprite)  // then_num 0, else_num 0
       CHANGE MEMBERSHIP button_prompts::set::sprite.include(MEM_prompt_select::sprite)  // then_num 0, else_num 0
-   CHANGE MEMBERSHIP button_prompts::set::sprite.replaceWith(MEM_prompt_select::sprite)  // then_num 0, else_num 0
+   CHANGE MEMBERSHIP button_prompts::set::sprite.add(MEM_prompt_select::sprite)  // then_num 0, else_num 0
 //   // then_num 0, else_num 0
 // Managing Selection  // then_num 0, else_num 0
 CHECK VALUE selection_state::user::value == 1  // then_num 11, else_num 0
@@ -35077,7 +35077,7 @@ IF/ELSE (CHECK VALUE radar enable display::value == 1)  // then_num 4, else_num 
       SET VALUE radar enable display::value to 0  // then_num 0, else_num 0
    SET VALUE radar_active?::user::value to 0  // then_num 0, else_num 0
 // Save off the current button prompts, then turn them off manually.  // then_num 0, else_num 0
-CHANGE MEMBERSHIP restore_buttons_after_pause::set::sprite.replaceWith(button_prompts::set::sprite)  // then_num 0, else_num 0
+CHANGE MEMBERSHIP restore_buttons_after_pause::set::sprite.add(button_prompts::set::sprite)  // then_num 0, else_num 0
 FOR EACH in restore_buttons_after_pause::set::sprite (forward)  // then_num 1, else_num 0
    PRINT "" on [~each]  // then_num 0, else_num 0
 CHANGE MEMBERSHIP button_prompts::set::sprite.remove(button_prompts::set::sprite)  // then_num 0, else_num 0
@@ -35284,7 +35284,7 @@ CHECK VALUE new_menu_list_ID::user::value == 5  // then_num 27, else_num 0
    SET *REFERENCE *menu_current_selection::user::sprite to Generic_Slider_Menu_Sprites::set::sprite@1  // then_num 0, else_num 0
    SET VALUE num_menu_items::user::value to (Generic_Slider_Menu_Sprites::set::sprite)  // then_num 0, else_num 0
    SET *REFERENCE *menu_title::user::sprite to Menu_Options_Music::sprite  // then_num 0, else_num 0
-   CHANGE MEMBERSHIP button_prompts::set::sprite.replaceWith(prompt_menu_back::sprite)  // then_num 0, else_num 0
+   CHANGE MEMBERSHIP button_prompts::set::sprite.add(prompt_menu_back::sprite)  // then_num 0, else_num 0
    CHANGE MEMBERSHIP button_prompts::set::sprite.include(prompt_menu_adjust::sprite)  // then_num 0, else_num 0
    CHANGE MEMBERSHIP button_prompts::set::sprite.include(prompt_menu_accept::sprite)  // then_num 0, else_num 0
 // Is it the Sound Volume Slider menu?  // then_num 0, else_num 0
@@ -35308,7 +35308,7 @@ CHECK VALUE new_menu_list_ID::user::value == 6  // then_num 22, else_num 0
    SET *REFERENCE *menu_current_selection::user::sprite to Generic_Slider_Menu_Sprites::set::sprite@1  // then_num 0, else_num 0
    SET VALUE num_menu_items::user::value to (Generic_Slider_Menu_Sprites::set::sprite)  // then_num 0, else_num 0
    SET *REFERENCE *menu_title::user::sprite to Menu_Options_Sound::sprite  // then_num 0, else_num 0
-   CHANGE MEMBERSHIP button_prompts::set::sprite.replaceWith(prompt_menu_back::sprite)  // then_num 0, else_num 0
+   CHANGE MEMBERSHIP button_prompts::set::sprite.add(prompt_menu_back::sprite)  // then_num 0, else_num 0
    CHANGE MEMBERSHIP button_prompts::set::sprite.include(prompt_menu_adjust::sprite)  // then_num 0, else_num 0
    CHANGE MEMBERSHIP button_prompts::set::sprite.include(prompt_menu_accept::sprite)  // then_num 0, else_num 0
 // Is it the Vibration Toggle menu?  // then_num 0, else_num 0
@@ -37456,7 +37456,7 @@ PRINT "<--------------- Loading this level" on temp::user::value  // then_num 0,
          SET VALUE MEM_yes/no_no::sprite.[visible] to 1  // then_num 0, else_num 0
          SET VALUE yes/no_current_selection_index::user::value to 1  // then_num 0, else_num 0
          SET VALUE yes/no_selection_changed?::user::value to 1  // then_num 0, else_num 0
-         CHANGE MEMBERSHIP button_prompts::set::sprite.replaceWith(MEM_prompt_back::sprite)  // then_num 0, else_num 0
+         CHANGE MEMBERSHIP button_prompts::set::sprite.add(MEM_prompt_back::sprite)  // then_num 0, else_num 0
          CHANGE MEMBERSHIP button_prompts::set::sprite.include(MEM_prompt_select::sprite)  // then_num 0, else_num 0
    //   // then_num 0, else_num 0
    CHECK VALUE state_confirm::user::value == 1  // then_num 2, else_num 0
@@ -37601,7 +37601,7 @@ IF/ELSE (CHECK VALUE yes/no_selected_slot_frame_alpha_cycle::user::value == 0)  
          SET VALUE MEM_yes/no_no::sprite.[visible] to 1  // then_num 0, else_num 0
          SET VALUE yes/no_current_selection_index::user::value to 1  // then_num 0, else_num 0
          SET VALUE yes/no_selection_changed?::user::value to 1  // then_num 0, else_num 0
-         CHANGE MEMBERSHIP button_prompts::set::sprite.replaceWith(MEM_prompt_back::sprite)  // then_num 0, else_num 0
+         CHANGE MEMBERSHIP button_prompts::set::sprite.add(MEM_prompt_back::sprite)  // then_num 0, else_num 0
          CHANGE MEMBERSHIP button_prompts::set::sprite.include(MEM_prompt_select::sprite)  // then_num 0, else_num 0
    CHECK VALUE state_confirm::user::value == 1  // then_num 5, else_num 0
       // Manage yes/no selection  // then_num 0, else_num 0
@@ -37748,7 +37748,7 @@ IF/ELSE (CHECK VALUE yes/no_selected_slot_frame_alpha_cycle::user::value == 0)  
          SET VALUE MEM_yes/no_no::sprite.[visible] to 1  // then_num 0, else_num 0
          SET VALUE yes/no_current_selection_index::user::value to 1  // then_num 0, else_num 0
          SET VALUE yes/no_selection_changed?::user::value to 1  // then_num 0, else_num 0
-         CHANGE MEMBERSHIP button_prompts::set::sprite.replaceWith(MEM_prompt_back::sprite)  // then_num 0, else_num 0
+         CHANGE MEMBERSHIP button_prompts::set::sprite.add(MEM_prompt_back::sprite)  // then_num 0, else_num 0
          CHANGE MEMBERSHIP button_prompts::set::sprite.include(MEM_prompt_select::sprite)  // then_num 0, else_num 0
    CHECK VALUE state_confirm::user::value == 1  // then_num 1, else_num 0
       // Manage yes/no selection  // then_num 0, else_num 0
@@ -37889,7 +37889,7 @@ IF/ELSE (CHECK VALUE yes/no_selected_slot_frame_alpha_cycle::user::value == 0)  
          SET VALUE MEM_yes/no_no::sprite.[visible] to 1  // then_num 0, else_num 0
          SET VALUE yes/no_current_selection_index::user::value to 1  // then_num 0, else_num 0
          SET VALUE yes/no_selection_changed?::user::value to 1  // then_num 0, else_num 0
-         CHANGE MEMBERSHIP button_prompts::set::sprite.replaceWith(MEM_prompt_select::sprite)  // then_num 0, else_num 0
+         CHANGE MEMBERSHIP button_prompts::set::sprite.add(MEM_prompt_select::sprite)  // then_num 0, else_num 0
 CHECK VALUE state_confirm::user::value == 1  // then_num 14, else_num 0
    // Manage yes/no selection  // then_num 0, else_num 0
    CHECK VALUE self.field[0x01] == (self.field[0x01])  // then_num 12, else_num 0
@@ -60003,7 +60003,7 @@ branchPC: 0
 
 [BEHAVIOR: Wait to turn button prompt ON::behavior] A: 1   B: 112 C: 0   D: 0   Payload:   // then_num 14, else_num 0
    CHECK MESSAGE O_button_prompt_display::message from message senders::set::actor with value >= 0  // then_num 1, else_num 0
-      CHANGE MEMBERSHIP button_prompts::set::sprite.replaceWith(prompt_use-talk_new::sprite)  // then_num 0, else_num 0
+      CHANGE MEMBERSHIP button_prompts::set::sprite.add(prompt_use-talk_new::sprite)  // then_num 0, else_num 0
    CHECK VALUE button_prompts::set::sprite > 0  // then_num 11, else_num 0
       SET BEHAVIOR Calculate positions::behavior  // then_num 0, else_num 0
       // Copy the button prompts locally  // then_num 0, else_num 0
@@ -60042,7 +60042,7 @@ branchPC: 0
 
 [BEHAVIOR: Wait to turn prompts OFF::behavior] A: 9   B: 240 C: 0   D: 0   Payload:   // then_num 30, else_num 0
    CHECK MESSAGE O_button_prompt_display::message from message senders::set::actor with value >= 0  // then_num 1, else_num 0
-      CHANGE MEMBERSHIP button_prompts::set::sprite.replaceWith(prompt_use-talk_new::sprite)  // then_num 0, else_num 0
+      CHANGE MEMBERSHIP button_prompts::set::sprite.add(prompt_use-talk_new::sprite)  // then_num 0, else_num 0
    CHECK MESSAGE O_button_prompt_hide::message from message senders::set::actor with value >= 0  // then_num 2, else_num 0
       CHANGE MEMBERSHIP button_prompts::set::sprite.remove(button_prompts::set::sprite)  // then_num 0, else_num 0
       PRINT "Got message to hide the O Button Prompt" on self  // then_num 0, else_num 0
@@ -60068,7 +60068,7 @@ branchPC: 0
             FOR EACH in my_button_prompts::set::sprite (forward)  // then_num 1, else_num 0
                SET VALUE [~each].field[0x07] to 0  // then_num 0, else_num 0
             SET VALUE prompt_bkgnd_new::sprite.[visible] to 0  // then_num 0, else_num 0
-         CHANGE MEMBERSHIP my_button_prompts::set::sprite.replaceWith(button_prompts::set::sprite)  // then_num 0, else_num 0
+         CHANGE MEMBERSHIP my_button_prompts::set::sprite.add(button_prompts::set::sprite)  // then_num 0, else_num 0
 
 
 Parsing Levels/KingOfNY/1195_Powerup_MiniTotem.ai...
@@ -95912,7 +95912,7 @@ IF/ELSE (CHECK VALUE previous_memcard_error::user::value == 0)  // then_num 16, 
    //   // then_num 0, else_num 0
    // Preserve, then clear-out the pre-error button prompt sprites.  // then_num 0, else_num 0
    CREATE VARIABLE restore_button_prompts_after_error::set::sprite  // then_num 0, else_num 0
-   CHANGE MEMBERSHIP restore_button_prompts_after_error::set::sprite.replaceWith(button_prompts::set::sprite)  // then_num 0, else_num 0
+   CHANGE MEMBERSHIP restore_button_prompts_after_error::set::sprite.add(button_prompts::set::sprite)  // then_num 0, else_num 0
    CHANGE MEMBERSHIP button_prompts::set::sprite.remove(button_prompts::set::sprite)  // then_num 0, else_num 0
    //   // then_num 0, else_num 0
    // Turn on the Mem Error background.  // then_num 0, else_num 0
@@ -96009,7 +96009,7 @@ CHECK VALUE Hardware Target::value == 2  // then_num 17, else_num 0
          // What is the message to be displayed?  // then_num 0, else_num 0
          SET *REFERENCE *selection_message::user::sprite to MEM_error_no_space_boot::sprite  // then_num 0, else_num 0
          // What are the selectable options?  // then_num 0, else_num 0
-         CHANGE MEMBERSHIP selection_options_sprites::set::sprite.replaceWith(MEM_sel_opt_cont_w_out::sprite)  // then_num 0, else_num 0
+         CHANGE MEMBERSHIP selection_options_sprites::set::sprite.add(MEM_sel_opt_cont_w_out::sprite)  // then_num 0, else_num 0
          CHANGE MEMBERSHIP selection_options_sprites::set::sprite.include(MEM_sel_opt_retry::sprite)  // then_num 0, else_num 0
          CHANGE MEMBERSHIP selection_options_sprites::set::sprite.include(MEM_sel_opt_manage_mem::sprite)  // then_num 0, else_num 0
          // What is the default option?  // then_num 0, else_num 0
@@ -96017,7 +96017,7 @@ CHECK VALUE Hardware Target::value == 2  // then_num 17, else_num 0
       // What is the message to be displayed?  // then_num 0, else_num 0
       SET *REFERENCE *selection_message::user::sprite to MEM_error_no_space::sprite  // then_num 0, else_num 0
       // What are the selectable options?  // then_num 0, else_num 0
-      CHANGE MEMBERSHIP selection_options_sprites::set::sprite.replaceWith(MEM_sel_opt_cont_w_out::sprite)  // then_num 0, else_num 0
+      CHANGE MEMBERSHIP selection_options_sprites::set::sprite.add(MEM_sel_opt_cont_w_out::sprite)  // then_num 0, else_num 0
       CHANGE MEMBERSHIP selection_options_sprites::set::sprite.include(MEM_sel_opt_retry::sprite)  // then_num 0, else_num 0
       // What is the default option?  // then_num 0, else_num 0
       SET *REFERENCE *selection_selected_option::user::sprite to MEM_sel_opt_retry::sprite  // then_num 0, else_num 0
@@ -96141,21 +96141,21 @@ CHECK VALUE my_error::user::value == 8  // then_num 29, else_num 0
       // What is the message to be displayed?  // then_num 0, else_num 0
       SET *REFERENCE *selection_message::user::sprite to MEM_error_unknown::sprite  // then_num 0, else_num 0
       // What are the selectable options?  // then_num 0, else_num 0
-      CHANGE MEMBERSHIP selection_options_sprites::set::sprite.replaceWith(MEM_sel_okay::sprite)  // then_num 0, else_num 0
+      CHANGE MEMBERSHIP selection_options_sprites::set::sprite.add(MEM_sel_okay::sprite)  // then_num 0, else_num 0
       // What is the default option?  // then_num 0, else_num 0
       SET *REFERENCE *selection_selected_option::user::sprite to MEM_sel_okay::sprite  // then_num 0, else_num 0
    CHECK VALUE Hardware Target::value == 1  // then_num 6, else_num 0
       // What is the message to be displayed?  // then_num 0, else_num 0
       SET *REFERENCE *selection_message::user::sprite to MEM_error_unknown::sprite  // then_num 0, else_num 0
       // What are the selectable options?  // then_num 0, else_num 0
-      CHANGE MEMBERSHIP selection_options_sprites::set::sprite.replaceWith(MEM_sel_okay::sprite)  // then_num 0, else_num 0
+      CHANGE MEMBERSHIP selection_options_sprites::set::sprite.add(MEM_sel_okay::sprite)  // then_num 0, else_num 0
       // What is the default option?  // then_num 0, else_num 0
       SET *REFERENCE *selection_selected_option::user::sprite to MEM_sel_okay::sprite  // then_num 0, else_num 0
    CHECK VALUE Hardware Target::value == 2  // then_num 6, else_num 0
       // What is the message to be displayed?  // then_num 0, else_num 0
       SET *REFERENCE *selection_message::user::sprite to MEM_error_unknown::sprite  // then_num 0, else_num 0
       // What are the selectable options?  // then_num 0, else_num 0
-      CHANGE MEMBERSHIP selection_options_sprites::set::sprite.replaceWith(MEM_sel_okay::sprite)  // then_num 0, else_num 0
+      CHANGE MEMBERSHIP selection_options_sprites::set::sprite.add(MEM_sel_okay::sprite)  // then_num 0, else_num 0
       // What is the default option?  // then_num 0, else_num 0
       SET *REFERENCE *selection_selected_option::user::sprite to MEM_sel_okay::sprite  // then_num 0, else_num 0
    //   // then_num 0, else_num 0
@@ -96235,7 +96235,7 @@ FOR EACH in selection_options_sprites::set::sprite (forward)  // then_num 3, els
    CHECK REFERENCE [~each] is reference to selection_selected_option::user::sprite  // then_num 1, else_num 0
       SET VALUE selection_option_index::user::value to (temp::user::value)  // then_num 0, else_num 0
    INCREMENT VALUE temp::user::value  // then_num 0, else_num 0
-CHANGE MEMBERSHIP button_prompts::set::sprite.replaceWith(MEM_prompt_select::sprite)  // then_num 0, else_num 0
+CHANGE MEMBERSHIP button_prompts::set::sprite.add(MEM_prompt_select::sprite)  // then_num 0, else_num 0
 FIND VARIABLE force_button_prompt_update?::user::value in Button_Prompter::actor  // then_num 1, else_num 0
    SET VALUE [~found_variable] to 1  // then_num 0, else_num 0
 
@@ -96418,7 +96418,7 @@ CHECK VALUE state_card_operation::user::value == 5  // then_num 18, else_num 0
    SET *REFERENCE *selection_message::user::sprite to MEM_cancel_format::sprite  // then_num 0, else_num 0
    //   // then_num 0, else_num 0
    // What are the selectable options?  // then_num 0, else_num 0
-   CHANGE MEMBERSHIP selection_options_sprites::set::sprite.replaceWith(MEM_sel_yes::sprite)  // then_num 0, else_num 0
+   CHANGE MEMBERSHIP selection_options_sprites::set::sprite.add(MEM_sel_yes::sprite)  // then_num 0, else_num 0
    CHANGE MEMBERSHIP selection_options_sprites::set::sprite.include(MEM_sel_no::sprite)  // then_num 0, else_num 0
    // What is the default option?  // then_num 0, else_num 0
    SET *REFERENCE *selection_selected_option::user::sprite to MEM_sel_no::sprite  // then_num 0, else_num 0
@@ -96587,7 +96587,7 @@ CHECK VALUE state_card_operation::user::value == 5  // then_num 18, else_num 0
    SET *REFERENCE *selection_message::user::sprite to MEM_cancel_delete_file::sprite  // then_num 0, else_num 0
    //   // then_num 0, else_num 0
    // What are the selectable options?  // then_num 0, else_num 0
-   CHANGE MEMBERSHIP selection_options_sprites::set::sprite.replaceWith(MEM_sel_yes::sprite)  // then_num 0, else_num 0
+   CHANGE MEMBERSHIP selection_options_sprites::set::sprite.add(MEM_sel_yes::sprite)  // then_num 0, else_num 0
    CHANGE MEMBERSHIP selection_options_sprites::set::sprite.include(MEM_sel_no::sprite)  // then_num 0, else_num 0
    // What is the default option?  // then_num 0, else_num 0
    SET *REFERENCE *selection_selected_option::user::sprite to MEM_sel_no::sprite  // then_num 0, else_num 0
@@ -96749,7 +96749,7 @@ FOR EACH in selection_options_sprites::set::sprite (forward)  // then_num 3, els
       SET VALUE selection_option_index::user::value to (temp::user::value)  // then_num 0, else_num 0
    INCREMENT VALUE temp::user::value  // then_num 0, else_num 0
 // Button Prompts  // then_num 0, else_num 0
-CHANGE MEMBERSHIP button_prompts::set::sprite.replaceWith(MEM_prompt_select::sprite)  // then_num 0, else_num 0
+CHANGE MEMBERSHIP button_prompts::set::sprite.add(MEM_prompt_select::sprite)  // then_num 0, else_num 0
 FIND VARIABLE force_button_prompt_update?::user::value in Button_Prompter::actor  // then_num 1, else_num 0
    SET VALUE [~found_variable] to 1  // then_num 0, else_num 0
 //   // then_num 0, else_num 0
@@ -96914,7 +96914,7 @@ CHECK VALUE selection_state::user::value == 2  // then_num 16, else_num 0
          // What is the message to be displayed?  // then_num 0, else_num 0
          SET *REFERENCE *selection_message::user::sprite to MEM_continue_without_sav::sprite  // then_num 0, else_num 0
          // What are the selectable options?  // then_num 0, else_num 0
-         CHANGE MEMBERSHIP selection_options_sprites::set::sprite.replaceWith(MEM_sel_yes::sprite)  // then_num 0, else_num 0
+         CHANGE MEMBERSHIP selection_options_sprites::set::sprite.add(MEM_sel_yes::sprite)  // then_num 0, else_num 0
          CHANGE MEMBERSHIP selection_options_sprites::set::sprite.include(MEM_sel_no::sprite)  // then_num 0, else_num 0
          // What is the default option?  // then_num 0, else_num 0
          SET *REFERENCE *selection_selected_option::user::sprite to MEM_sel_no::sprite  // then_num 0, else_num 0
@@ -96975,7 +96975,7 @@ CHECK REFERENCE selection_selected_option::user::sprite is reference to MEM_sel_
          // What is the message to be displayed?  // then_num 0, else_num 0
          SET *REFERENCE *selection_message::user::sprite to MEM_confirm_exit_to_mem::sprite  // then_num 0, else_num 0
          // What are the selectable options?  // then_num 0, else_num 0
-         CHANGE MEMBERSHIP selection_options_sprites::set::sprite.replaceWith(MEM_sel_yes::sprite)  // then_num 0, else_num 0
+         CHANGE MEMBERSHIP selection_options_sprites::set::sprite.add(MEM_sel_yes::sprite)  // then_num 0, else_num 0
          CHANGE MEMBERSHIP selection_options_sprites::set::sprite.include(MEM_sel_no::sprite)  // then_num 0, else_num 0
          // What is the default option?  // then_num 0, else_num 0
          SET *REFERENCE *selection_selected_option::user::sprite to MEM_sel_no::sprite  // then_num 0, else_num 0
@@ -97044,7 +97044,7 @@ FOR EACH in restore_after_error::set::sprite (forward)  // then_num 1, else_num 
 CHANGE MEMBERSHIP restore_after_error::set::sprite.remove(restore_after_error::set::sprite)  // then_num 0, else_num 0
 //   // then_num 0, else_num 0
 // Restore pre-error button prompts  // then_num 0, else_num 0
-CHANGE MEMBERSHIP button_prompts::set::sprite.replaceWith(restore_button_prompts_after_error::set::sprite)  // then_num 0, else_num 0
+CHANGE MEMBERSHIP button_prompts::set::sprite.add(restore_button_prompts_after_error::set::sprite)  // then_num 0, else_num 0
 CHANGE MEMBERSHIP restore_button_prompts_after_error::set::sprite.remove(restore_button_prompts_after_error::set::sprite)  // then_num 0, else_num 0
 FIND VARIABLE force_button_prompt_update?::user::value in Button_Prompter::actor  // then_num 1, else_num 0
    SET VALUE [~found_variable] to 1  // then_num 0, else_num 0

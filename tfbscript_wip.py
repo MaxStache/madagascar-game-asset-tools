@@ -86,6 +86,20 @@ class CombineMode(IntEnum):
     local = 2
 
 
+class Direction(IntEnum):
+    """Facing/orientation (or iteration order) selector.
+
+    The byte after the target reference in teleport to / move to / find subset /
+    for each. Game.exe reads it via FUN_0042fc60 using the name table at
+    0x00603044 (PTR_s_forward): {forward, backward, randomly}. It picks which way
+    the actor faces after moving (or the order a collection is iterated).
+    """
+
+    forward = 0
+    backward = 1
+    randomly = 2
+
+
 def readStringTable(buf: Parser):
     tableEntries = buf.readUint32()
     table = []
@@ -254,13 +268,13 @@ def render_line(instructions, op_names, i, prefix):
 
         else:
             sender_ref = p.readRef()  # who must have sent it (context to match)
-            extra = p.readUint8()
+            rel_op = RelOp(p.readUint8())  # comparison operator (name table @ 0x00602f98)
             value = p.readRHS()  # comparison Value
 
             line = BUILD_LINE(
                 prefix,
                 "CHECK MESSAGE",
-                f"{CRef(message_ref)} from {CRef(sender_ref)}, extra {CNum(extra)} with value {CRHS(value)}",
+                f"{CRef(message_ref)} from {CRef(sender_ref)} with value {CRelOp(rel_op)} {CRHS(value)}",
             )
 
     elif op_name == "send message::op-code":
@@ -268,13 +282,13 @@ def render_line(instructions, op_names, i, prefix):
 
         message_ref = p.readRef()  # which message to send
         recipient_ref = p.readRef()  # who to send it to
-        extra = p.readUint8()  # unknown
+        rel_op = RelOp(p.readUint8())  # comparison operator (name table @ 0x00602f98)
         value = p.readRHS()  # the message's argument Value
 
         line = BUILD_LINE(
             prefix,
             "SEND MESSAGE",
-            f"{CRef(message_ref)} to {CRef(recipient_ref)}, extra {CNum(extra)} that has value {CRHS(value)}",
+            f"{CRef(message_ref)} to {CRef(recipient_ref)} with value {CRelOp(rel_op)} {CRHS(value)}",
         )
 
     elif op_name == "create variable::op-code":
@@ -392,14 +406,14 @@ def render_line(instructions, op_names, i, prefix):
         target_ref = (
             p.readRef()
         )  # reference: teleport destination (e.g. an actor/placement)
-        node_point = p.readUint8()  # named-node-point/socket index on the target (e.g. a specific attachment point)
+        facing = Direction(p.readUint8())  # which way the actor faces after teleporting
         offset = p.readRHS()  # positional offset
         seconds_rhs = p.readRHS()  # transition time in seconds
 
         line = BUILD_LINE(
             prefix,
             "TELEPORT TO",
-            f"{CRef(target_ref)} at node {CNum(node_point)} offset by {CRHS(offset)} over {CRHS(seconds_rhs)} seconds",
+            f"{CRef(target_ref)} facing {CEnum(facing)} offset by {CRHS(offset)} over {CRHS(seconds_rhs)} seconds",
         )
 
     elif op_name == "play sound::op-code":
@@ -564,15 +578,15 @@ def render_line(instructions, op_names, i, prefix):
         p = OpParser(instr["payload"])
 
         destination = p.readRef()
-        node_point = p.readUint8()  # always present (one byte read either way, via different readers depending on ref's resolved type)
+        facing = Direction(p.readUint8())  # which way to face at the destination
         extra = p.readBytes(1)
         value = p.readRHS()  #  movement target/speed
 
         line = BUILD_LINE(
             prefix,
             "MOVE TO",
-            f"{CRef(destination)}, node point: {CNum(node_point)}, extra: {extra}, value: {CRHS(value)}",
-        ) 
+            f"{CRef(destination)}, facing {CEnum(facing)}, extra: {extra}, value: {CRHS(value)}",
+        )
 
     elif op_name == "move from::op-code":
         p = OpParser(instr["payload"])
@@ -591,12 +605,12 @@ def render_line(instructions, op_names, i, prefix):
         p = OpParser(instr["payload"])
 
         collection_ref = p.readRef()
-        node_point = p.readUint8()
+        order = Direction(p.readUint8())  # iteration order (forward/backward/randomly)
 
         line = BUILD_LINE(
             prefix,
             "FOR EACH",
-            f"in {CRef(collection_ref)}, node point {CNum(node_point)}",
+            f"in {CRef(collection_ref)} ({CEnum(order)})",
         )
 
     elif op_name == "control::op-code":
@@ -836,7 +850,6 @@ if filtered_unimplemented_opcodes:
 """
 Still unimplemented opcodes:
 
-- cut-scene::op-code - (u8 payload)
 - find subset::op-code - 10 byte payload
 - loop value::op-code
 - use camera::op-code

@@ -383,8 +383,8 @@ def render_line(instructions, op_names, i, prefix):
 
         line = BUILD_LINE(
             prefix,
-            "SET REFERENCE",
-            f"{CRef(dest_ref)} to {CRef(src_ref)}",
+            "SET *REFERENCE",
+            f"*{CRef(dest_ref)} to {CRef(src_ref)}",
         )
 
     elif op_name == "spawn actor::op-code":
@@ -613,6 +613,19 @@ def render_line(instructions, op_names, i, prefix):
             f"in {CRef(collection_ref)} ({CEnum(order)})",
         )
 
+    elif op_name == "find subset::op-code":
+        p = OpParser(instr["payload"])
+
+        collection_ref = p.readRef()  # the set to filter
+        rel_op = RelOp(p.readUint8())  # filter comparator (name table @ 0x00602f98)
+        value = p.readRHS()  # value each element is compared against
+
+        line = BUILD_LINE(
+            prefix,
+            "FIND SUBSET",
+            f"of {CRef(collection_ref)} where element {CRelOp(rel_op)} {CRHS(value)}",
+        )
+
     elif op_name == "control::op-code":
         p = OpParser(instr["payload"])
 
@@ -734,6 +747,8 @@ def parse_tfbscirpt_file(filename):
                 "payload_size": buf.readUint8(),
             }
             instruction["payload"] = buf.readBytes(instruction["payload_size"])
+            instruction["then_count"] = instruction["b"] >> 3
+            instruction["else_count"] = instruction["c"] >> 3
             instructions.append(instruction)
 
         def compute_layout(instrs):
@@ -779,7 +794,6 @@ def parse_tfbscirpt_file(filename):
         # if/else's condition-child can be looked up and rendered out of order.
         SECTION_NAMES = {0: "PRESCRIPT", 1: "STARTUP", 2: "SHUTDOWN"}
         for i, b in enumerate(behaviours):
-            print(f"BEHAVIOR {i}: {b}")
             SECTION_NAMES[3 + i] = (
                 "BEHAVIOR: " + b
             )  # main body is section 3, then each behavior gets its own section
@@ -818,7 +832,7 @@ def parse_tfbscirpt_file(filename):
                 pass
 
             prefix = "   " * indent
-            line = render_line(instructions, op_names, i, prefix)
+            line = render_line(instructions, op_names, i, prefix) + f"  // then_num {instr['then_count']}, else_num {instr['else_count']}"
             print(line)
 
             if instr["d"] > 0:
@@ -833,7 +847,7 @@ def parse_tfbscirpt_file(filename):
 # 543_ME_Ring_Detector.ai
 if __name__ == "__main__":
     # parse_tfbscirpt_file("Levels/KingOfNY-unchanged/815_RW_CutsceneBoy1.ai")
-    for filename in glob.glob("Levels/mutiny/*.ai"):
+    for filename in glob.glob("Levels/kingofny/*.ai"):
         print(f"\n\nParsing {filename}...")
         parse_tfbscirpt_file(filename)
 
@@ -850,7 +864,6 @@ if filtered_unimplemented_opcodes:
 """
 Still unimplemented opcodes:
 
-- find subset::op-code - 10 byte payload
 - loop value::op-code
 - use camera::op-code
 

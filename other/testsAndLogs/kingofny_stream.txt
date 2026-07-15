@@ -28342,7 +28342,7 @@ Create Entity Call:
 	Class:	SpriteObject
 		0x8c - Attribute   0: [Fish_Blue_03_S  ][46 69 73 68 5F 42 6C 75 65 5F 30 33 5F 53 00 BF]
 		0x98 - Attribute   1: [    ][03 00 00 00]
-		0xa8 - Attribute   2: [ none   ][3C 6E 6F 6E 65 3E 00 BF]
+		0xa8 - Attribute   2: [<none>  ][3C 6E 6F 6E 65 3E 00 BF]
 		0xb8 - Attribute   3: [ none   ][3C 6E 6F 6E 65 3E 00 BF]
 		0xc8 - Attribute   4: [ none   ][3C 6E 6F 6E 65 3E 00 BF]
 		0xd4 - Attribute   5: [    ][00 00 00 00]

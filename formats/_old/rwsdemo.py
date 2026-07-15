@@ -1,4 +1,4 @@
-import rwaRWS as rwaRWS
+import formats._old.rwaRWS as rwaRWS
 import io
 
 #rws = rwaRWS.load_2057("Levels/banquet/8_WavDictXBOX.rws")

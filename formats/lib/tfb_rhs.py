@@ -87,31 +87,71 @@ def read_rhs(
     raise ValueError(f"Unknown RHS tag 0x{tag:02X}")
 
 
-def rhs_to_string(rhs: RHSValue) -> str:
+def rhs_to_string(rhs: RHSValue, enable_coloring: bool = True, filterPlusMinusZero: bool = False, showTypes: bool = True) -> str:
     """
     Converts an RHSValue into a readable string representation.
     """
 
     if rhs.kind == "int":
-        return color_text(f"Int32: {rhs.value}", Color.NUMBER)
+        if showTypes:
+            text = f"Int32: {rhs.value}"
+        else:
+            text = f"{rhs.value}"
+
+        return (
+            color_text(text, Color.NUMBER)
+            if enable_coloring
+            else text
+        )
 
     if rhs.kind == "float":
-        return color_text(f"Float: {rhs.value}", Color.NUMBER)
+        if showTypes:
+            text = f"Float: {rhs.value}"
+        else:
+            text = f"{rhs.value}"
+
+        return (
+            color_text(text, Color.NUMBER)
+            if enable_coloring
+            else text
+        )
 
     if rhs.kind == "color":
         r, g, b, a = rhs.value
-        return text_rgb_square(r, g, b) + color_text(
-            f"Color32: ({r}, {g}, {b}, {a})",
-            Color.RGBACOLOR,
-        )
+
+        if showTypes:
+            text = f"Color32: ({r}, {g}, {b}, {a})"
+        else:
+            text = f"Color({r}, {g}, {b}, {a})"
+
+        if enable_coloring:
+            return text_rgb_square(r, g, b) + color_text(
+                text,
+                Color.RGBACOLOR,
+            )
+        else:
+            return text
 
     if rhs.kind == "pair":
         # two little-endian half floats
         x, y = rhs.value
-        return color_text(f"Pair16: ({x}, {y})", Color.NUMBER)
+        return (
+            color_text(f"Pair16: ({x}, {y})", Color.NUMBER)
+            if enable_coloring
+            else f"Pair16: ({x}, {y})"
+        )
 
     if rhs.kind == "reference":
-        return color_text(f"Ref: {rhs.value}", Color.REFERENCE)
+        if showTypes:
+            text = f"Ref: {rhs.value}"
+        else:
+            text = f"{rhs.value}"
+
+        return (
+            color_text(text, Color.REFERENCE)
+            if enable_coloring
+            else text
+        )
 
     if rhs.kind == "expression":
         operators = {
@@ -123,8 +163,21 @@ def rhs_to_string(rhs: RHSValue) -> str:
 
         op = operators.get(rhs.operator, f"unknown_operator_{rhs.operator}")
 
-        left = color_text(f"Ref: {rhs.value}", Color.REFERENCE)
+        left = (
+            color_text(f"Ref: {rhs.value}", Color.REFERENCE)
+            if enable_coloring
+            else f"Ref: {rhs.value}" if showTypes else f"{rhs.value}"
+        )
 
-        return f"({left} {color_text(op, Color.OPERATOR)} {rhs_to_string(rhs.rhs)})"
+        if filterPlusMinusZero and rhs.rhs.kind == "int" and rhs.rhs.value == 0 and rhs.operator in (0, 1):
+            # if filterPlusMinusZero and rhs is int and rhs.value is 0 and operator is + or -, then return just the left side
+            return f"({left})"
+
+        operator_str = color_text(op, Color.OPERATOR) if enable_coloring else str(op)
+
+        right = rhs_to_string(rhs.rhs, enable_coloring, filterPlusMinusZero, showTypes)
+
+
+        return f"({left} {operator_str} {right})"
 
     return f"Unknown({rhs.kind}): {rhs.value}"

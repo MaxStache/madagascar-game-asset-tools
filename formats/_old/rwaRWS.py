@@ -176,12 +176,11 @@ class AudioStream_2057_StreamHeader:
 
         # stream_name
         _write_fixed_string(buf, this.stream_name, len(this.stream_name) + 1)
-        
+
         # ALIGN TO 4 BYTES
         while (buf.tell() % 4) != 0:
             buf.write(b"\x00")
-        
-        
+
         # _pad2
         current_size = 12 + buf.tell()  # 12 bytes for the chunk header
         padding_needed = (this.header.size + 12) - current_size
@@ -286,7 +285,7 @@ class AudioStream_2057:
 
     def __post_init__(self):
         self._unk2 = b"\x00" * (self.file_header.size - 0x34 - len(self.name) - 1)
-        
+
     def replace_subsong(this, index: int, new_stream: AudioStream_2057_Stream):
         if index < 0 or index >= len(this.file_data.subsongs):
             raise IndexError("Subsong index out of range")
@@ -407,7 +406,11 @@ def expect_chunk_type_or_raise(
             f"{error}: expected 0x{expected_type:02X}, got 0x{header.type:02X} ({int(header.type)})"
         )
 
+
 def _import_wav_getData(filepath: Union[str, Path]) -> tuple[bytes, int, int, int]:
+    """
+    Import a .wav file and get its data bytes, sample rate, bit_depth and channel count
+    """
     with wave.open(filepath, "rb") as wav_file:
         channels = wav_file.getnchannels()
         sample_rate = wav_file.getframerate()
@@ -440,11 +443,14 @@ def _import_wav_getData(filepath: Union[str, Path]) -> tuple[bytes, int, int, in
 
     return audio_data, sample_rate, bit_depth, channels
 
-def import_wav(filepath: Union[str, Path], name: str = "imported") -> AudioStream_2057_Stream:
+
+def import_wav(
+    filepath: Union[str, Path], name: str = "imported"
+) -> AudioStream_2057_Stream:
     audio_data, sample_rate, bit_depth, channels = _import_wav_getData(filepath)
-    
+
     stream = AudioStream_2057_Stream()
-    
+
     stream.header_info = AudioStream_2057_StreamHeader(
         sample_rate=sample_rate,
         channels=channels,
@@ -458,6 +464,7 @@ def import_wav(filepath: Union[str, Path], name: str = "imported") -> AudioStrea
     stream.stream_data = AudioStream_2057_StreamData(data=audio_data)
 
     return stream
+
 
 def _2057_read_stream_chunk_header(parser: Parser) -> AudioStream_2057_StreamHeader:
     sh = AudioStream_2057_StreamHeader()
@@ -524,7 +531,9 @@ def _2057_read_stream_chunk(parser: Parser) -> AudioStream_2057_Stream:
     stream.header = RWHeader.read(parser)
 
     expect_chunk_type_or_raise(
-        stream.header, CHUNK_RWSSTREAM_2057_STREAM, "Not a 2057 RWS (STREAM)" # -> rwaID_WAVE
+        stream.header,
+        CHUNK_RWSSTREAM_2057_STREAM,
+        "Not a 2057 RWS (STREAM)",  # -> rwaID_WAVE
     )
 
     buf = Parser(parser.readBytes(stream.header.size), endian="little")
@@ -580,22 +589,24 @@ def load_2057(filepath: Union[str, Path]) -> AudioStream_2057:
         rws.header = RWHeader.read(parser)
 
         expect_chunk_type_or_raise(
-            rws.header, CHUNK_RWSSTREAM_2057, "Not a 2057 RWS (TOP)" # -> rwaID_WAVEDICT
+            rws.header,
+            CHUNK_RWSSTREAM_2057,
+            "Not a 2057 RWS (TOP)",  # -> rwaID_WAVEDICT
         )
 
         rws.file_header = RWHeader.read(parser)
 
         expect_chunk_type_or_raise(
             rws.file_header,
-            CHUNK_RWSSTREAM_2057_FILE_HEADER, # -> rwaID_WAVEDICT_DICT
+            CHUNK_RWSSTREAM_2057_FILE_HEADER,  # -> rwaID_WAVEDICT_DICT
             "Not a 2057 RWS (FILE_HEADER)",
         )
 
-        rws._unk1 = parser.readBytes(0x34) # 52 unknown bytes
+        rws._unk1 = parser.readBytes(0x34)  # 52 unknown bytes
         rws.name = parser.readCString()
         rws._unk2 = parser.readBytes(rws.file_header.size - 0x34 - len(rws.name) - 1)
 
-        rws.file_data = AudioStream_2057_Data() # -> rwaID_WAVEDICT_WAVE
+        rws.file_data = AudioStream_2057_Data()  # -> rwaID_WAVEDICT_WAVE
         rws.file_data.data_header = RWHeader.read(parser)
 
         rws.file_data.total_subsongs = parser.readUint32()
@@ -611,6 +622,7 @@ def load_2057(filepath: Union[str, Path]) -> AudioStream_2057:
         rws.file_data.subsongs = streams
 
     return rws
+
 
 if __name__ == "__main__":
     load_2057("Levels/KingOfNY/4_WavDictXBOX.rws")

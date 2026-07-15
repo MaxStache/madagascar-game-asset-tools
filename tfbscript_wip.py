@@ -10,10 +10,14 @@ import sys
 
 sys.stdout.reconfigure(encoding="utf-8")
 
+ENABLE_ANSI_COLORING = False
 TABLE1 = []
 TABLE2 = []
 TABLE3 = []
 UNIMPLEMENTED_OPCODES = set()
+
+FILTER_OUT_PLUS_MINUS_ZERO_IN_RHS = True  # if true (Ref: Script Time::value + Int32: 0) will be printed as (Ref: Script Time::value)
+SHOW_RHS_TYPES = False # if true will show types like "Int32: 0"
 
 class OpParser(Parser):
     def readRef(self):
@@ -37,12 +41,50 @@ class RelOp(IntEnum):
     def symbol(self) -> str:
         return ("<=", "==", ">=", "<", ">", "!=")[self.value]
 
+
+class MembershipTest(IntEnum):
+    """Membership test for OpCheckMembership."""
+
+    includes = 0  # set_a includes element_a (element could be a set itself, that is called a subset)
+    excludes = 1  # set_a excludes element_a (element could be a set itself, that is called a subset)
+    intersects_with = 2  # set_a intersects with_b (set_a has at least one element in common with set_b)
+    includes_all = 3  # set_a all in set_b
+
+    def symbol(self) -> str:
+        # assumes format is "set_a <membership_test> element_a" or "set_a <membership_test> set_b"
+        return ("in", "not in", "intersects with", "all in")[self.value]
+
+
+class CheckFOVMode(IntEnum):
+    """Mode for OpCheckFOV."""
+
+    ignore_obstructions = 0
+
+    consider_obstructions = 1
+
+
+class MembershipCombiner(IntEnum):
+    """Membership combiner for OpChangeMembership."""
+
+    include = (0,)
+    exclude = (1,)
+    intersect_with = (2,)
+    be_replaced_by = (3,)
+    add = (4,)
+    exclude_all = (5,)
+
+    def symbol(self) -> str:
+        # assumes format is "set_a.<membership_combiner>(element_a)" or "set_a.<membership_combiner>(set_b)"
+        return ("include", "remove", "replaceWith", "add", "removeAll")[self.value]
+
+
 class CombineMode(IntEnum):
     """Displacement combine mode for OpDisplace."""
 
     relative = 0
     absolute = 1
     local = 2
+
 
 def readStringTable(buf: Parser):
     tableEntries = buf.readUint32()
@@ -69,7 +111,9 @@ def BUILD_LINE(
     op_name: str,
     content: str,
 ):
-    colored_name = color_text(op_name, Color.METHOD)
+    colored_name = (
+        color_text(op_name, Color.METHOD) if ENABLE_ANSI_COLORING else op_name
+    )
     line = f"{prefix}{colored_name} {content}"
 
     return line
@@ -78,36 +122,49 @@ def BUILD_LINE(
 def CRef(
     ref: Reference,
 ):
-    return color_text(ref, Color.REFERENCE)
+    return color_text(ref, Color.REFERENCE) if ENABLE_ANSI_COLORING else str(ref)
 
 
 def CRelOp(
     rel_op: RelOp,
 ):
-    return color_text(rel_op.symbol(), Color.OPERATOR)
+    return (
+        color_text(rel_op.symbol(), Color.OPERATOR)
+        if ENABLE_ANSI_COLORING
+        else rel_op.symbol()
+    )
 
 
 def CRHS(
     rhs,
 ):
-    return rhs_to_string(rhs)
+    return rhs_to_string(rhs, ENABLE_ANSI_COLORING, FILTER_OUT_PLUS_MINUS_ZERO_IN_RHS, SHOW_RHS_TYPES)
 
 
 def CNum(
     num,
 ):
-    return color_text(str(num), Color.NUMBER)
+    return color_text(str(num), Color.NUMBER) if ENABLE_ANSI_COLORING else str(num)
 
 
 def CStr(
     string,
 ):
-    return color_text(str(f'"{string}"'), Color.STRING)
+    return (
+        color_text(str(f'"{string}"'), Color.STRING)
+        if ENABLE_ANSI_COLORING
+        else str(f'"{string}"')
+    )
+
 
 def CEnum(
     enumValue,
 ):
-    return color_text(enumValue.name, Color.ENUM_VALUE)
+    return (
+        color_text(enumValue.name, Color.ENUM_VALUE)
+        if ENABLE_ANSI_COLORING
+        else enumValue.name
+    )
 
 
 def render_line(instructions, op_names, i, prefix):
@@ -131,7 +188,11 @@ def render_line(instructions, op_names, i, prefix):
         payload_buf = Parser(instr["payload"])
         comment_length = payload_buf.readUint8()
         comment_string = payload_buf.readString(comment_length)
-        line = color_text(f"{prefix}// {comment_string}", Color.COMMENT)
+        line = (
+            color_text(f"{prefix}// {comment_string}", Color.COMMENT)
+            if ENABLE_ANSI_COLORING
+            else f"{prefix}// {comment_string}"
+        )
 
     elif op_name == "print::op-code":
         p = OpParser(instr["payload"])
@@ -166,13 +227,12 @@ def render_line(instructions, op_names, i, prefix):
     elif op_name == "displace::op-code":
         p = OpParser(instr["payload"])
 
-        ref = p.readRef() # the object being displaced
+        ref = p.readRef()  # the object being displaced
         combine_mode = CombineMode(p.readUint8())
 
-        length = p.readRHS() # magnitude of displacement
-        heading = p.readRHS() # yaw/heading
-        pitch = p.readRHS() # pitch
-
+        length = p.readRHS()  # magnitude of displacement
+        heading = p.readRHS()  # yaw/heading
+        pitch = p.readRHS()  # pitch
 
         line = BUILD_LINE(
             prefix,
@@ -183,7 +243,7 @@ def render_line(instructions, op_names, i, prefix):
     elif op_name == "check message::op-code":
         p = OpParser(instr["payload"])
 
-        message_ref = p.readRef() # the message being checked for
+        message_ref = p.readRef()  # the message being checked for
 
         if p.remaining() == 0:
             line = BUILD_LINE(
@@ -193,9 +253,9 @@ def render_line(instructions, op_names, i, prefix):
             )
 
         else:
-            sender_ref = p.readRef() # who must have sent it (context to match)
+            sender_ref = p.readRef()  # who must have sent it (context to match)
             extra = p.readUint8()
-            value = p.readRHS() # comparison Value
+            value = p.readRHS()  # comparison Value
 
             line = BUILD_LINE(
                 prefix,
@@ -206,17 +266,16 @@ def render_line(instructions, op_names, i, prefix):
     elif op_name == "send message::op-code":
         p = OpParser(instr["payload"])
 
-        message_ref = p.readRef() # which message to send
-        recipient_ref = p.readRef() # who to send it to
-        extra = p.readUint8() # unknown
-        value = p.readRHS() # the message's argument Value
+        message_ref = p.readRef()  # which message to send
+        recipient_ref = p.readRef()  # who to send it to
+        extra = p.readUint8()  # unknown
+        value = p.readRHS()  # the message's argument Value
 
         line = BUILD_LINE(
             prefix,
             "SEND MESSAGE",
             f"{CRef(message_ref)} to {CRef(recipient_ref)}, extra {CNum(extra)} that has value {CRHS(value)}",
         )
-
 
     elif op_name == "create variable::op-code":
         p = OpParser(instr["payload"])
@@ -228,7 +287,30 @@ def render_line(instructions, op_names, i, prefix):
             f"{CRef(ref)}",
         )
 
-    #elif op_name == "use camera::op-code":
+    elif op_name == "check fov::op-code":
+        """
+        Is there an actor from target_ref within arc_width°
+        of angle_base, whose distance to me satisfies
+        "distance range_relop range°",
+        and if mode == consider_obstructions,
+        i have a clear line of sight to them?
+        """
+        p = OpParser(instr["payload"])
+
+        angle_base = p.readRHS()
+        arc_width = p.readRHS()
+        target_ref = p.readRef()
+        range_relop = RelOp(p.readUint8())  # how angle compares to range
+        range = p.readRHS()
+        mode = CheckFOVMode(p.readUint8())
+
+        line = BUILD_LINE(
+            prefix,
+            "CHECK FOV",
+            f"{CRef(target_ref)} is within a {CRHS(arc_width)}° cone centered on heading {CRHS(angle_base)}, distance {CRelOp(range_relop)} {CRHS(range)}, {CEnum(mode)}",
+        )
+
+    # elif op_name == "use camera::op-code":
     #    p = OpParser(instr["payload"])
 
     #    camera_ref = p.readRef()
@@ -261,13 +343,13 @@ def render_line(instructions, op_names, i, prefix):
 
     elif op_name == "find variable::op-code":
         p = OpParser(instr["payload"])
-        type_ref = p.readRef()
+        var_ref = p.readRef()
         owner_ref = p.readRef()
 
         line = BUILD_LINE(
             prefix,
             "FIND VARIABLE",
-            f"with type {CRef(type_ref)} and owner {CRef(owner_ref)}",
+            f"{CRef(var_ref)} in {CRef(owner_ref)}",
         )
 
     elif op_name == "set behavior::op-code":
@@ -292,8 +374,7 @@ def render_line(instructions, op_names, i, prefix):
         )
 
     elif op_name == "spawn actor::op-code":
-        # TODO
-        # THIS IS A STUB AND MAY NEEDS REVISION!
+        # TODO: THIS IS A STUB AND MAY NEEDS REVISION!
 
         p = OpParser(instr["payload"])
         actor_ref = p.readRef()  # actor / prototype to spawn
@@ -339,6 +420,36 @@ def render_line(instructions, op_names, i, prefix):
             prefix,
             "STOP SOUND",
             f"{CRef(ref)}",
+        )
+
+    elif op_name == "cut-scene::op-code":
+        p = OpParser(instr["payload"])
+
+        cmd = p.readUint8()
+
+        cmd_str = "UNK"
+        if cmd == 3:
+            cmd_str = "pause"
+        elif cmd == 2:
+            cmd_str = "resume"
+        elif cmd == 1 or cmd == 0:
+            cmd_str = "begin"
+
+        line = BUILD_LINE(
+            prefix,
+            "CUT-SCENE",
+            f"COMMAND: {CNum(cmd)} ({cmd_str}!?)",
+        )
+
+    elif op_name == "loop value::op-code":
+        p = OpParser(instr["payload"])
+
+        numLoops = p.readRHS()
+
+        line = BUILD_LINE(
+            prefix,
+            "LOOP VALUE",
+            f"{CRHS(numLoops)}",
         )
 
     elif op_name == "play animation::op-code":
@@ -391,18 +502,20 @@ def render_line(instructions, op_names, i, prefix):
         p = OpParser(instr["payload"])
 
         target = p.readRHS()
-        extra = p.readBytes(1)
+        animationIdx = p.readUint8()
 
         line = BUILD_LINE(
             prefix,
             "TURN TO",
-            f"{CRHS(target)} , extra: {extra}",
+            f"{CRHS(target)} with animation {animationIdx}",
         )
 
     elif op_name == "run as player::op-code":
         p = OpParser(instr["payload"])
 
-        actor_ref = p.readRef() #  reference to the actor that becomes player-controlled
+        actor_ref = (
+            p.readRef()
+        )  #  reference to the actor that becomes player-controlled
 
         line = BUILD_LINE(
             prefix,
@@ -410,19 +523,56 @@ def render_line(instructions, op_names, i, prefix):
             f"{CRef(actor_ref)}",
         )
 
+    elif op_name == "reset::op-code":
+        p = OpParser(instr["payload"])
+
+        ref = p.readRef()  #  reference to object to reset
+
+        line = BUILD_LINE(
+            prefix,
+            "RESET",
+            f"{CRef(ref)}",
+        )
+
+    elif op_name == "check membership::op-code":
+        p = OpParser(instr["payload"])
+
+        ref = p.readRef()
+        membershipTest = MembershipTest(p.readUint8())
+        ref2 = p.readRef()
+
+        line = BUILD_LINE(
+            prefix,
+            "CHECK MEMBERSHIP",
+            f"{CRef(ref2)} {membershipTest.symbol()} {CRef(ref)}",
+        )
+
+    elif op_name == "change membership::op-code":
+        p = OpParser(instr["payload"])
+
+        ref = p.readRef()
+        membershipCombiner = MembershipCombiner(p.readUint8())
+        ref2 = p.readRef()
+
+        line = BUILD_LINE(
+            prefix,
+            "CHANGE MEMBERSHIP",
+            f"{CRef(ref)}.{membershipCombiner.symbol()}({CRef(ref2)})",
+        )
+
     elif op_name == "move to::op-code":
         p = OpParser(instr["payload"])
 
-        ref = p.readRef() #  reference: object/node-point to move
-        node_point = p.readUint8() # always present (one byte read either way, via different readers depending on ref's resolved type)
+        destination = p.readRef()
+        node_point = p.readUint8()  # always present (one byte read either way, via different readers depending on ref's resolved type)
         extra = p.readBytes(1)
-        value = p.readRHS() #  movement target/speed
+        value = p.readRHS()  #  movement target/speed
 
         line = BUILD_LINE(
             prefix,
             "MOVE TO",
-            f"{CRef(ref)}, node point: {CNum(node_point)}, extra: {extra}, value: {CRHS(value)}",
-        )
+            f"{CRef(destination)}, node point: {CNum(node_point)}, extra: {extra}, value: {CRHS(value)}",
+        ) 
 
     elif op_name == "move from::op-code":
         p = OpParser(instr["payload"])
@@ -436,7 +586,6 @@ def render_line(instructions, op_names, i, prefix):
             "MOVE FROM",
             f"{CRef(ref)}, extra: {extra}, value: {CRHS(value)}",
         )
-
 
     elif op_name == "for each::op-code":
         p = OpParser(instr["payload"])
@@ -452,14 +601,17 @@ def render_line(instructions, op_names, i, prefix):
 
     elif op_name == "control::op-code":
         p = OpParser(instr["payload"])
-        
+
         ref = p.readRef()
 
-        note = ", There were extra (leftover) bytes when reading this op!" if p.remaining() > 0 else ""
+        # TODO: figure out wtf this extra byte is for that is sometimes present in the payload (e.g. 0x00 in 967_ME_Sound_Ambient.ai, 0x01 in 702_ME_Hint.ai, 0x02 in 1069_RW_Haybale_Shed.ai, 0x03 in 556_RW_Balloon.ai)
+
+        note = f", extra: {p.readRemaining().hex()}" if p.remaining() > 0 else ""
+
         line = BUILD_LINE(
             prefix,
             "CONTROL",
-            f"{CRef(ref)} {note}",  # example: var == rhs
+            f"{CRef(ref)}{note}",  # example: var == rhs
         )
 
     elif op_name == "slide value::op-code":
@@ -487,7 +639,12 @@ def render_line(instructions, op_names, i, prefix):
         )
 
     else:
-        UNIMPLEMENTED_OPCODES.add(op_name)
+        if ("[BEHAVIOR: " not in op_name) and op_name not in (
+            "\n\n[PRESCRIPT]",
+            "\n\n[STARTUP]",
+            "\n\n[SHUTDOWN]",
+        ):
+            UNIMPLEMENTED_OPCODES.add(op_name)
         line = (
             f"{prefix}{op_name:<26} "
             f"A: {a:<3} "
@@ -503,7 +660,7 @@ def render_line(instructions, op_names, i, prefix):
 # 556_RW_Balloon.ai
 # 967_ME_Sound_Ambient.ai
 # 702_ME_Hint.ai
-#1069_RW_Haybale_Shed.ai
+# 1069_RW_Haybale_Shed.ai
 def parse_tfbscirpt_file(filename):
     global TABLE1, TABLE2, TABLE3
 
@@ -518,6 +675,11 @@ def parse_tfbscirpt_file(filename):
         table1 = readStringTable(buf)  # opcode names
         table2 = readStringTable(buf)
         table3 = readStringTable(buf)
+
+        behaviours = []
+        for i in table3:
+            if i["string"].split("::")[1] == "behavior":
+                behaviours.append(i["string"])
 
         TABLE1, TABLE2, TABLE3 = table1, table2, table3
 
@@ -534,15 +696,15 @@ def parse_tfbscirpt_file(filename):
 
         print(f"Script Name: {scriptName}")
         print(f"Unknown Count: {unk_count}")
-        print(f"OP     -    T1 (Opcodes): {len(table1)} entries")
+        print(f"Opcodes: {len(table1)} entries")
         for i, entry in enumerate(table1):
             print(f"  {i}: {entry['string']} (metadata: {entry['metadata']})")
         print()
-        print(f"GLOBAL - T2 (Global Variables): {len(table2)} entries")
+        print(f"GLOBAL References: {len(table2)} entries")
         for i, entry in enumerate(table2):
             print(f"  {i}: {entry['string']} (metadata: {entry['metadata']})")
         print()
-        print(f"LOCAL  -  T3 (Local Variables): {len(table3)} entries")
+        print(f"LOCAL  References: {len(table3)} entries")
         for i, entry in enumerate(table3):
             print(f"  {i}: {entry['string']} (metadata: {entry['metadata']})")
 
@@ -601,13 +763,21 @@ def parse_tfbscirpt_file(filename):
         # 2nd=STARTUP, 3rd=SHUTDOWN, 4th=main body, 5th+=further sections.
         # Resolved up front (rather than mutated inline during printing) so that
         # if/else's condition-child can be looked up and rendered out of order.
-        SECTION_NAMES = {0: "PRESCRIPT", 1: "STARTUP", 2: "SHUTDOWN", 3: "MAIN"}
+        SECTION_NAMES = {0: "PRESCRIPT", 1: "STARTUP", 2: "SHUTDOWN"}
+        for i, b in enumerate(behaviours):
+            print(f"BEHAVIOR {i}: {b}")
+            SECTION_NAMES[3 + i] = (
+                "BEHAVIOR: " + b
+            )  # main body is section 3, then each behavior gets its own section
         op_names = []
         section_index = 0
         for instr in instructions:
             if instr["opcode"] == 0xFF:
                 op_names.append(
-                    "[%s]" % SECTION_NAMES.get(section_index, "SECTION %d" % section_index)
+                    "\n\n[%s]"
+                    % SECTION_NAMES.get(
+                        section_index, "UNKNOWN SECTION %d" % section_index
+                    )
                 )
                 section_index += 1
             else:
@@ -630,20 +800,45 @@ def parse_tfbscirpt_file(filename):
             indent = depth[i]
             if i in else_start:
                 # else-branch sibling of the enclosing branch node (one level out)
-                print("   " * (indent - 1) + "ELSE:")
+                # print("   " * (indent - 1) + "ELSE:")
+                pass
 
             prefix = "   " * indent
             line = render_line(instructions, op_names, i, prefix)
             print(line)
 
             if instr["d"] > 0:
-                print(f"Unhandle instruction prop D: {instr['d']} in opcode {op_names[i]}")
+                print(
+                    f"Unhandle instruction prop D: {instr['d']} in opcode {op_names[i]}"
+                )
 
 
-for filename in glob.glob("Levels/KingOfNY/*.ai")[:5]:
-    print(filename)
-    parse_tfbscirpt_file(filename)
+# 1046_Alex_RunAsPlayer.ai
+# 556_RW_Balloon.ai
+# 567_RW_Balloon_Spawner.ai
+# 543_ME_Ring_Detector.ai
+if __name__ == "__main__":
+    # parse_tfbscirpt_file("Levels/KingOfNY-unchanged/815_RW_CutsceneBoy1.ai")
+    for filename in glob.glob("Levels/mutiny/*.ai"):
+        print(f"\n\nParsing {filename}...")
+        parse_tfbscirpt_file(filename)
 
-print("----- UNIMPLEMENTED OPCODES -----")
-for op in sorted(UNIMPLEMENTED_OPCODES):
-    print(op)
+filtered_unimplemented_opcodes = {
+    op for op in UNIMPLEMENTED_OPCODES if "::op-code" in op
+}
+if filtered_unimplemented_opcodes:
+    print()
+    print("----- UNIMPLEMENTED OPCODES -----")
+    for op in sorted(UNIMPLEMENTED_OPCODES):
+        print(op)
+
+
+"""
+Still unimplemented opcodes:
+
+- cut-scene::op-code - (u8 payload)
+- find subset::op-code - 10 byte payload
+- loop value::op-code
+- use camera::op-code
+
+"""

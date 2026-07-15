@@ -274,3 +274,9 @@ class RW_MaterialEffectsPlugin(RW_Section):
         )
         f.write(rw_header.pack())
         f.write(buf.getvalue())
+
+    def __repr__(self):
+        if self.variant == RW_MaterialEffectsPlugin_Variant.AtomicExtension:
+            return f"RW_MaterialEffectsPlugin(header={repr(self.header)},variant={repr(self.variant)}, matFXEnabled={repr(self.matFXEnabled)})"
+        else:
+            return f"RW_MaterialEffectsPlugin(header={repr(self.header)},variant={repr(self.variant)}, effectType={repr(self.effectType)},effects={repr(self.effects)})"

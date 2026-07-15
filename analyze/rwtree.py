@@ -21,6 +21,9 @@ CONTAINER_CHUNKS = {
     RWSectionType.rwID_ATOMIC.value,
     RWSectionType.rwID_TEXTURE.value,
     RWSectionType.rwID_LIGHT.value,
+    RWSectionType.rwID_WORLD.value,
+    RWSectionType.rwID_ATOMICSECT.value,
+    RWSectionType.rwID_PLANESECT.value,
 
     #RW AUDIO
     RWSectionType.rwaID_WAVEDICT.value,

@@ -83,6 +83,11 @@ class Parser:
 
     def readUint32(self):
         return self._read(self.endian + "I")
+    
+    def peekUint32(self):
+        if self.offset + 4 > len(self.data):
+            raise EOFError("Attempt to read past end of buffer")
+        return struct.unpack_from(self.endian + "I", self.data, self.offset)[0]
 
     def readInt32(self):
         return self._read(self.endian + "i")
@@ -163,6 +168,13 @@ class Parser:
             "id": self.readUint32(),
             "size": self.readUint32(),
             "version": self.readUint32(),
+        }
+    
+    def peekRWChunkHeader(self):
+        return {
+            "id": self.peekUint32(),
+            "size": self.peekUint32(),
+            "version": self.peekUint32(),
         }
         
     def readColor32(self) -> Dict[str, int]:

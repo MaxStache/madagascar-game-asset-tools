@@ -1,6 +1,7 @@
 """Tkinter GUI that renders a RenderWare file as a browsable chunk tree."""
 
 import importlib
+import inspect
 import sys
 import time
 import tkinter as tk
@@ -273,9 +274,24 @@ def run(file_path):
                 return result
 
         sec_parser = Parser(header.pack() + leaf_bytes[iid], endian="little")
+
+        # Some sections declare extra read() parameters beyond (parser, parent)
+        # — e.g. ATOMICSECT needs the enclosing WORLD's worldFlags. Resolve each
+        # one by looking up an attribute of the same name on the parsed parent,
+        # which stores/exposes the value (see RW_World.worldFlags).
+        extra_kwargs = {}
+        read_params = list(inspect.signature(section.read).parameters.values())
+        for param in read_params[1:]:  # [0] is the parser itself
+            if param.name == "parent":
+                continue
+            value = getattr(parent_section, param.name, None)
+            if value is not None:
+                extra_kwargs[param.name] = value
+
         parsed = section.read(
             sec_parser,
             parent=parent_section,
+            **extra_kwargs,
         )
 
         root.title("RW Tree")

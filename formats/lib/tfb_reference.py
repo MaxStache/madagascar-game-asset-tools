@@ -37,13 +37,13 @@ NULL_REF     = 0xFFFFFFFF
 # resolved relative to where the reference appears (same mechanism as `self`).
 BUILTINS = {
     0x3FFFF: "self",            # FUN_00433140(2)    -- confirmed: nearest enclosing actor scope
-    0x3FFFE: "builtin(0)",      # FUN_00433140(0)     -- provisional
+    0x3FFFE: "~controlled_actor",      # FUN_00433140(0)     -- provisional builtin(0)
     0x3FFFD: "~each",           # FUN_00433140(0x65)  -- confirmed: nearest enclosing `for each`'s
                                  #   current item (for_each's own category getter, FUN_0043cc70,
                                  #   returns 0x65; seen in the wild assigned out of a for-each body)
-    0x3FFFC: "builtin(3)",      # FUN_00433140(3)     -- provisional
-    0x3FFFB: "~found",          # FUN_00436e30()      -- provisional
-    0x3FFFA: "builtin(6)",      # FUN_00433140(6)     -- provisional
+    0x3FFFC: "~found_subset",      # FUN_00433140(3)     -- provisional builtin(3)
+    0x3FFFB: "~found",          # FUN_00436e30()      -- provisional 
+    0x3FFFA: "~found_variable",      # FUN_00433140(6)     -- provisional builtin(6)
 }
 
 # A string table is a list of entries; each entry is either a plain str or a

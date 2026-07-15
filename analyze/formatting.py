@@ -1,6 +1,32 @@
 """Hex dumping and pretty-printing of parsed section objects."""
 
+import re
+
 from analyze.theme import COLORS
+
+# Maps every non-printable byte to ".", printable bytes to themselves, so a
+# whole buffer can be converted to its ASCII column with one C-level translate.
+_ASCII_TABLE = bytes(i if 32 <= i < 127 else 0x2E for i in range(256))
+
+# Characters that drive the format_repr state machine; everything between two
+# matches is plain text that can be copied in bulk.
+_SPECIAL = re.compile(r"""[()\[\],'"]""")
+
+
+def _find_closing_quote(text: str, quote: str, start: int) -> int:
+    """Index of the closing quote at/after `start`, or len(text) if none.
+
+    Matches the original scanner's escape rule: a quote is skipped only when
+    the single preceding character is a backslash.
+    """
+    j = start
+    while True:
+        j = text.find(quote, j)
+        if j == -1:
+            return len(text)
+        if text[j - 1] != "\\":
+            return j
+        j += 1
 
 
 def hexdump(widget, data, width=8, parse_end=0x0):
@@ -30,15 +56,20 @@ def hexdump(widget, data, width=8, parse_end=0x0):
         prefix = (
             "\n"
             f"Data too long to display ({len(data)} bytes).\n"
+            f"Parser info: read {parse_end} / {len(data)} bytes -> {'Everything consumed' if parse_end == len(data) else f'{len(data) - parse_end} bytes left'}\n"
             "Showing first 15,000 bytes:\n"
             "\n"
         )
         data = data[:15_000]
         read_tagging_offset = 4
 
-    # Build the whole dump as one string and accumulate tag ranges, then issue
-    # a single insert and one tag_add per tag. Inserting line-by-line with a
-    # handful of tag_add calls each was thousands of Tcl round-trips per click.
+    data = bytes(data)
+
+    # Hex and ASCII columns for the entire buffer in two C-level passes;
+    # per-line work below is just slicing.
+    full_hex = data.hex(" ").upper()
+    full_ascii = data.translate(_ASCII_TABLE).decode("ascii")
+
     text_parts = []
     ranges = {
         "hex_offset": [],
@@ -48,45 +79,77 @@ def hexdump(widget, data, width=8, parse_end=0x0):
         "hex_ascii_read": [],
     }
 
-    for off in range(0, len(data), width):
-        line = off // width + 1 + read_tagging_offset
+    n = len(data)
+    pad = width * 3 - 1
+    single_block = blocks_per_chunk <= 1
 
-        chunk = data[off : off + width]
+    offset_idx = ranges["hex_offset"]
+    not_read_idx = ranges["hex_not_read"]
+    read_idx = ranges["hex_read"]
+    ascii_idx = ranges["hex_ascii"]
+    ascii_read_idx = ranges["hex_ascii_read"]
 
-        chunk_blocks = [
-            " ".join(f"{b:02X}" for b in chunk[i * 8 : (i + 1) * 8])
-            for i in range(blocks_per_chunk)
-        ]
+    full_read_sfx = f".{byte_col(width - 1) + 2}"
 
-        hex_part = "  ".join(chunk_blocks)
-        hex_part = hex_part.ljust(width * 3 - 1)
+    # Column positions depend on the hex-field width: with more than one
+    # block per line it exceeds width*3-1 and ljust is a no-op. The width is
+    # the same for every line except possibly the last, so the "." suffixes
+    # of the tag indices are cached and rebuilt only when it changes.
+    cached_hlen = -1
+    not_read_sfx = ascii_start_sfx = ascii_end_sfx = ""
+    ascii_start = 0
 
-        ascii_part = "".join(chr(b) if 32 <= b < 127 else "." for b in chunk)
+    for off in range(0, n, width):
+        p = str(off // width + 1 + read_tagging_offset)
 
-        line_text = f"{off:08X}  {hex_part}  {ascii_part}\n"
-        text_parts.append(line_text)
+        chunk_len = min(width, n - off)
 
-        ranges["hex_offset"] += [f"{line}.0", f"{line}.8"]
+        if single_block:
+            hex_part = full_hex[off * 3 : (off + chunk_len) * 3 - 1]
+            if chunk_len < width:
+                hex_part = hex_part.ljust(pad)
+            hlen = pad
+        else:
+            chunk_blocks = []
+            for i in range(blocks_per_chunk):
+                start = off + i * block_size
+                end = min(start + block_size, off + chunk_len)
+                if start >= end:
+                    break
+                chunk_blocks.append(full_hex[start * 3 : end * 3 - 1])
 
-        end_written = len(line_text) - len(ascii_part)
-        ranges["hex_not_read"] += [f"{line}.10", f"{line}.{end_written + 10}"]
+            hex_part = "  ".join(chunk_blocks).ljust(pad)
+            hlen = len(hex_part)
 
-        read_in_line = max(0, min(parse_end - off, len(chunk)))
+        if hlen != cached_hlen:
+            cached_hlen = hlen
+            ascii_start = hlen + 12
+            not_read_sfx = f".{hlen + 23}"
+            ascii_start_sfx = f".{ascii_start}"
+            ascii_end_sfx = f".{ascii_start + width}"
+
+        text_parts.append(
+            f"{off:08X}  {hex_part}  {full_ascii[off : off + chunk_len]}\n"
+        )
+
+        offset_idx += (p + ".0", p + ".8")
+        not_read_idx += (p + ".10", p + not_read_sfx)
+        ascii_idx += (p + ascii_start_sfx, p + ascii_end_sfx)
+
+        read_in_line = parse_end - off
         if read_in_line > 0:
-            read_end_col = byte_col(read_in_line - 1) + 2
-            ranges["hex_read"] += [f"{line}.10", f"{line}.{read_end_col}"]
+            if read_in_line > chunk_len:
+                read_in_line = chunk_len
 
-        ascii_part_start = 8 + len("  ") + len(hex_part) + len("  ")
-        ranges["hex_ascii"] += [
-            f"{line}.{ascii_part_start}",
-            f"{line}.{ascii_part_start + width}",
-        ]
-
-        if read_in_line > 0:
-            ranges["hex_ascii_read"] += [
-                f"{line}.{ascii_part_start}",
-                f"{line}.{ascii_part_start + read_in_line}",
-            ]
+            if read_in_line == width:
+                read_idx += (p + ".10", p + full_read_sfx)
+                ascii_read_idx += (p + ascii_start_sfx, p + ascii_end_sfx)
+            else:
+                read_idx += (p + ".10", f"{p}.{byte_col(read_in_line - 1) + 2}")
+                ascii_read_idx += (
+                    p + ascii_start_sfx,
+                    f"{p}.{ascii_start + read_in_line}",
+                )
 
     widget.insert("1.0", prefix + "".join(text_parts))
 
@@ -97,33 +160,59 @@ def hexdump(widget, data, width=8, parse_end=0x0):
     widget.tag_raise("hex_read")
     widget.tag_raise("hex_ascii_read")
 
-def truncate_repr_strings(text: str, max_str_len: int = 150) -> str:
+
+def truncate_repr_strings(
+    text: str, max_str_len: int = 150, max_total_len: int | None = None
+) -> str:
+    """Replace over-long quoted strings with a placeholder.
+
+    If `max_total_len` is given, processing stops once the output exceeds it —
+    callers that only display a prefix (see pretty_object) then don't pay for
+    scanning the full input. The returned prefix up to `max_total_len` is
+    identical to the untruncated result.
+    """
     result = []
+    total = 0
     i = 0
+    n = len(text)
 
-    while i < len(text):
-        if text[i] in "\"'":
-            quote = text[i]
-            j = i + 1
+    while i < n:
+        if max_total_len is not None and total > max_total_len:
+            break
 
-            while j < len(text):
-                if text[j] == quote and text[j - 1] != "\\":
-                    break
-                j += 1
+        # Jump straight to the next quote; everything before it passes through.
+        dq = text.find('"', i)
+        sq = text.find("'", i)
 
-            inner = text[i + 1:j]
+        if dq == -1 and sq == -1:
+            result.append(text[i:])
+            break
 
-            if len(inner) > max_str_len:
-                result.append(quote + "TOO LONG TO DISPLAY" + quote)
-            else:
-                result.append(text[i:j + 1])
-
-            i = j + 1
+        if dq == -1:
+            q = sq
+        elif sq == -1:
+            q = dq
         else:
-            result.append(text[i])
-            i += 1
+            q = min(dq, sq)
+
+        if q > i:
+            result.append(text[i:q])
+            total += q - i
+
+        quote = text[q]
+        j = _find_closing_quote(text, quote, q + 1)
+
+        if j - q - 1 > max_str_len:
+            result.append(quote + "TOO LONG TO DISPLAY" + quote)
+            total += 21
+        else:
+            result.append(text[q : j + 1])
+            total += j + 1 - q
+
+        i = j + 1
 
     return "".join(result)
+
 
 def format_repr(
     text: str,
@@ -143,23 +232,25 @@ def format_repr(
     list_stack = []
 
     i = 0
+    n = len(text)
 
-    while i < len(text):
-        char = text[i]
-
+    while i < n:
         # ------------------------------------------------------------
         # Skip the remainder of a truncated list
         # ------------------------------------------------------------
         if list_stack and list_stack[-1]["skipping"]:
             state = list_stack[-1]
 
+            # Plain characters are discarded here, so jump between the
+            # structural characters directly.
+            m = _SPECIAL.search(text, i)
+            if m is None:
+                break
+            i = m.start()
+            char = text[i]
+
             if char in "\"'":
-                quote = char
-                i += 1
-                while i < len(text):
-                    if text[i] == quote and text[i - 1] != "\\":
-                        break
-                    i += 1
+                i = _find_closing_quote(text, char, i + 1)
 
             elif char in "([":
                 stack.append(char)
@@ -198,6 +289,17 @@ def format_repr(
         # ------------------------------------------------------------
         # Normal parsing
         # ------------------------------------------------------------
+        m = _SPECIAL.search(text, i)
+        if m is None:
+            current += text[i:]
+            break
+
+        if m.start() > i:
+            current += text[i : m.start()]
+            i = m.start()
+
+        char = text[i]
+
         if char in "([":
             stack.append(char)
 
@@ -212,7 +314,7 @@ def format_repr(
                 )
 
             # Empty brackets stay inline
-            if i + 1 < len(text) and text[i + 1] in ")]":
+            if i + 1 < n and text[i + 1] in ")]":
                 current += char + text[i + 1]
 
                 stack.pop()
@@ -262,14 +364,9 @@ def format_repr(
             lines.append(" " * (indent * indent_size) + current.strip())
             current = ""
 
-        elif char in "\"'":
+        else:  # quote
             quote = char
-            j = i + 1
-
-            while j < len(text):
-                if text[j] == quote and text[j - 1] != "\\":
-                    break
-                j += 1
+            j = _find_closing_quote(text, quote, i + 1)
 
             inner = text[i + 1 : j]
 
@@ -280,9 +377,6 @@ def format_repr(
 
             i = j
 
-        else:
-            current += char
-
         i += 1
 
     if current.strip():
@@ -290,8 +384,10 @@ def format_repr(
 
     return "\n".join(lines)
 
+
 def pretty_object(obj):
-    representation = truncate_repr_strings(repr(obj))
+    # Only the first 200k chars are ever displayed, so stop scanning there.
+    representation = truncate_repr_strings(repr(obj), max_total_len=200_000)
 
     if len(representation) > 200_000:
         return (

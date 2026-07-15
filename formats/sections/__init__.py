@@ -15,12 +15,15 @@ from formats.sections.RIGHTTORENDER_001F import RW_RightToRender
 from formats.sections.USERDATAPLUGIN_011F import RW_UserDataPlugin
 from formats.sections.HANIMPLUGIN_011E import RW_HAnimPlugin
 from formats.sections.ATOMIC_0014 import RW_Atomic
+from formats.sections.ATOMICSECT_0009 import RW_AtomicSector
+from formats.sections.PLANESECT_000A import RW_PlaneSector
 from formats.sections.CLUMP_0010 import RW_Clump
 from formats.sections.FRAMELIST_000E import RW_FrameList
 from formats.sections.GEOMETRYLIST_001A import RW_GeometryList
 from formats.sections.GEOMETRY_000F import RW_Geometry
 from formats.sections.MATLIST_0008 import RW_MaterialList
 from formats.sections.CAMERA_0005 import RW_Camera
+from formats.sections.WORLD_000B import RW_World
 from formats.sections.SKINPLUGIN_0116 import RW_SkinPlugin
 from formats.sections.TEXDICTIONARY_0016 import RW_TextureDictionary
 from formats.sections.TEXTURENATIVE_0015 import RW_TextureNative
@@ -55,9 +58,9 @@ SECTION_REGISTRY: dict[int, RW_Section] = {
     RWSectionType.rwID_TEXTURE.value              : RW_Texture,
     RWSectionType.rwID_MATERIAL.value             : RW_Material,
     RWSectionType.rwID_MATLIST.value              : RW_MaterialList,
-    RWSectionType.rwID_ATOMICSECT.value           : RW_Section_NotImplemented,
-    RWSectionType.rwID_PLANESECT.value            : RW_Section_NotImplemented,
-    RWSectionType.rwID_WORLD.value                : RW_Section_NotImplemented,
+    RWSectionType.rwID_ATOMICSECT.value           : RW_AtomicSector,
+    RWSectionType.rwID_PLANESECT.value            : RW_PlaneSector,
+    RWSectionType.rwID_WORLD.value                : RW_World,
     RWSectionType.rwID_SPLINE.value               : RW_Section_NotImplemented,
     RWSectionType.rwID_MATRIX.value               : RW_Section_NotImplemented,
     RWSectionType.rwID_FRAMELIST.value            : RW_FrameList,
@@ -244,9 +247,12 @@ __all__ = [
     "RW_Geometry",
     "RW_MaterialList",
     "RW_Atomic",
+    "RW_AtomicSector",
+    "RW_PlaneSector",
     "RW_Camera",
     "RW_Clump",
     "RW_FrameList",
+    "RW_World",
     "RW_SkinPlugin",
     "RW_AnimAnimation",
     "RW_TextureNative",

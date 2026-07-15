@@ -133,6 +133,15 @@ class RWHeader:
             size=read_header["size"],
             library_id_stamp=read_header["version"],
         )
+    
+    @staticmethod
+    def peek(parser: Parser) -> "RWHeader":
+        read_header = parser.peekRWChunkHeader()
+        return RWHeader(
+            type=read_header["id"],
+            size=read_header["size"],
+            library_id_stamp=read_header["version"],
+        )
 
     @property
     def version(self) -> str:
@@ -385,6 +394,56 @@ class RW_Section_NotImplemented(RW_Section):
             "\033[0m",
         )
 
+dataclass
+class RW_StringFunc:
+    @staticmethod
+    def read(parser: Parser, parent=None) -> "RW_Section":
+        raise NotImplementedError("[read] This string func type is not implemented yet.")
+
+    @staticmethod
+    def write(this, f, stamp):
+        raise NotImplementedError("[write] This string func type is not implemented yet.")
+
+
+@dataclass
+class RW_StringFunc_NotImplemented(RW_Section):
+    header: RWHeader = field(default_factory=RWHeader)
+
+    raw_data: bytes = b""  # header.payload_size
+
+    @staticmethod
+    def read(parser: Parser) -> "RW_StringFunc_NotImplemented":
+        sni = RW_StringFunc_NotImplemented(RWHeader.read(parser))
+
+        sni.raw_data = parser.readBytes(sni.header.size)
+
+        return sni
+
+    def write(this, f, stamp):
+        rw_header = RWHeader(
+            type=this.header.type,
+            size=len(this.raw_data),
+            library_id_stamp=stamp,
+        )
+        f.write(rw_header.pack())
+        f.write(this.raw_data)
+
+
+    def __init__(self, header):
+        self.header = header
+
+        try:
+            secname = RWSectionType(self.header.type).name
+        except ValueError:
+            secname = "Unknown"
+
+        print(
+            "\033[93m"
+            "======================= Warning =======================\n"
+            "StrFunc parser not implemented. (or mapped)\n"
+            f" Type : {self.header.type:#06x} ({secname})\n"
+            "\033[0m",
+        )
 
 @dataclass
 class RW_Frame:

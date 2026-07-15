@@ -1,0 +1,114 @@
+Script Name: TFB Script
+Unknown Count: 302
+Opcodes: 14 entries
+  0: set value::op-code (metadata: 0)
+  1: create variable::op-code (metadata: 0)
+  2: displace::op-code (metadata: 0)
+  3: check reference::op-code (metadata: 0)
+  4: control::op-code (metadata: 0)
+  5: set reference::op-code (metadata: 0)
+  6: teleport to::op-code (metadata: 0)
+  7: play animation::op-code (metadata: 0)
+  8: move to::op-code (metadata: 0)
+  9: find subset::op-code (metadata: 0)
+  10: check value::op-code (metadata: 0)
+  11: set behavior::op-code (metadata: 0)
+  12: turn to::op-code (metadata: 0)
+  13: move from::op-code (metadata: 0)
+
+GLOBAL References: 7 entries
+  0: CS_Melman_Cart1::actor (metadata: 0)
+  1: CS_Melman_Cart1_Jan::actor (metadata: 0)
+  2: CS_Melman_Cart2::actor (metadata: 0)
+  3: CS_Melman_Cart2_Jan::actor (metadata: 0)
+  4: CS_OpeningCart::actor (metadata: 0)
+  5: CS_OpeningCart_Jan::actor (metadata: 0)
+  6: Script Time::value (metadata: 0)
+
+LOCAL  References: 9 entries
+  0: Walk::behavior (metadata: 0)
+  1: Move Janitor 1::behavior (metadata: 0)
+  2: Move Janitor 2::behavior (metadata: 0)
+  3: Stop::behavior (metadata: 0)
+  4: WhichWaypoint?::user::value (metadata: 0)
+  5: My Janitor::user::actor (metadata: 0)
+  6: Janitor's Local Angle::user::value (metadata: 0)
+  7: Timer::user::value (metadata: 0)
+  8: my::actor (metadata: 0)
+BEHAVIOR 0: Walk::behavior
+BEHAVIOR 1: Move Janitor 1::behavior
+BEHAVIOR 2: Move Janitor 2::behavior
+BEHAVIOR 3: Stop::behavior
+----- INSTRUCTIONS -----
+
+
+[PRESCRIPT]              A: 9   B: 208 C: 0   D: 0   Payload: 
+   
+
+[STARTUP]                A: 9   B: 192 C: 0   D: 0   Payload: 
+      [38;2;97;175;239mSET VALUE[0m [38;2;224;108;117mself.field[0x30][0m to [38;2;209;154;102m1[0m
+      [38;2;97;175;239mCREATE VARIABLE[0m [38;2;224;108;117mWhichWaypoint?::user::value[0m
+      [38;2;97;175;239mCREATE VARIABLE[0m [38;2;224;108;117mMy Janitor::user::actor[0m
+      [38;2;97;175;239mCREATE VARIABLE[0m [38;2;224;108;117mJanitor's Local Angle::user::value[0m
+      [38;2;97;175;239mCREATE VARIABLE[0m [38;2;224;108;117mTimer::user::value[0m
+      [38;2;97;175;239mDISPLACE[0m [38;2;224;108;117mself.field[0x09].sub[0x02]@2[0m [38;2;198;120;221mrelative[0m by length: [38;2;209;154;102m180[0m, heading: [38;2;209;154;102m0[0m, pitch: [38;2;209;154;102m1.25[0m
+      [38;2;97;175;239mCHECK REFERENCE[0m [38;2;224;108;117mself[0m is reference to [38;2;224;108;117mCS_Melman_Cart1::actor[0m
+         [38;2;97;175;239mCONTROL[0m [38;2;224;108;117mCS_Melman_Cart1_Jan::actor[0m, extra: 00
+            [38;2;97;175;239mSET REFERENCE[0m [38;2;224;108;117mMy Janitor::user::actor[0m to [38;2;224;108;117mself[0m
+            [38;2;97;175;239mTELEPORT TO[0m [38;2;224;108;117m~controlled_actor.field[0x09]@2[0m facing [38;2;198;120;221mforward[0m offset by [38;2;209;154;102m0[0m over [38;2;209;154;102m0[0m seconds
+            [38;2;97;175;239mSET VALUE[0m [38;2;224;108;117mJanitor's Local Angle::user::value[0m to ([38;2;224;108;117mRef: ~controlled_actor.sub[0x01][0m [38;2;86;182;194m-[0m [38;2;209;154;102m85[0m)
+            [38;2;97;175;239mPLAY ANIMATION[0m [38;2;209;154;102m12[0m
+      [38;2;97;175;239mCHECK REFERENCE[0m [38;2;224;108;117mself[0m is reference to [38;2;224;108;117mCS_Melman_Cart2::actor[0m
+         [38;2;97;175;239mCONTROL[0m [38;2;224;108;117mCS_Melman_Cart2_Jan::actor[0m, extra: 00
+            [38;2;97;175;239mSET REFERENCE[0m [38;2;224;108;117mMy Janitor::user::actor[0m to [38;2;224;108;117mself[0m
+            [38;2;97;175;239mSET VALUE[0m [38;2;224;108;117mJanitor's Local Angle::user::value[0m to ([38;2;224;108;117mRef: ~controlled_actor.sub[0x01][0m [38;2;86;182;194m+[0m [38;2;209;154;102m85[0m)
+            [38;2;97;175;239mTELEPORT TO[0m [38;2;224;108;117m~controlled_actor.field[0x09]@2[0m facing [38;2;198;120;221mforward[0m offset by [38;2;209;154;102m0[0m over [38;2;209;154;102m0[0m seconds
+            [38;2;97;175;239mPLAY ANIMATION[0m [38;2;209;154;102m12[0m
+      [38;2;97;175;239mCHECK REFERENCE[0m [38;2;224;108;117mself[0m is reference to [38;2;224;108;117mCS_OpeningCart::actor[0m
+         [38;2;97;175;239mCONTROL[0m [38;2;224;108;117mCS_OpeningCart_Jan::actor[0m, extra: 00
+            [38;2;97;175;239mSET REFERENCE[0m [38;2;224;108;117mMy Janitor::user::actor[0m to [38;2;224;108;117mself[0m
+            [38;2;97;175;239mSET VALUE[0m [38;2;224;108;117mJanitor's Local Angle::user::value[0m to ([38;2;224;108;117mRef: ~controlled_actor.sub[0x01][0m [38;2;86;182;194m+[0m [38;2;209;154;102m85[0m)
+            [38;2;97;175;239mTELEPORT TO[0m [38;2;224;108;117m~controlled_actor.field[0x09]@2[0m facing [38;2;198;120;221mforward[0m offset by [38;2;209;154;102m0[0m over [38;2;209;154;102m0[0m seconds
+            [38;2;97;175;239mPLAY ANIMATION[0m [38;2;209;154;102m12[0m
+   
+
+[SHUTDOWN]               A: 1   B: 0   C: 0   D: 0   Payload: 
+
+
+[BEHAVIOR: Walk::behavior] A: 9   B: 80  C: 0   D: 0   Payload: 
+   [38;2;97;175;239mCONTROL[0m [38;2;224;108;117mMy Janitor::user::actor[0m, extra: 00
+      [38;2;97;175;239mPLAY ANIMATION[0m [38;2;209;154;102m12[0m
+   [38;2;97;175;239mMOVE TO[0m [38;2;224;108;117mself.field[0x02][0m, facing [38;2;198;120;221mforward[0m, extra: b'\x04', value: [38;2;209;154;102m3[0m
+      find subset::op-code       A: 9   B: 48  C: 0   D: 0   Payload: 00c2ffff020000000000
+         [38;2;97;175;239mSET VALUE[0m [38;2;224;108;117mWhichWaypoint?::user::value[0m to ([38;2;224;108;117mRef: ~found_subset.sub[0x01]@1[0m [38;2;86;182;194m+[0m [38;2;209;154;102m1[0m)
+         [38;2;97;175;239mCHECK VALUE[0m [38;2;224;108;117mWhichWaypoint?::user::value[0m [38;2;86;182;194m==[0m ([38;2;224;108;117mRef: self.field[0x02][0m)
+            [38;2;97;175;239mCONTROL[0m [38;2;224;108;117mMy Janitor::user::actor[0m, extra: 00
+               [38;2;97;175;239mTELEPORT TO[0m [38;2;224;108;117mself[0m facing [38;2;198;120;221mforward[0m offset by ([38;2;224;108;117mRef: ~controlled_actor.sub[0x01][0m) over [38;2;209;154;102m0[0m seconds
+               [38;2;97;175;239mPLAY ANIMATION[0m [38;2;209;154;102m1[0m
+            [38;2;97;175;239mSET BEHAVIOR[0m [38;2;224;108;117mMove Janitor 1::behavior[0m
+
+
+[BEHAVIOR: Move Janitor 1::behavior] A: 9   B: 40  C: 0   D: 0   Payload: 
+   [38;2;97;175;239mCONTROL[0m [38;2;224;108;117mMy Janitor::user::actor[0m, extra: 00
+      [38;2;97;175;239mTURN TO[0m ([38;2;224;108;117mRef: Janitor's Local Angle::user::value[0m) with animation 3
+         [38;2;97;175;239mSET BEHAVIOR[0m [38;2;224;108;117mMove Janitor 2::behavior[0m
+         [38;2;97;175;239mSET VALUE[0m [38;2;224;108;117mTimer::user::value[0m to ([38;2;224;108;117mRef: Script Time::value[0m)
+   [38;2;97;175;239mPLAY ANIMATION[0m [38;2;209;154;102m1[0m
+
+
+[BEHAVIOR: Move Janitor 2::behavior] A: 9   B: 40  C: 0   D: 0   Payload: 
+   [38;2;97;175;239mCONTROL[0m [38;2;224;108;117mMy Janitor::user::actor[0m, extra: 00
+      [38;2;97;175;239mMOVE FROM[0m [38;2;224;108;117mself[0m, extra: b'\x04', value: [38;2;209;154;102m10[0m
+   [38;2;97;175;239mCHECK VALUE[0m [38;2;224;108;117mScript Time::value[0m [38;2;86;182;194m>=[0m ([38;2;224;108;117mRef: Timer::user::value[0m [38;2;86;182;194m+[0m [38;2;209;154;102m0.5[0m)
+      [38;2;97;175;239mSET BEHAVIOR[0m [38;2;224;108;117mStop::behavior[0m
+   [38;2;97;175;239mPLAY ANIMATION[0m [38;2;209;154;102m1[0m
+
+
+[BEHAVIOR: Stop::behavior] A: 9   B: 32  C: 0   D: 0   Payload: 
+   [38;2;97;175;239mCONTROL[0m [38;2;224;108;117mMy Janitor::user::actor[0m, extra: 00
+      [38;2;97;175;239mTURN TO[0m ([38;2;224;108;117mRef: Janitor's Local Angle::user::value[0m) with animation 1
+      [38;2;97;175;239mPLAY ANIMATION[0m [38;2;209;154;102m1[0m
+   [38;2;97;175;239mPLAY ANIMATION[0m [38;2;209;154;102m1[0m
+
+----- UNIMPLEMENTED OPCODES -----
+find subset::op-code

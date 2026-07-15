@@ -655,6 +655,20 @@ def render_line(instructions, op_names, i, prefix):
             "SLIDE VALUE",
             f"{CRef(ref)} to {CRHS(target)} over {CRHS(seconds)} seconds, ease_out: {CRef(ease_out)}, ease_in: {CRef(ease_in)}",
         )
+
+    elif op_name == "find subset::op-code":
+        p = OpParser(instr["payload"])
+
+        collection_ref = p.readRef()
+        rel_op = RelOp(p.readUint8())
+        value = p.readRHS()
+
+        line = BUILD_LINE(
+            prefix,
+            "FIND SUBSET",
+            f"filterList({CRef(collection_ref)}, element_value {CRelOp(rel_op)} {CRHS(value)})",
+        )
+
     elif op_name == "remove::op-code":
         p = OpParser(instr["payload"])
         ref = p.readRef()
@@ -746,6 +760,13 @@ def parse_tfbscirpt_file(filename):
                 "d": buf.readUint8(),
                 "payload_size": buf.readUint8(),
             }
+            orig_offset = buf.offset
+            buf.offset -= 6
+            print("opcode index:", buf.readUint8())
+            print("pending branch flag:", buf.readBytes(1))
+            print("unk:", buf.readUint8())
+            print("branchPC:", buf.readUint16())
+            buf.offset = orig_offset
             instruction["payload"] = buf.readBytes(instruction["payload_size"])
             instruction["then_count"] = instruction["b"] >> 3
             instruction["else_count"] = instruction["c"] >> 3
@@ -828,7 +849,7 @@ def parse_tfbscirpt_file(filename):
             indent = depth[i]
             if i in else_start:
                 # else-branch sibling of the enclosing branch node (one level out)
-                # print("   " * (indent - 1) + "ELSE:")
+                #print("   " * (indent - 1) + "ELSE:")
                 pass
 
             prefix = "   " * indent
@@ -846,8 +867,8 @@ def parse_tfbscirpt_file(filename):
 # 567_RW_Balloon_Spawner.ai
 # 543_ME_Ring_Detector.ai
 if __name__ == "__main__":
-    # parse_tfbscirpt_file("Levels/KingOfNY-unchanged/815_RW_CutsceneBoy1.ai")
-    for filename in glob.glob("Levels/kingofny/*.ai"):
+    #parse_tfbscirpt_file("Levels/KingOfNY-unchanged/887_MusicMaster.ai")
+    for filename in glob.glob("Levels/KingOfNY/*.ai"):
         print(f"\n\nParsing {filename}...")
         parse_tfbscirpt_file(filename)
 

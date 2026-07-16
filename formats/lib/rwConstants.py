@@ -226,39 +226,39 @@ class RWSectionType(Enum):
 
 
 class strfunc_func(Enum):
-    sf_VersionNumber            = -1
-    sf_Reset                    = 0
-    sf_Reserved1                = 1
-    sf_Reserved2                = 2
-    sf_SetDirectorsCameraMatrix = 3
-    sf_CreateEntity             = 4
-    sf_UpdateEntityAttributes   = 5
-    sf_SetFrozenMode            = 6
-    sf_SetRunningMode           = 7
-    sf_EnableDirectorsCamera    = 8
-    sf_DisableDirectorsCamera   = 9
-    sf_TextComment              = 10
-    sf_StartSystem              = 11
-    sf_StopSystem               = 12
-    sf_DeleteEntity             = 13
-    sf_DeleteAllEntities        = 14
-    sf_UnLoadAsset              = 15
-    sf_Shutdown                 = 16
-    sf_CloseConnection          = 17
-    sf_SendTestEvent            = 18
-    sf_Reserved3                = 19
-    sf_Reserved3b               = 20
-    sf_LoadAsset                = 21
-    sf_LoadEmbeddedAsset        = 22
-    sf_Reserved4                = 23
-    sf_GetEntityMatrix          = 24
-    sf_CustomData               = 25
-    sf_FunctionProfiler         = 26
-    sf_ResetEntity              = 27
-    sf_PlacementNew             = 28
-    sf_Initialize               = 29
-    sf_UpdateAsset              = 30
-    sf_DynamicSequence          = 31
+    sf_VersionNumber            = MAKECHUNKID(RwVendor.CRITERIONRM, -1)
+    sf_Reset                    = MAKECHUNKID(RwVendor.CRITERIONRM, 0)
+    sf_Reserved1                = MAKECHUNKID(RwVendor.CRITERIONRM, 1)
+    sf_Reserved2                = MAKECHUNKID(RwVendor.CRITERIONRM, 2)
+    sf_SetDirectorsCameraMatrix = MAKECHUNKID(RwVendor.CRITERIONRM, 3)
+    sf_CreateEntity             = MAKECHUNKID(RwVendor.CRITERIONRM, 4)
+    sf_UpdateEntityAttributes   = MAKECHUNKID(RwVendor.CRITERIONRM, 5)
+    sf_SetFrozenMode            = MAKECHUNKID(RwVendor.CRITERIONRM, 6)
+    sf_SetRunningMode           = MAKECHUNKID(RwVendor.CRITERIONRM, 7)
+    sf_EnableDirectorsCamera    = MAKECHUNKID(RwVendor.CRITERIONRM, 8)
+    sf_DisableDirectorsCamera   = MAKECHUNKID(RwVendor.CRITERIONRM, 9)
+    sf_TextComment              = MAKECHUNKID(RwVendor.CRITERIONRM, 10)
+    sf_StartSystem              = MAKECHUNKID(RwVendor.CRITERIONRM, 11)
+    sf_StopSystem               = MAKECHUNKID(RwVendor.CRITERIONRM, 12)
+    sf_DeleteEntity             = MAKECHUNKID(RwVendor.CRITERIONRM, 13)
+    sf_DeleteAllEntities        = MAKECHUNKID(RwVendor.CRITERIONRM, 14)
+    sf_UnLoadAsset              = MAKECHUNKID(RwVendor.CRITERIONRM, 15)
+    sf_Shutdown                 = MAKECHUNKID(RwVendor.CRITERIONRM, 16)
+    sf_CloseConnection          = MAKECHUNKID(RwVendor.CRITERIONRM, 17)
+    sf_SendTestEvent            = MAKECHUNKID(RwVendor.CRITERIONRM, 18)
+    sf_Reserved3                = MAKECHUNKID(RwVendor.CRITERIONRM, 19)
+    sf_Reserved3b               = MAKECHUNKID(RwVendor.CRITERIONRM, 20)
+    sf_LoadAsset                = MAKECHUNKID(RwVendor.CRITERIONRM, 21)
+    sf_LoadEmbeddedAsset        = MAKECHUNKID(RwVendor.CRITERIONRM, 22)
+    sf_Reserved4                = MAKECHUNKID(RwVendor.CRITERIONRM, 23)
+    sf_GetEntityMatrix          = MAKECHUNKID(RwVendor.CRITERIONRM, 24)
+    sf_CustomData               = MAKECHUNKID(RwVendor.CRITERIONRM, 25)
+    sf_FunctionProfiler         = MAKECHUNKID(RwVendor.CRITERIONRM, 26)
+    sf_ResetEntity              = MAKECHUNKID(RwVendor.CRITERIONRM, 27)
+    sf_PlacementNew             = MAKECHUNKID(RwVendor.CRITERIONRM, 28)
+    sf_Initialize               = MAKECHUNKID(RwVendor.CRITERIONRM, 29)
+    sf_UpdateAsset              = MAKECHUNKID(RwVendor.CRITERIONRM, 30)
+    sf_DynamicSequence          = MAKECHUNKID(RwVendor.CRITERIONRM, 31)
 # fmt: on
 
 

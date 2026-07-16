@@ -395,7 +395,7 @@ class RW_Section_NotImplemented(RW_Section):
         )
 
 dataclass
-class RW_StringFunc:
+class RW_StreamFunc:
     @staticmethod
     def read(parser: Parser, parent=None) -> "RW_Section":
         raise NotImplementedError("[read] This string func type is not implemented yet.")
@@ -404,16 +404,15 @@ class RW_StringFunc:
     def write(this, f, stamp):
         raise NotImplementedError("[write] This string func type is not implemented yet.")
 
-
 @dataclass
-class RW_StringFunc_NotImplemented(RW_Section):
+class RW_StreamFunc_NotImplemented(RW_StreamFunc):
     header: RWHeader = field(default_factory=RWHeader)
 
     raw_data: bytes = b""  # header.payload_size
 
     @staticmethod
-    def read(parser: Parser) -> "RW_StringFunc_NotImplemented":
-        sni = RW_StringFunc_NotImplemented(RWHeader.read(parser))
+    def read(parser: Parser) -> "RW_StreamFunc_NotImplemented":
+        sni = RW_StreamFunc_NotImplemented(RWHeader.read(parser))
 
         sni.raw_data = parser.readBytes(sni.header.size)
 

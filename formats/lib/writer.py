@@ -32,3 +32,10 @@ def _write_fixedString(f, content="", size=32):
     padded = encoded + b"\x00" * (size - len(encoded))
 
     f.write(padded)
+
+def _write_alignedString(f, content="", alignment=4):
+    encoded = content.encode("latin-1", errors="replace") + b"\x00"  # Null-terminated
+    padding_length = (alignment - (len(encoded) % alignment)) % alignment
+    padded = encoded + b"\x00" * padding_length
+
+    f.write(padded)

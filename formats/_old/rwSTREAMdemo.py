@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
 from lib.parser import Parser
-import formats.stream as stream_lib
+import formats.streamfuncs as stream_lib
 from formats.lib.rwConstants import strfunc_func
 import struct
 

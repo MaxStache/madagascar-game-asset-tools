@@ -158,7 +158,7 @@ class Parser:
 
     def readGUID(self):
         guid_bytes = self.readBytes(16)
-        return uuid.UUID(bytes=guid_bytes)
+        return uuid.UUID(bytes_le=guid_bytes)
 
     def readBool(self):
         return self.readUint32() != 0

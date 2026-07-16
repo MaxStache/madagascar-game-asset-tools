@@ -153,7 +153,7 @@ class Reference:
                     0x2E: "visible on radar",
                     0x2F: "wall climber",
                     0x30: "cut-scene ignore",
-                    0x31: "ignored ground color",
+                    0x31: "ignore ground color",
                     0x32: "tilts with ground",
                     0x33: "no shadow",
                     0x34: "ID",
@@ -399,7 +399,7 @@ class Reference:
         if self.sub:
             s += f".sub[{self.sub:#04x}]"
         if self.scope:
-            s += f"@{self.scope}"
+            s += f"@{self.scope}" # set / array / list index
         return s
 
 

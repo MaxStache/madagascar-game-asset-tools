@@ -10,7 +10,7 @@ import sys
 
 sys.stdout.reconfigure(encoding="utf-8")
 
-ENABLE_ANSI_COLORING = False
+ENABLE_ANSI_COLORING = True
 TABLE1 = []
 TABLE2 = []
 TABLE3 = []
@@ -651,12 +651,18 @@ def render_line(instructions, op_names, i, prefix):
 
     elif op_name == "slide value::op-code":
         p = OpParser(instr["payload"])
-
         ref = p.readRef()
         target = p.readRHS()
         seconds = p.readRHS()
-        ease_out = p.readRef()
-        ease_in = p.readRef()
+        
+        if p.remaining() >= 8:
+            ease_out = p.readRef()
+            ease_in = p.readRef()
+        else:
+            # TODO: DO FOLLOWING
+            print("THIS IS A WEIRD SPECIAL CASE THAT COMPLETELY BREAKS THE EXPECTED PAYLOAD FORMAT, NEEDS INVESTIGATION")
+            ease_out = None
+            ease_in = None
 
         line = BUILD_LINE(
             prefix,
@@ -770,10 +776,10 @@ def parse_tfbscirpt_file(filename):
             }
             orig_offset = buf.offset
             buf.offset -= 6
-            print("opcode index:", buf.readUint8())
-            print("pending branch flag:", buf.readBytes(1))
-            print("unk:", buf.readUint8())
-            print("branchPC:", buf.readUint16())
+            #print("opcode index:", buf.readUint8())
+            #print("pending branch flag:", buf.readBytes(1))
+            #print("unk:", buf.readUint8())
+            #print("branchPC:", buf.readUint16())
             buf.offset = orig_offset
             instruction["payload"] = buf.readBytes(instruction["payload_size"])
             instruction["then_count"] = instruction["b"] >> 3
@@ -831,7 +837,7 @@ def parse_tfbscirpt_file(filename):
         for instr in instructions:
             if instr["opcode"] == 0xFF:
                 op_names.append(
-                    "\n\n[%s]"
+                    "[%s]"
                     % SECTION_NAMES.get(
                         section_index, "UNKNOWN SECTION %d" % section_index
                     )
@@ -863,7 +869,7 @@ def parse_tfbscirpt_file(filename):
             prefix = "   " * indent
             line = (
                 render_line(instructions, op_names, i, prefix)
-                + f"  // then_num {instr['then_count']}, else_num {instr['else_count']}"
+               # + f"  // then_num {instr['then_count']}, else_num {instr['else_count']}"
             )
             print(line)
 
@@ -878,10 +884,10 @@ def parse_tfbscirpt_file(filename):
 # 567_RW_Balloon_Spawner.ai
 # 543_ME_Ring_Detector.ai
 if __name__ == "__main__":
-    # parse_tfbscirpt_file("Levels/KingOfNY-unchanged/887_MusicMaster.ai")
-    for filename in glob.glob("Levels/KingOfNY/*.ai"):
-        print(f"\n\nParsing {filename}...")
-        parse_tfbscirpt_file(filename)
+    parse_tfbscirpt_file("Levels/escape/719_PR_trashcan.ai")
+    #for filename in glob.glob("Levels/KingOfNY/*.ai"):
+    #    print(f"\n\nParsing {filename}...")
+    #    parse_tfbscirpt_file(filename)
 
 filtered_unimplemented_opcodes = {
     op for op in UNIMPLEMENTED_OPCODES if "::op-code" in op
@@ -889,14 +895,13 @@ filtered_unimplemented_opcodes = {
 if filtered_unimplemented_opcodes:
     print()
     print("----- UNIMPLEMENTED OPCODES -----")
-    for op in sorted(UNIMPLEMENTED_OPCODES):
+    for op in sorted(filtered_unimplemented_opcodes):
         print(op)
 
 
 """
 Still unimplemented opcodes:
 
-- loop value::op-code
 - use camera::op-code
 
 """

@@ -12,6 +12,8 @@ def _write_u16(f, v):
 def _write_u32(f, v):
     f.write(struct.pack("<I", v))
 
+def _write_bool(f, v):
+    f.write(struct.pack("<i", int(v)))  # Write as 4-byte signed int
 
 def _write_s32(f, v):
     f.write(struct.pack("<i", v))
@@ -33,9 +35,23 @@ def _write_fixedString(f, content="", size=32):
 
     f.write(padded)
 
+def _write_lengthPrefixedString(f, content=""):
+    encoded = content.encode("latin-1", errors="replace")
+
+    length = len(encoded)
+
+    f.write(struct.pack("<I", length)) # uint32
+    f.write(encoded)
+
 def _write_alignedString(f, content="", alignment=4):
     encoded = content.encode("latin-1", errors="replace") + b"\x00"  # Null-terminated
     padding_length = (alignment - (len(encoded) % alignment)) % alignment
     padded = encoded + b"\x00" * padding_length
 
     f.write(padded)
+
+def _write_guid(f, guid):
+    if isinstance(guid, str):
+        import uuid
+        guid = uuid.UUID(guid)
+    f.write(guid.bytes_le)

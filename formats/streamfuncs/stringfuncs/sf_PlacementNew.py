@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 
 from formats.lib.parser import Parser
 from formats.lib.writer import _write_alignedString, _write_u32
-from formats.lib.rwConstants import MAKECHUNKID, RwVendor, strfunc_func
+from formats.lib.rwConstants import strfunc_func
 from formats.lib.rw_basics import RW_StreamFunc, RWHeader, expect_chunk_type_or_raise
 
 @dataclass
@@ -23,16 +23,15 @@ class RW_sf_PlacementNew(RW_StreamFunc):
             "RW_sf_PlacementNew chunk type",
         )
 
-        sf_PlacementNew.entry_count = parser.readUint32()
+        subparser = Parser(parser.readBytes(sf_PlacementNew.header.size), endian="little")
+
+        sf_PlacementNew.entry_count = subparser.readUint32()
 
         for _ in range(sf_PlacementNew.entry_count):
-            behavior = parser.readPaddedCString()
-            instance_count = parser.readUint32()
+            behavior = subparser.readPaddedCString()
+            instance_count = subparser.readUint32()
 
             sf_PlacementNew.entries.append((behavior, instance_count))
-
-        parser.readPaddedCString()
-        parser.readUint32()
 
         return sf_PlacementNew
 
@@ -53,3 +52,7 @@ class RW_sf_PlacementNew(RW_StreamFunc):
         )
         f.write(rw_header.pack())
         f.write(buf.getvalue())
+
+    @property
+    def streamfunc(self):
+        return strfunc_func.sf_PlacementNew

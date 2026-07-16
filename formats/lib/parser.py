@@ -2,6 +2,7 @@ import struct
 from typing import Dict
 import uuid
 
+
 class Parser:
     def __init__(self, data: bytes, endian: str = "little"):
         if not isinstance(data, (bytes, bytearray)):
@@ -49,10 +50,10 @@ class Parser:
 
     def tell(self) -> int:
         return self.offset
-    
+
     def remaining(self) -> int:
         return len(self.data) - self.offset
-    
+
     def readRemaining(self) -> bytes:
         return self.read(self.remaining())
 
@@ -61,7 +62,7 @@ class Parser:
 
     def canRead(self, size: int) -> bool:
         return self.offset + size <= len(self.data)
-    
+
     def getRemainingBytes(self) -> int:
         return len(self.data) - self.offset
 
@@ -83,7 +84,7 @@ class Parser:
 
     def readUint32(self):
         return self._read(self.endian + "I")
-    
+
     def peekUint32(self):
         if self.offset + 4 > len(self.data):
             raise EOFError("Attempt to read past end of buffer")
@@ -143,17 +144,24 @@ class Parser:
         if remainder:
             self.offset += alignment - remainder
         return s
-    
+
     def readString(self, length: int, encoding="latin-1") -> str:
         b = self.readBytes(length)
         return b.decode(encoding)
-    
-    def readLengthPrefixedString(self, encoding="latin-1") -> str:
+
+    def readLengthPrefixedString(self, encoding="latin-1", removePadding=False) -> str:
         # u32 length prefix
         # char[length]
         # non-null-terminated, but may be padded to 4 bytes
         length = self.readUint32()
         b = self.readBytes(length)
+        
+        if removePadding:
+            # Remove null padding at the end
+            b = b.rstrip(b"\x00")
+            b = b.rstrip(b"\xbf")
+            b = b.rstrip(b"\x00")
+            
         return b.decode(encoding)
 
     def readGUID(self):
@@ -161,7 +169,7 @@ class Parser:
         return uuid.UUID(bytes_le=guid_bytes)
 
     def readBool(self):
-        return self.readUint32() != 0
+        return bool(self.readUint32())
 
     def readRWChunkHeader(self):
         return {
@@ -169,14 +177,14 @@ class Parser:
             "size": self.readUint32(),
             "version": self.readUint32(),
         }
-    
+
     def peekRWChunkHeader(self):
         return {
             "id": self.peekUint32(),
             "size": self.peekUint32(),
             "version": self.peekUint32(),
         }
-        
+
     def readColor32(self) -> Dict[str, int]:
         r = self.readUint8()
         g = self.readUint8()

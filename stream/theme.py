@@ -59,6 +59,13 @@ def configure_style(root):
         foreground=[("selected", COLORS["sel_fg"])],
     )
 
+    # details tree sits on the lighter panel background
+    style.configure(
+        "Details.Treeview",
+        background=COLORS["panel_bg"],
+        fieldbackground=COLORS["panel_bg"],
+    )
+
     style.configure("TFrame", background=COLORS["bg"])
     style.configure("Treeview", relief="flat")
     style.layout(
@@ -124,3 +131,65 @@ def configure_style(root):
     )
 
     return style
+
+
+def make_dot(color, size, padding_x):
+    img = tk.PhotoImage(width=size + padding_x * 2, height=size)
+
+    cx = size / 2
+    cy = size / 2
+    radius = size / 2 - 1
+
+    # Light source (top-left)
+    lx = cx - radius * 0.35
+    ly = cy - radius * 0.35
+
+    base = tuple(int(color[i:i+2], 16) for i in (1, 3, 5))
+
+    for x in range(size):
+        for y in range(size):
+            dx = x - cx
+            dy = y - cy
+            dist = math.sqrt(dx * dx + dy * dy)
+
+            if dist <= radius:
+                # Edge shading
+                edge = dist / radius
+
+                # Highlight from light source
+                light_dist = math.sqrt((x - lx) ** 2 + (y - ly) ** 2) / radius
+                highlight = max(0, 1 - light_dist) ** 2
+
+                # Bottom-right inset shadow
+                shadow = max(0, (dx + dy) / (radius * 2))
+
+                factor = (
+                    0.75
+                    + highlight * 0.45
+                    - edge * 0.20
+                    - shadow * 0.25
+                )
+
+                factor = max(0.0, min(1.3, factor))
+
+                rgb = tuple(
+                    min(255, max(0, int(c * factor)))
+                    for c in base
+                )
+
+                img.put(
+                    "#%02X%02X%02X" % rgb,
+                    (x + padding_x, y)
+                )
+
+    return img
+
+
+def make_icons(size=15, padding_x=5):
+    """Build the green/blue/gray 3D dot icons used in the tree."""
+    return (
+        make_dot("#00D100", size, padding_x),
+        make_dot("#1D9BF2", size, padding_x),
+        make_dot("#9C9C9C", size, padding_x),
+        make_dot("#FFEE00", size, padding_x),
+    )

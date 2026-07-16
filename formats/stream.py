@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Union
 from formats.lib.rw_basics import RW_StreamFunc, RWHeader
 from formats.streamfuncs import STRFUNC_REGISTRY
-from lib.parser import Parser
+from formats.lib.parser import Parser
 
 __version__ = "1.0.0"
 

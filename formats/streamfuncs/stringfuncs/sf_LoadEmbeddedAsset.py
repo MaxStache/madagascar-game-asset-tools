@@ -3,29 +3,31 @@ from dataclasses import dataclass, field
 import uuid
 
 from formats.lib.parser import Parser
-from formats.lib.writer import _write_alignedString, _write_u32
+from formats.lib.writer import (
+    _write_alignedString,
+    _write_guid,
+    _write_lengthPrefixedString,
+    _write_u32,
+)
 from formats.lib.rwConstants import strfunc_func
 from formats.lib.rw_basics import RW_StreamFunc, RWHeader, expect_chunk_type_or_raise
+
 
 @dataclass
 class RW_sf_LoadEmbeddedAsset(RW_StreamFunc):
     header: RWHeader = field(default_factory=RWHeader)
-    
+
     headerSize: int = 0
     dataSize: int = 0
 
-    nameLength: int = 0
     name: str = ""
 
     guid: uuid.UUID = field(default=None)
 
-    typeLength: int = 0
     type: str = ""
 
-    filePathLength: int = 0
     filePath: str = ""
 
-    depsSize: int = 0
     deps: str = ""
 
     data: bytes = b""
@@ -46,19 +48,15 @@ class RW_sf_LoadEmbeddedAsset(RW_StreamFunc):
 
         # -- header
         headerParser = Parser(buf.readBytes(sf_LEA.headerSize), endian="little")
-        sf_LEA.nameLength = headerParser.readUint32()
-        sf_LEA.name = headerParser.readPaddedCString(sf_LEA.nameLength)
+        sf_LEA.name = headerParser.readLengthPrefixedString(removePadding=True)
 
         sf_LEA.guid = headerParser.readGUID()
 
-        sf_LEA.typeLength = headerParser.readUint32()
-        sf_LEA.type = headerParser.readPaddedCString(sf_LEA.typeLength)
+        sf_LEA.type = headerParser.readLengthPrefixedString(removePadding=True)
 
-        sf_LEA.filePathLength = headerParser.readUint32()
-        sf_LEA.filePath = headerParser.readPaddedCString(sf_LEA.filePathLength)
+        sf_LEA.filePath = headerParser.readLengthPrefixedString(removePadding=True)
 
-        sf_LEA.depsSize = headerParser.readUint32()
-        sf_LEA.deps = headerParser.readPaddedCString(sf_LEA.depsSize)
+        sf_LEA.deps = headerParser.readLengthPrefixedString(removePadding=True)
         # ---
 
         sf_LEA.dataSize = buf.readUint32()
@@ -69,6 +67,25 @@ class RW_sf_LoadEmbeddedAsset(RW_StreamFunc):
     def write(this, f, stamp):
         buf = io.BytesIO()
 
+        # --- header
+        headerBuf = io.BytesIO()
+        _write_lengthPrefixedString(headerBuf, this.name)
+
+        _write_guid(headerBuf, this.guid)
+
+        _write_lengthPrefixedString(headerBuf, this.type)
+
+        _write_lengthPrefixedString(headerBuf, this.filePath)
+
+        _write_lengthPrefixedString(headerBuf, this.deps)
+        # ---
+
+        _write_u32(buf, len(headerBuf.getvalue()))
+        buf.write(headerBuf.getvalue())
+
+        _write_u32(buf, len(this.data))
+        buf.write(this.data)
+
         rw_header = RWHeader(
             type=strfunc_func.sf_LoadEmbeddedAsset.value,
             size=len(buf.getvalue()),
@@ -76,3 +93,10 @@ class RW_sf_LoadEmbeddedAsset(RW_StreamFunc):
         )
         f.write(rw_header.pack())
         f.write(buf.getvalue())
+
+    @property
+    def streamfunc(self):
+        return strfunc_func.sf_LoadEmbeddedAsset
+    
+    def __repr__(self):
+        return f"RW_sf_LoadEmbeddedAsset(name=\"{self.name!r}\", guid=\"{str(self.guid)!r}\", type=\"{self.type!r}\", filePath=\"{self.filePath!r}\", deps=\"{self.deps!r}\", dataSize={len(self.data)!r})"

@@ -2,6 +2,7 @@
 
 import tkinter as tk
 from tkinter import ttk
+from tkinter import font as tkfont
 import math
 
 COLORS = {
@@ -21,6 +22,9 @@ COLORS = {
     "sel_bg": "#264f78",
     "sel_fg": "#ffffff",
     "tree_bg": "#181818",
+    "header_bg": "#202020",
+    "accent": "#61afef",
+    "muted": "#8B9AA7",
 
     #--
     "enum_class": "#e04c6c",
@@ -152,6 +156,111 @@ def configure_style(root):
         bordercolor=[("focus", COLORS["sel_bg"])],
         lightcolor=[("focus", COLORS["panel_bg"])],
         darkcolor=[("focus", COLORS["panel_bg"])],
+    )
+
+    base_font = tkfont.nametofont("TkDefaultFont")
+    family = base_font.actual("family")
+    base_size = abs(base_font.actual("size")) or 10
+    title_font = (family, base_size + 2, "bold")
+    small_font = (family, max(base_size - 2, 8))
+    section_font = (family, max(base_size - 2, 8), "bold")
+    strong_font = (family, base_size, "bold")
+
+    # full-width header bar
+    style.configure("Header.TFrame", background=COLORS["header_bg"])
+    style.configure(
+        "AppTitle.TLabel",
+        background=COLORS["header_bg"],
+        foreground=COLORS["fg"],
+        font=title_font,
+    )
+    style.configure(
+        "FileName.TLabel",
+        background=COLORS["header_bg"],
+        foreground=COLORS["muted"],
+        font=small_font,
+    )
+    style.configure(
+        "Header.TButton",
+        background=COLORS["header_bg"],
+        foreground=COLORS["fg"],
+        bordercolor=COLORS["punct"],
+        focuscolor=COLORS["header_bg"],
+        relief="flat",
+        padding=(10, 4),
+    )
+    style.map(
+        "Header.TButton",
+        background=[("active", COLORS["sel_bg"]), ("pressed", COLORS["highlight"])],
+        foreground=[("active", COLORS["sel_fg"])],
+    )
+
+    # small uppercase captions above panes / sidebar fields
+    style.configure(
+        "Section.TLabel",
+        background=COLORS["bg"],
+        foreground=COLORS["muted"],
+        font=section_font,
+    )
+
+    # inspector header (selected chunk name)
+    style.configure(
+        "InspectorTitle.TLabel",
+        background=COLORS["bg"],
+        foreground=COLORS["fg"],
+        font=strong_font,
+    )
+    style.configure(
+        "InspectorHint.TLabel",
+        background=COLORS["bg"],
+        foreground=COLORS["hex_not_read"],
+        font=small_font,
+    )
+
+    # accent button for the contextual "teleport" action
+    style.configure(
+        "Accent.TButton",
+        background=COLORS["panel_bg"],
+        foreground=COLORS["accent"],
+        bordercolor=COLORS["accent"],
+        focuscolor=COLORS["panel_bg"],
+        relief="flat",
+        padding=(10, 4),
+    )
+    style.map(
+        "Accent.TButton",
+        background=[("active", COLORS["sel_bg"]), ("pressed", COLORS["highlight"])],
+        foreground=[("active", COLORS["sel_fg"])],
+    )
+
+    # bottom status bar
+    style.configure("Status.TFrame", background=COLORS["header_bg"])
+    style.configure(
+        "Status.TLabel",
+        background=COLORS["header_bg"],
+        foreground=COLORS["muted"],
+        font=small_font,
+    )
+
+    style.configure(
+        "Filter.TCombobox",
+        fieldbackground=COLORS["panel_bg"],
+        background=COLORS["panel_bg"],
+        foreground=COLORS["fg"],
+        arrowcolor=COLORS["fg"],
+        bordercolor=COLORS["punct"],
+        lightcolor=COLORS["panel_bg"],
+        darkcolor=COLORS["panel_bg"],
+        relief="flat",
+        padding=(6, 4),
+    )
+    style.map(
+        "Filter.TCombobox",
+        fieldbackground=[("readonly", COLORS["panel_bg"])],
+        foreground=[("readonly", COLORS["fg"])],
+        selectbackground=[("readonly", COLORS["panel_bg"])],
+        selectforeground=[("readonly", COLORS["fg"])],
+        bordercolor=[("focus", COLORS["sel_bg"])],
     )
 
     return style

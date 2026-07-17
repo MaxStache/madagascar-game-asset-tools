@@ -1,6 +1,9 @@
 import ctypes
-import pymem
-import pymem.process
+import platform
+
+if platform.system() == "Windows":
+    import pymem
+    import pymem.process
 
 
 class PlayerPosition:
@@ -11,6 +14,9 @@ class PlayerPosition:
     OFF_Z = 0x158
 
     def __init__(self, process_name="Game.exe"):
+        if platform.system() != "Windows":
+            return
+        
         self.pm = pymem.Pymem(process_name)
         self.base = self._resolve_base(process_name)
 
@@ -106,6 +112,8 @@ class PlayerPosition:
         self.set_position(*value)
 
     def set_position(self, x=None, y=None, z=None):
+        if platform.system() != "Windows":
+            return
         addr = self.address
 
         for offset, value in (

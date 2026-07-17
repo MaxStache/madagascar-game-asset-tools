@@ -869,7 +869,7 @@ def parse_tfbscirpt_file(filename):
             prefix = "   " * indent
             line = (
                 render_line(instructions, op_names, i, prefix)
-               # + f"  // then_num {instr['then_count']}, else_num {instr['else_count']}"
+                #+ f"  // then_num {instr['then_count']}, else_num {instr['else_count']}"
             )
             print(line)
 
@@ -884,7 +884,8 @@ def parse_tfbscirpt_file(filename):
 # 567_RW_Balloon_Spawner.ai
 # 543_ME_Ring_Detector.ai
 if __name__ == "__main__":
-    parse_tfbscirpt_file("Levels/KingOfNY/558_ME_BAllo0ns_floating.ai")
+
+    parse_tfbscirpt_file("Levels/banquet/701_Melman_RunAsPlayer.ai")
     #for filename in glob.glob("Levels/KingOfNY/*.ai"):
     #    print(f"\n\nParsing {filename}...")
     #    parse_tfbscirpt_file(filename)

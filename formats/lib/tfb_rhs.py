@@ -68,6 +68,7 @@ def read_rhs(
     # ------------------------------------------------------------------
     if (tag & 0xF0) in (0x10, 0x80):
         value = struct.unpack("<f", parser.readBytes(4))[0]
+        value = round(value, 7)  # round to 7 decimal places for display
         return RHSValue(tag, "float", value)
 
     # ------------------------------------------------------------------

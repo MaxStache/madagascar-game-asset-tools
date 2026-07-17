@@ -137,12 +137,12 @@ class Reference:
                     0x1E: "animation rate multiplier",
                     0x1F: "weight",
                     0x20: "bounce restitution",
-                    0x21: "X offset",
-                    0x22: "Y offset",
-                    0x23: "Z offset",
-                    0x24: "W extend",
-                    0x25: "L extend",
-                    0x26: "H extend",
+                    0x21: "X offset", # Extend box X
+                    0x22: "Y offset", # Extend box Y
+                    0x23: "Z offset", # Extend box Z 
+                    0x24: "W extend", # Extend box W extend
+                    0x25: "L extend", # Extend box L extend
+                    0x26: "H extend", # Extend box H extend
                     0x27: "cone angle",
                     0x28: "cone length",
                     0x29: "cone sweep offset",

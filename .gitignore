@@ -38,3 +38,7 @@ parsed_bsps/*/*.png
 Levels/*
 
 __pycache__/*
+
+mods/overlay/bin/
+mods/overlay/obj/
+mods/overlay/*.user

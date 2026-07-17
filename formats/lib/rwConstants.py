@@ -233,8 +233,8 @@ class strfunc_func(Enum):
     sf_SetDirectorsCameraMatrix = MAKECHUNKID(RwVendor.CRITERIONRM, 3)
     sf_CreateEntity             = MAKECHUNKID(RwVendor.CRITERIONRM, 4)
     sf_UpdateEntityAttributes   = MAKECHUNKID(RwVendor.CRITERIONRM, 5)
-    sf_SetFrozenMode            = MAKECHUNKID(RwVendor.CRITERIONRM, 6)
-    sf_SetRunningMode           = MAKECHUNKID(RwVendor.CRITERIONRM, 7)
+    sf_SetFrozenMode            = MAKECHUNKID(RwVendor.CRITERIONRM, 6) # pause game
+    sf_SetRunningMode           = MAKECHUNKID(RwVendor.CRITERIONRM, 7) # unpause game
     sf_EnableDirectorsCamera    = MAKECHUNKID(RwVendor.CRITERIONRM, 8)
     sf_DisableDirectorsCamera   = MAKECHUNKID(RwVendor.CRITERIONRM, 9)
     sf_TextComment              = MAKECHUNKID(RwVendor.CRITERIONRM, 10)

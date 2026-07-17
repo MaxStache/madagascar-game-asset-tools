@@ -130,6 +130,30 @@ def configure_style(root):
         foreground=[("active", COLORS["sel_fg"])],
     )
 
+    style.configure(
+        "Toolbar.TLabel",
+        background=COLORS["bg"],
+        foreground=COLORS["hex_not_read"],
+    )
+
+    style.configure(
+        "Search.TEntry",
+        fieldbackground=COLORS["panel_bg"],
+        foreground=COLORS["fg"],
+        insertcolor=COLORS["fg"],
+        bordercolor=COLORS["punct"],
+        lightcolor=COLORS["panel_bg"],
+        darkcolor=COLORS["panel_bg"],
+        relief="flat",
+        padding=(6, 4),
+    )
+    style.map(
+        "Search.TEntry",
+        bordercolor=[("focus", COLORS["sel_bg"])],
+        lightcolor=[("focus", COLORS["panel_bg"])],
+        darkcolor=[("focus", COLORS["panel_bg"])],
+    )
+
     return style
 
 

@@ -13,6 +13,7 @@
 # RWS_MESSAGE(x, s, t, a, b, d)
 
 from formats.lib.entityAtributeDocs.CFXPartSpray import CFXPARTSPRAY_ATTRIBUTES
+from formats.lib.entityAtributeDocs.CProtoActor import CPROTOACTOR_ATTRIBUTES
 
 
 CREATE_ENTITY_ATTRIBUTE_COMMANDS = {
@@ -64,6 +65,7 @@ CREATE_ENTITY_ATTRIBUTE_COMMANDS = {
         },
     },
     "CFXPartSpray": CFXPARTSPRAY_ATTRIBUTES,
+    "CProtoActor": CPROTOACTOR_ATTRIBUTES,
     "CDirectorsCamera": {
         0: {
             "source": "RWS",

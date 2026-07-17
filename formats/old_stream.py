@@ -1,16 +1,22 @@
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import io
 import struct
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import BinaryIO, Union
-from lib.parser import Parser
+from formats.lib.parser import Parser
 from formats.lib.rwConstants import (
     strfunc_func,
     MAKECHUNKID,
     RwVendor,
 )
 import uuid
-from lib.entityAttributeDocs import CREATE_ENTITY_ATTRIBUTE_COMMANDS
+from formats.lib.entityAttributeDocs import CREATE_ENTITY_ATTRIBUTE_COMMANDS
+from formats.lib.entityAtributeDocs.CProtoActor import parse_CProtoActor_attribute1
 
 __version__ = "1.0.0"
 
@@ -480,6 +486,15 @@ def _write_log_HandleAttribute(f, command, data, strCurrentClass, offset=0x0):
             buf = Parser(data, endian="little")
             value = buf.readColor32()
             output += f": RGBA({value['r']}, {value['g']}, {value['b']}, {value['a']})"
+        if attrDocumentation["data"]["type"] == "CProtoActorStatsBlock":
+            output += str(len(data)) + str(data.hex())
+            output += "id bytes:" + data[0x284-0x1AC:0x284-0x1AC+4].hex()
+            fields = parse_CProtoActor_attribute1(data)
+            prefixLen = len(output.replace("\t", "    ") + ": ")
+            lines = [f"{k}={v}" for k, v in fields.items()]
+            output += ": " + lines[0]
+            for line in lines[1:]:
+                output += f"\n{' ' * prefixLen}{line}"
         if attrDocumentation["data"]["type"] == "Matrix4x4":
             prefixLen = len(output.replace("\t", "    ") + ": Matrix4x4(")
 
@@ -675,3 +690,8 @@ def _write_log_strfunc_LoadEmbeddedAsset(f, idx, e: RW_StreamFileSector):
 
 def _strfunc_to_chunktype(strfunc: strfunc_func) -> int:
     return MAKECHUNKID(RwVendor.CRITERIONRM, strfunc.value)
+
+if __name__ == "__main__":
+    # Example usage
+    stream = load_stream("kingofny.stream")
+    stream.write_log("stream_log.txt")

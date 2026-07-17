@@ -314,6 +314,10 @@ class RW_Matrix4x4:
         row4 = Vector4.read(parser)
         return RW_Matrix4x4(row1=row1, row2=row2, row3=row3, row4=row4)
 
+    def get_translation(self) -> Vector3:
+        """Get the translation component of the matrix (row4, x,y,z)."""
+        return Vector3(x=self.row4.x, y=self.row4.y, z=self.row4.z)
+
     def __repr__(self):
         return f"RW_Matrix4x4({self.row1}, {self.row2}, {self.row3}, {self.row4})"
 

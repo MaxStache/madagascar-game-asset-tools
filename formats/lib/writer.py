@@ -35,18 +35,23 @@ def _write_fixedString(f, content="", size=32):
 
     f.write(padded)
 
-def _write_lengthPrefixedString(f, content=""):
-    encoded = content.encode("latin-1", errors="replace")
+def _write_lengthPrefixedString(f, content="", addNullTerminator=True, alignTo4=False):
+    encoded = content.encode("latin-1", errors="replace") + (b"\x00" if addNullTerminator else b"")
 
     length = len(encoded)
+
+    if alignTo4:
+        padding_length = (4 - (length % 4)) % 4
+        encoded += b"\xBF" * padding_length
+        length += padding_length
 
     f.write(struct.pack("<I", length)) # uint32
     f.write(encoded)
 
-def _write_alignedString(f, content="", alignment=4):
+def _write_alignedString(f, content="", alignment=4, padding_byte=b"\xBF"):
     encoded = content.encode("latin-1", errors="replace") + b"\x00"  # Null-terminated
     padding_length = (alignment - (len(encoded) % alignment)) % alignment
-    padded = encoded + b"\x00" * padding_length
+    padded = encoded + padding_byte * padding_length
 
     f.write(padded)
 

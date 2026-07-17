@@ -13,7 +13,7 @@ from formats.streamfuncs import (
     RW_sf_PlacementNew,
 )
 
-from formats.lib.rw_basics import RW_Matrix4x4
+from formats.lib.rw_basics import RW_Matrix4x4, RW_StreamFunc_NotImplemented
 import formats.lib.rwConstants as rw_constants
 from formats.lib.rwConstants import strfunc_func
 import formats.lib.parser as parser
@@ -22,6 +22,7 @@ from formats.lib.game_memory import PlayerPosition
 from tkinter.messagebox import showerror
 
 import formats.stream as stream
+from formats.streamfuncs.stringfuncs.sf_SetDirectorsCameraMatrix import RW_sf_SetDirectorsCameraMatrix
 from stream.syntax import configure_tags
 
 from .theme import COLORS, configure_style, make_icons
@@ -563,6 +564,22 @@ def run(file_path):
                     "end",
                     text=f"{behaviour} × {instance_count}",
                 )
+
+        elif isinstance(sf, RW_sf_SetDirectorsCameraMatrix):
+            mtrx = details_tree.insert("", "end", text="Matrix (4x4)")
+            details_tree.insert(mtrx, "end", text=f"Row 1: {sf.matrix.row1}")
+            details_tree.insert(mtrx, "end", text=f"Row 2: {sf.matrix.row2}")
+            details_tree.insert(mtrx, "end", text=f"Row 3: {sf.matrix.row3}")
+            details_tree.insert(mtrx, "end", text=f"Row 4: {sf.matrix.row4}")
+
+            details_tree.insert("", "end", text=f"FOV: {sf.fov}")
+
+        elif isinstance(sf, RW_StreamFunc_NotImplemented):
+            details_tree.insert("", "end", text=f"Data Size: {len(sf.raw_data)} bytes")
+            details_tree.insert("", "end", text=f"Data: {sf.raw_data.hex()}")
+
+        else:
+            details_tree.insert("", "end", text=f"No details available for {sf.streamfunc.name}")
 
         if not isinstance(sf, RW_sf_CreateEntity):
             show_data_pane(False)

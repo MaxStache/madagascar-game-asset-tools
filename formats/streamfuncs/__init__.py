@@ -1,4 +1,4 @@
-from formats.lib.rw_basics import RW_Section
+from formats.lib.rw_basics import RW_Section, RW_StreamFunc_NotImplemented
 from formats.lib.rwConstants import strfunc_func
 
 from formats.streamfuncs.stringfuncs.sf_EnableDirectorsCamera import RW_sf_EnableDirectorsCamera
@@ -10,6 +10,7 @@ from formats.streamfuncs.stringfuncs.sf_SetRunningMode import RW_sf_SetRunningMo
 from formats.streamfuncs.stringfuncs.sf_Shutdown import RW_sf_Shutdown
 from formats.streamfuncs.stringfuncs.sf_StartSystem import RW_sf_StartSystem
 from formats.streamfuncs.stringfuncs.sf_StopSystem import RW_sf_StopSystem
+from formats.streamfuncs.stringfuncs.sf_SetDirectorsCameraMatrix import RW_sf_SetDirectorsCameraMatrix
 
 
 
@@ -25,6 +26,10 @@ STRFUNC_REGISTRY: dict[int, RW_Section] = {
     strfunc_func.sf_StopSystem.value: RW_sf_StopSystem,
     strfunc_func.sf_StartSystem.value: RW_sf_StartSystem,
     strfunc_func.sf_EnableDirectorsCamera.value: RW_sf_EnableDirectorsCamera,
+    strfunc_func.sf_SetDirectorsCameraMatrix.value: RW_sf_SetDirectorsCameraMatrix,
+    strfunc_func.sf_Initialize.value: RW_StreamFunc_NotImplemented,
+    strfunc_func.sf_DisableDirectorsCamera.value: RW_StreamFunc_NotImplemented,
+    strfunc_func.sf_VersionNumber.value: RW_StreamFunc_NotImplemented,
 }
 # fmt: on
 
@@ -39,4 +44,5 @@ __all__ = [
     "RW_sf_StopSystem",
     "RW_sf_StartSystem",
     "RW_sf_EnableDirectorsCamera",
+    "RW_sf_SetDirectorsCameraMatrix"
 ]

@@ -133,6 +133,9 @@ class RW_sf_CreateEntity(RW_StreamFunc):
                 _write_u32(buf, attr.command)
                 buf.write(attr.data)
 
+        _write_u32(buf, 0) # because rw wants it
+        _write_u32(buf, 0) # because rw wants it
+
 
 
         rw_header = RWHeader(

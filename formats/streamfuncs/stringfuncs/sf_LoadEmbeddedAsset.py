@@ -69,15 +69,17 @@ class RW_sf_LoadEmbeddedAsset(RW_StreamFunc):
 
         # --- header
         headerBuf = io.BytesIO()
-        _write_lengthPrefixedString(headerBuf, this.name)
+        _write_lengthPrefixedString(headerBuf, this.name, addNullTerminator=True, alignTo4=True)
 
         _write_guid(headerBuf, this.guid)
 
-        _write_lengthPrefixedString(headerBuf, this.type)
+        _write_lengthPrefixedString(headerBuf, this.type, addNullTerminator=True, alignTo4=True)
 
-        _write_lengthPrefixedString(headerBuf, this.filePath)
+        _write_lengthPrefixedString(headerBuf, this.filePath, addNullTerminator=True, alignTo4=True)
 
-        _write_lengthPrefixedString(headerBuf, this.deps)
+        _write_lengthPrefixedString(headerBuf, this.deps, addNullTerminator=True, alignTo4=True)
+
+        _write_u32(headerBuf, 0) # doing this because renderware wants it, idk
         # ---
 
         _write_u32(buf, len(headerBuf.getvalue()))
@@ -85,6 +87,9 @@ class RW_sf_LoadEmbeddedAsset(RW_StreamFunc):
 
         _write_u32(buf, len(this.data))
         buf.write(this.data)
+
+        padding_length = (4 - (len(buf.getvalue()) % 4)) % 4
+        buf.write(b"\x58" * padding_length)
 
         rw_header = RWHeader(
             type=strfunc_func.sf_LoadEmbeddedAsset.value,

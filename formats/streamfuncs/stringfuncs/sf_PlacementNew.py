@@ -45,6 +45,10 @@ class RW_sf_PlacementNew(RW_StreamFunc):
             _write_alignedString(buf, behavior, alignment=4)
             _write_u32(buf, instance_count)
 
+        # doing that cus renderware wants it, idk
+        _write_alignedString(buf, "", alignment=4)
+        _write_u32(buf, 0)
+
         rw_header = RWHeader(
             type=strfunc_func.sf_PlacementNew.value,
             size=len(buf.getvalue()),

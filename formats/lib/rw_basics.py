@@ -1,6 +1,8 @@
 import struct
 from dataclasses import dataclass, field
 
+from formats.lib.rwConstants import strfunc_func
+
 try:
     from formats.lib.rwConstants import RWSectionType
     from lib.parser import Parser
@@ -319,7 +321,7 @@ class RW_Matrix4x4:
         return Vector3(x=self.row4.x, y=self.row4.y, z=self.row4.z)
 
     def __repr__(self):
-        return f"RW_Matrix4x4({self.row1}, {self.row2}, {self.row3}, {self.row4})"
+        return f"RW_Matrix4x4(\n{self.row1},\n {self.row2},\n {self.row3},\n {self.row4})"
 
 
 def expect_chunk_type_or_raise(
@@ -447,6 +449,10 @@ class RW_StreamFunc_NotImplemented(RW_StreamFunc):
             f" Type : {self.header.type:#06x} ({secname})\n"
             "\033[0m",
         )
+
+    @property
+    def streamfunc(self):
+        return strfunc_func(self.header.type)
 
 @dataclass
 class RW_Frame:

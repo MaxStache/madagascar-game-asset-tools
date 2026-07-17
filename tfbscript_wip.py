@@ -229,12 +229,12 @@ def render_line(instructions, op_names, i, prefix):
         )
 
     elif op_name == "if/else::op-code":
-        # If/else carries no payload of its own -- at runtime the engine
-        # evaluates the FIRST instruction of the then-branch as the condition
-        # (Game.exe FUN_00431790) and picks the then/else span based on its
-        # result. Fold that condition instruction's own rendered line into
-        # the IF/ELSE line, and keep it out of the then-children (the caller
-        # is expected to skip `i + 1` when iterating, via hidden_indices).
+        # if/else carries no payload of its own. Its condition is always its
+        # first child (i+1); the condition's OWN span is the then-branch, and
+        # whatever follows within if/else's own span (when its 'b' bit 0 is
+        # clear) is the else-branch (Game.exe FUN_00431790; see hidden_indices/
+        # else_start in parse_tfbscirpt_file). Fold the condition's rendered
+        # line into this IF/ELSE line instead of printing it standalone.
         cond_idx = i + 1
         cond_line = render_line(instructions, op_names, cond_idx, "")
 
@@ -621,6 +621,22 @@ def render_line(instructions, op_names, i, prefix):
             f"in {CRef(collection_ref)} ({CEnum(order)})",
         )
 
+    elif op_name == "use camera::op-code":
+        p = OpParser(instr["payload"])
+
+        cam_ref = p.readRef()
+        trans_in_mode = p.readUint8()
+        trans_in_duration = p.readFloat()
+        trans_out_mode = p.readUint8()
+        if trans_out_mode != 0:
+             trans_out_duration = p.readFloat()
+
+        line = BUILD_LINE(
+            prefix,
+            "USE CAMERA",
+            f"{CRef(cam_ref)}, transition in {CNum(trans_in_mode)} for {CNum(trans_in_duration)} seconds, transition out {CNum(trans_out_mode)} for {CNum(trans_out_duration) if trans_out_mode != 0 else 'N/A'} seconds",
+        )
+
     elif op_name == "find subset::op-code":
         p = OpParser(instr["payload"])
 
@@ -703,9 +719,10 @@ def render_line(instructions, op_names, i, prefix):
         line = (
             f"{prefix}{op_name:<26} "
             f"A: {a:<3} "
-            f"B: {b:<3} "  # figured out so far
-            f"C: {c:<3} "  # always 0 in tested scirpts
-            f"D: {d:<3} "  # always 0 in tested scirpts
+            f"B: {b:<3} "
+            f"C: {c:<3} "
+            f"D: {d:<3} "
+            f"span: {instr['span']:<4} "  # descendant count: (a|b<<8|c<<16|d<<24)>>11
             f"Payload: {payload_hex}"
         )
 
@@ -774,53 +791,51 @@ def parse_tfbscirpt_file(filename):
                 "d": buf.readUint8(),
                 "payload_size": buf.readUint8(),
             }
-            orig_offset = buf.offset
-            buf.offset -= 6
-            #print("opcode index:", buf.readUint8())
-            #print("pending branch flag:", buf.readBytes(1))
-            #print("unk:", buf.readUint8())
-            #print("branchPC:", buf.readUint16())
-            buf.offset = orig_offset
             instruction["payload"] = buf.readBytes(instruction["payload_size"])
-            instruction["then_count"] = instruction["b"] >> 3
-            instruction["else_count"] = instruction["c"] >> 3
+            # Confirmed via Ghidra (Game.exe FUN_004349e0 + 15 opcode-handler
+            # functions): a/b/c/d pack into ONE little-endian u32; bits 11-31 are
+            # a single 21-bit descendant span -- NOT separate b>>3 then-count /
+            # c>>3 else-count, that was wrong. c and d are overflow bits of the
+            # same span, not a second field. a & 0x40 = no handler bound for this
+            # instruction (loader skips construction). a & 0x80 is a runtime-only
+            # scratch flag, always 0 as authored on disk.
+            packed = (
+                instruction["a"]
+                | (instruction["b"] << 8)
+                | (instruction["c"] << 16)
+                | (instruction["d"] << 24)
+            )
+            instruction["span"] = packed >> 11
+            instruction["no_handler_bound"] = bool(instruction["a"] & 0x40)
             instructions.append(instruction)
 
         def compute_layout(instrs):
             """Rebuild the pre-order instruction tree.
 
-            Every instruction declares two consecutive child groups that follow it:
-              (b >> 3) instructions form the primary ("then"/body) branch, and
-              (c >> 3) instructions form the secondary ("else") branch.
-            Children nest recursively. Returns per-index indent depth and the set of
-            indices that begin an else-branch (verified to tile exactly on every
-            shipped .ai file).
+            Confirmed via Ghidra (Game.exe FUN_00431130, the shared "walk my span"
+            driver reused by ~15 opcode handlers): every instruction carries ONE
+            span -- the count of following instructions that are its descendants,
+            flattened pre-order. There's no separate then/else split at this level;
+            for if/else specifically, the then/else boundary is recovered below
+            from its condition child's own span.
             """
             n = len(instrs)
             depth = [0] * n
-            else_start = set()
 
             def consume(i, d):
                 depth[i] = d
-                then_n = instrs[i]["b"] >> 3
-                else_n = instrs[i]["c"] >> 3
                 j = i + 1
-                end_then = j + then_n
-                while j < end_then:
+                end = j + instrs[i]["span"]
+                while j < end:
                     j = consume(j, d + 1)
-                if else_n:
-                    else_start.add(j)
-                    end_else = j + else_n
-                    while j < end_else:
-                        j = consume(j, d + 1)
                 return j
 
             idx = 0
             while idx < n:
                 idx = consume(idx, 0)
-            return depth, else_start
+            return depth
 
-        depth, else_start = compute_layout(instructions)
+        depth = compute_layout(instructions)
 
         # Opcode 0xFF is a script SECTION marker (no handler, no payload). The engine
         # (Game.exe FUN_004349e0) names each by order of appearance: 1st=PRESCRIPT,
@@ -846,13 +861,37 @@ def parse_tfbscirpt_file(filename):
             else:
                 op_names.append(opcode_name(instr["opcode"], table1))
 
-        # if/else has no payload of its own; its condition is the first instruction
-        # of its then-branch (see render_line). Hide that instruction from the
-        # normal then-children so it isn't also printed as its own line.
+        # if/else's condition is always its first child (Game.exe FUN_00431790
+        # unconditionally evaluates it). Fold that line into the IF/ELSE line
+        # instead of also printing it standalone.
         hidden_indices = set()
         for i, instr in enumerate(instructions):
-            if op_names[i] == "if/else::op-code" and (instr["b"] >> 3) >= 1:
+            if op_names[i] == "if/else::op-code":
                 hidden_indices.add(i + 1)
+
+        # The condition's own span becomes an extra (invisible) nesting level once
+        # its line is folded into IF/ELSE's -- pull its descendants back up one
+        # depth so the "then" body lines up directly under IF/ELSE, not under the
+        # hidden condition.
+        for h in hidden_indices:
+            for k in range(h + 1, h + 1 + instructions[h]["span"]):
+                depth[k] -= 1
+
+        # Confirmed via Ghidra (Game.exe FUN_00431790, raw disassembly at
+        # 0x004317d8 "TEST CH, 0x1"): if/else's own 'b' bit 0 (mask 0x100 on the
+        # packed dword) is clear when an else-branch is present. That branch is
+        # whatever remains of if/else's span after the condition's own
+        # (then-branch) span ends.
+        else_start = set()
+        for i, instr in enumerate(instructions):
+            if op_names[i] != "if/else::op-code":
+                continue
+            cond_idx = i + 1
+            has_else = (instr["b"] & 0x01) == 0
+            if has_else:
+                else_idx = cond_idx + 1 + instructions[cond_idx]["span"]
+                if else_idx < i + 1 + instr["span"]:
+                    else_start.add(else_idx)
 
         print("----- INSTRUCTIONS -----")
 
@@ -862,15 +901,10 @@ def parse_tfbscirpt_file(filename):
 
             indent = depth[i]
             if i in else_start:
-                # else-branch sibling of the enclosing branch node (one level out)
-                # print("   " * (indent - 1) + "ELSE:")
-                pass
+                print("   " * (indent - 1) + "ELSE:")
 
             prefix = "   " * indent
-            line = (
-                render_line(instructions, op_names, i, prefix)
-                #+ f"  // then_num {instr['then_count']}, else_num {instr['else_count']}"
-            )
+            line = render_line(instructions, op_names, i, prefix)
             print(line)
 
             if instr["d"] > 0:
@@ -885,7 +919,7 @@ def parse_tfbscirpt_file(filename):
 # 543_ME_Ring_Detector.ai
 if __name__ == "__main__":
 
-    parse_tfbscirpt_file("Levels/banquet/701_Melman_RunAsPlayer.ai")
+    parse_tfbscirpt_file("Levels/KingOfNY/1019_pr_edge_climb_master.ai")
     #for filename in glob.glob("Levels/KingOfNY/*.ai"):
     #    print(f"\n\nParsing {filename}...")
     #    parse_tfbscirpt_file(filename)

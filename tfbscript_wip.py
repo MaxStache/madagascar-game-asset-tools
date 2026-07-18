@@ -197,10 +197,6 @@ def render_line(instructions, op_names, i, prefix):
     instr = instructions[i]
     op_name = op_names[i]
 
-    a = instr["a"]
-    b = instr["b"]
-    c = instr["c"]
-    d = instr["d"]
     pl = instr["payload"]
     payload_hex = pl.hex()
 
@@ -225,7 +221,7 @@ def render_line(instructions, op_names, i, prefix):
         line = BUILD_LINE(
             prefix,
             "PRINT",
-            f"{CStr(text)} on {CRef(ref)}",
+            f"{CRef(ref)} + {CStr(text)}",
         )
 
     elif op_name == "if/else::op-code":
@@ -718,11 +714,7 @@ def render_line(instructions, op_names, i, prefix):
             UNIMPLEMENTED_OPCODES.add(op_name)
         line = (
             f"{prefix}{op_name:<26} "
-            f"A: {a:<3} "
-            f"B: {b:<3} "
-            f"C: {c:<3} "
-            f"D: {d:<3} "
-            f"span: {instr['span']:<4} "  # descendant count: (a|b<<8|c<<16|d<<24)>>11
+            f"branchPC: {instr['span']:<4} "  # descendant count: (a|b<<8|c<<16|d<<24)>>11
             f"Payload: {payload_hex}"
         )
 
@@ -745,8 +737,8 @@ def parse_tfbscirpt_file(filename):
         unk_count = buf.readUint32()
 
         table1 = readStringTable(buf)  # opcode names
-        table2 = readStringTable(buf)
-        table3 = readStringTable(buf)
+        table2 = readStringTable(buf) # global
+        table3 = readStringTable(buf) # local
 
         behaviours = []
         for i in table3:
@@ -755,58 +747,27 @@ def parse_tfbscirpt_file(filename):
 
         TABLE1, TABLE2, TABLE3 = table1, table2, table3
 
-        combined_table = table2 + table3
-
-        def resolve_ref(ref_bytes):
-            addr = ref_bytes[2] * 256 + ref_bytes[1]
-            slot = addr // 0x40
-            sub = addr % 0x40
-            if slot < len(combined_table):
-                name = combined_table[slot]["string"]
-                return f"{name}+{sub:#x}" if sub else name
-            return f"global:{ref_bytes.hex()}"  # cross-script; need level-wide slot map
-
-        print(f"Script Name: {scriptName}")
-        print(f"Unknown Count: {unk_count}")
-        print(f"Opcodes: {len(table1)} entries")
-        for i, entry in enumerate(table1):
-            print(f"  {i}: {entry['string']} (metadata: {entry['metadata']})")
-        print()
-        print(f"GLOBAL References: {len(table2)} entries")
-        for i, entry in enumerate(table2):
-            print(f"  {i}: {entry['string']} (metadata: {entry['metadata']})")
-        print()
-        print(f"LOCAL  References: {len(table3)} entries")
-        for i, entry in enumerate(table3):
-            print(f"  {i}: {entry['string']} (metadata: {entry['metadata']})")
 
         instruction_count = buf.readUint32()
         instructions = []
         for _ in range(instruction_count):
             instruction = {
                 "opcode": buf.readUint8(),
-                "a": buf.readUint8(),
-                "b": buf.readUint8(),
-                "c": buf.readUint8(),
-                "d": buf.readUint8(),
-                "payload_size": buf.readUint8(),
             }
-            instruction["payload"] = buf.readBytes(instruction["payload_size"])
             # Confirmed via Ghidra (Game.exe FUN_004349e0 + 15 opcode-handler
-            # functions): a/b/c/d pack into ONE little-endian u32; bits 11-31 are
-            # a single 21-bit descendant span -- NOT separate b>>3 then-count /
-            # c>>3 else-count, that was wrong. c and d are overflow bits of the
-            # same span, not a second field. a & 0x40 = no handler bound for this
-            # instruction (loader skips construction). a & 0x80 is a runtime-only
-            # scratch flag, always 0 as authored on disk.
-            packed = (
-                instruction["a"]
-                | (instruction["b"] << 8)
-                | (instruction["c"] << 16)
-                | (instruction["d"] << 24)
-            )
+            # functions): the four bytes following the opcode pack into ONE
+            # little-endian u32; bits 11-31 are a single 21-bit descendant span
+            # -- NOT separate byte-wise then-count/else-count fields, that was
+            # wrong. Bit 6 (0x40) = no handler bound for this instruction
+            # (loader skips construction). Bit 7 (0x80) is a runtime-only
+            # scratch flag, always 0 as authored on disk. Bit 8 (0x100) is
+            # if/else's "no else branch" flag (see else_start below).
+            packed = buf.readUint32()
+            instruction["payload_size"] = buf.readUint8()
+            instruction["payload"] = buf.readBytes(instruction["payload_size"])
             instruction["span"] = packed >> 11
-            instruction["no_handler_bound"] = bool(instruction["a"] & 0x40)
+            instruction["no_handler_bound"] = bool(packed & 0x40)
+            instruction["else_absent"] = bool(packed & 0x100)
             instructions.append(instruction)
 
         def compute_layout(instrs):
@@ -878,16 +839,16 @@ def parse_tfbscirpt_file(filename):
                 depth[k] -= 1
 
         # Confirmed via Ghidra (Game.exe FUN_00431790, raw disassembly at
-        # 0x004317d8 "TEST CH, 0x1"): if/else's own 'b' bit 0 (mask 0x100 on the
-        # packed dword) is clear when an else-branch is present. That branch is
-        # whatever remains of if/else's span after the condition's own
-        # (then-branch) span ends.
+        # 0x004317d8 "TEST CH, 0x1"): if/else's own "else_absent" bit (mask
+        # 0x100 on the packed dword) is clear when an else-branch is present.
+        # That branch is whatever remains of if/else's span after the
+        # condition's own (then-branch) span ends.
         else_start = set()
         for i, instr in enumerate(instructions):
             if op_names[i] != "if/else::op-code":
                 continue
             cond_idx = i + 1
-            has_else = (instr["b"] & 0x01) == 0
+            has_else = not instr["else_absent"]
             if has_else:
                 else_idx = cond_idx + 1 + instructions[cond_idx]["span"]
                 if else_idx < i + 1 + instr["span"]:
@@ -907,10 +868,6 @@ def parse_tfbscirpt_file(filename):
             line = render_line(instructions, op_names, i, prefix)
             print(line)
 
-            if instr["d"] > 0:
-                print(
-                    f"Unhandle instruction prop D: {instr['d']} in opcode {op_names[i]}"
-                )
 
 
 # 1046_Alex_RunAsPlayer.ai
@@ -919,7 +876,7 @@ def parse_tfbscirpt_file(filename):
 # 543_ME_Ring_Detector.ai
 if __name__ == "__main__":
 
-    parse_tfbscirpt_file("Levels/KingOfNY/1019_pr_edge_climb_master.ai")
+    parse_tfbscirpt_file("Levels/KingOfNY-unchanged/845_Marty_RunAsPlayer.ai")
     #for filename in glob.glob("Levels/KingOfNY/*.ai"):
     #    print(f"\n\nParsing {filename}...")
     #    parse_tfbscirpt_file(filename)

@@ -28,6 +28,9 @@ class Color(Enum):
     STRING = ANSI_COLOR("#98c379")
     COMMENT = ANSI_COLOR("#5c6370")
     ENUM_VALUE = ANSI_COLOR("#c678dd")
+
+    GLOBAL = ANSI_COLOR("#daad59")
+
     RESET = "\033[0m"
 
 

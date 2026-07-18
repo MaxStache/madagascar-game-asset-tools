@@ -26,6 +26,8 @@ and global refs walk table2 in order (actor/value pairs) as the logic expects.
 from dataclasses import dataclass
 from typing import List, Optional, Sequence, Union
 
+from formats.lib.sytax_hilighting import Color, color_text
+
 # --- constants from FUN_00432f70 ------------------------------------------
 LOCAL_BASE = 0x3FC0D  # index >= this (and < BUILTIN_BASE) => script-local
 BUILTIN_BASE = 0x3FFFA  # index >= this => engine built-in object
@@ -67,7 +69,11 @@ class Reference:
         if self.kind == "null":
             return "<null>"
 
-        s = self.name
+        if self.kind == "global":
+            s = color_text(f"global[ {self.name} ]", Color.GLOBAL)
+        else:
+            s = self.name
+
         if self.member:
             if self.name.endswith("::sound"):  # type is sound
                 if self.member == 1:
@@ -392,6 +398,19 @@ class Reference:
                 }
                 if self.member in FOG_FIELDS:
                     s += f".[{FOG_FIELDS[self.member]}]"
+                else:
+                    s += f".field[{self.member:#04x}]"
+            elif self.name.endswith("::rumble"):  # type is rumble
+                RUMBLE_FIELDS = {
+                    0x01: "low frequency",
+                    0x02: "high frequency",
+                    0x03: "duration",
+                    0x04: "radius",
+                    0x05: "attenuation",
+                    0x06: "time remaining",
+                }
+                if self.member in RUMBLE_FIELDS:
+                    s += f".[{RUMBLE_FIELDS[self.member]}]"
                 else:
                     s += f".field[{self.member:#04x}]"
             else:

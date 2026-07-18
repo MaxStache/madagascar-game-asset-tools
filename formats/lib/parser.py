@@ -1,5 +1,5 @@
 import struct
-from typing import Dict
+from typing import Any, Dict
 import uuid
 
 
@@ -22,14 +22,23 @@ class Parser:
     # Core helpers
     # -------------------------
 
-    def _read(self, fmt: str):
+    def _read(self, fmt: str) -> Any:
+        size = struct.calcsize(fmt)
+        if self.offset + size > len(self.data):
+            raise EOFError("Attempt to read past end of buffer")
+    
+        value = struct.unpack_from(fmt, self.data, self.offset)[0]
+        self.offset += size
+        return value
+    
+    def _readTuple(self, fmt: str) -> tuple[Any, ...]:
         size = struct.calcsize(fmt)
         if self.offset + size > len(self.data):
             raise EOFError("Attempt to read past end of buffer")
 
         value = struct.unpack_from(fmt, self.data, self.offset)
         self.offset += size
-        return value[0] if len(value) == 1 else value
+        return value
 
     def read(self, size: int) -> bytes:
         """
@@ -70,7 +79,7 @@ class Parser:
     # Integer reads
     # -------------------------
 
-    def readUint8(self):
+    def readUint8(self) -> int:
         return self._read(self.endian + "B")
 
     def readInt8(self):

@@ -53,6 +53,9 @@ for sf in kony.contents:
             if "Cheats_Enabled".encode("latin-1") in attr.data:
                 attr.data = b'\x01\x00\x00\x00\x01\x00\x00\x00Cheats_Enabled?\x00'
                 print("Updated atributee")
+            if "Design Build".encode("latin-1") in attr.data:
+                attr.data = b'\x01\x00\x00\x00\x01\x00\x00\x00Design Build?\x00'
+                print("Updated atributee")
 
         #dircam = sf.find_first_class("GameCamera")
         #dircam.find_first_attribute(4).data = struct.pack("<I", 90)

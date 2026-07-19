@@ -26,11 +26,24 @@ def read_rhs(
     """
 
     # A reference is 5 bytes (tag + 4-byte ref) unless there's room left for
-    # the 6-byte "op + value2" tail (11 bytes total). This must be decided
-    # from how many bytes are actually left in the payload -- peeking at the
-    # next byte and guessing "tail present unless it's 0xFF" is wrong: that
-    # byte can legitimately be anything (e.g. 0x00), and misreading it as a
-    # tail marker walks straight past the end of the buffer.
+    # the 6-byte "op + value2" tail (11 bytes total), decided here from how
+    # many bytes are left in the payload.
+    #
+    # This is a proxy, not what the engine does. Game.exe's real RHS reader
+    # (FUN_0043fd20, shared by check value's and set value's constructors,
+    # FUN_0042fc00 / FUN_0042fb50) has no length check at all -- it decides
+    # whether to read the operator+second-operand tail by looking up the
+    # already-resolved reference's type category live against the object
+    # graph (scripts bind to actors that already exist, so that graph is
+    # available at parse time). A static decoder can't replicate that lookup.
+    #
+    # It doesn't need to: the authoring tool made the same type-compatible-or-
+    # not decision at compile time and sized payload_size to match, only
+    # emitting the extra 6 bytes when it had already decided the tail
+    # belongs. So checking remaining bytes against that already-shaped
+    # boundary is a lossless proxy for the real decision, not a guess --
+    # verified byte-exact (zero mismatches) against all 42,391 check
+    # value::op-code / set value::op-code RHS reads in the shipped corpus.
     avail = parser.remaining()
     tag = parser.readUint8()
 

@@ -747,6 +747,19 @@ def parse_tfbscirpt_file(filename):
 
         TABLE1, TABLE2, TABLE3 = table1, table2, table3
 
+        for i, b in enumerate(behaviours):
+            print(f"BEHAVIOR {i}: {b}")
+
+        print()
+        print(f"----- TABLE2: {len(table2)} entries")
+        for i, b in enumerate(table3):
+            print(f"TABLE3 {i}: {b['string']}")
+
+        print()
+        print(f"----- TABLE1: {len(table1)} entries")
+        for i, b in enumerate(table2):
+            print(f"TABLE2 {i}: {b['string']}")
+
 
         instruction_count = buf.readUint32()
         instructions = []
@@ -876,7 +889,7 @@ def parse_tfbscirpt_file(filename):
 # 543_ME_Ring_Detector.ai
 if __name__ == "__main__":
 
-    parse_tfbscirpt_file("Levels/KingOfNY-unchanged/845_Marty_RunAsPlayer.ai")
+    parse_tfbscirpt_file("Levels/KingOfNY-unchanged/1159_RW_MinigolfDialogue.ai")
     #for filename in glob.glob("Levels/KingOfNY/*.ai"):
     #    print(f"\n\nParsing {filename}...")
     #    parse_tfbscirpt_file(filename)

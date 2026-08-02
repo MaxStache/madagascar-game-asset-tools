@@ -20,7 +20,7 @@ _STEP_TABLE = [
 _INDEX_TABLE = [-1, -1, -1, -1, 2, 4, 6, 8, -1, -1, -1, -1, 2, 4, 6, 8]
 # fmt: on
 
-def _decode_nibble(nibble, pred, idx):
+def _decode_nibble(nibble: int, pred: int, idx: int) -> tuple[int, int]:
     step = _STEP_TABLE[idx]
     diff = step >> 3
     if nibble & 4:
@@ -60,12 +60,12 @@ def decode(data: bytes, channels: int, block_size: int) -> bytes:
     (ch0 header + ch0 nibbles, then ch1 header + ch1 nibbles, ...).
     This differs from standard MS IMA which byte-interleaves channels.
     """
-    all_samples = []
+    all_samples: list[float] = []
     offset = 0
     chan_block = block_size // channels
 
     while offset + block_size <= len(data):
-        ch_samples = []
+        ch_samples: list[list[float]] = []
         for ch in range(channels):
             chan_off = offset + ch * chan_block
             pred, idx = struct.unpack_from("<hB", data, chan_off)

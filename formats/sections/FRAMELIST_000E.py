@@ -1,7 +1,8 @@
 import io
 from dataclasses import dataclass, field
+from typing import override
 
-from formats.lib.writer import _write_u32
+from formats.lib.writer import write_u32
 from formats.lib.parser import Parser
 from formats.lib.rwConstants import RWSectionType
 from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise, RW_Frame
@@ -15,9 +16,10 @@ class RW_FrameList_Struct(RW_Section):
     frame_count: int = 0  # u32
     frames: list[RW_Frame] = field(default_factory=list)  # RW_Frame each
 
-    @staticmethod
-    def read(parser: Parser) -> "RW_FrameList_Struct":
-        fl_struct = RW_FrameList_Struct()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_FrameList_Struct":
+        fl_struct = cls()
         fl_struct.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             fl_struct.header,
@@ -32,11 +34,12 @@ class RW_FrameList_Struct(RW_Section):
 
         return fl_struct
 
-    def write(this, f, stamp):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        _write_u32(buf, len(this.frames))  # frame_count
-        for frame in this.frames:
+        write_u32(buf, len(self.frames))  # frame_count
+        for frame in self.frames:
             frame.write(buf)
 
         rw_header = RWHeader(
@@ -55,9 +58,10 @@ class RW_FrameList(RW_Section):
 
     extensions: list[RW_Extension] = field(default_factory=list)
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_FrameList":
-        framelist = RW_FrameList()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_FrameList":
+        framelist = cls()
         framelist.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             framelist.header,
@@ -80,13 +84,14 @@ class RW_FrameList(RW_Section):
 
         return framelist
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        this.struct.write(buf, stamp)
+        self.struct.write(buf, stamp)
 
-        for extension in this.extensions:
-            extension.write(buf, stamp, parent=this)
+        for extension in self.extensions:
+            extension.write(buf, stamp, parent=self)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_FRAMELIST.value,

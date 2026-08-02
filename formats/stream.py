@@ -1,10 +1,14 @@
 import io
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Union
+from typing import BinaryIO
+
+from formats.lib.parser import Parser
+from formats.lib.rwConstants import DEFAULT_VERSION_STAMP
 from formats.lib.rw_basics import RW_StreamFunc, RWHeader
 from formats.streamfuncs import STRFUNC_REGISTRY
-from formats.lib.parser import Parser
+
+import gzip
 
 __version__ = "1.0.0"
 
@@ -33,27 +37,37 @@ class RW_StreamFile:
 
         return streamf
 
-    def write(this, f, stamp):
+    def write(self, f: BinaryIO, stamp: int) -> None:
         buf = io.BytesIO()
 
-        for sf in this.contents:
+        for sf in self.contents:
             sf.write(buf, stamp)
 
         f.write(buf.getvalue())
 
-def load_stream(filepath: Union[str, Path]) -> RW_StreamFile:
+    def save(self, filepath: str | Path) -> None:
+        """WRITE WITH DEFAULT VERSION STAMP"""
+        with open(filepath, "wb") as f:
+            self.write(f, DEFAULT_VERSION_STAMP)
+
+def load_stream(filepath: str | Path, gzipped: bool = False) -> RW_StreamFile:
     """Load a STREAM level file from disk
 
     Args:
         filepath: Path to the .stream file.
+        gzipped: Whether the file is gzipped or not.
 
     Returns:
         Parsed Stream File.
     """
 
-    with open(filepath, "rb") as f:
-        parser = Parser(f.read(), endian="little")
+    if gzipped:
+        with gzip.open(filepath, "rb") as f:
+            parser = Parser(f.read(), endian="little")
+    else:
+        with open(filepath, "rb") as f:
+            parser = Parser(f.read(), endian="little")
 
-        stream = RW_StreamFile.read(parser)
+    stream = RW_StreamFile.read(parser)
 
     return stream

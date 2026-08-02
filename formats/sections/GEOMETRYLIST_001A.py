@@ -1,7 +1,8 @@
 import io
 from dataclasses import dataclass, field
+from typing import override
 
-from formats.lib.writer import _write_u32
+from formats.lib.writer import write_u32
 from formats.lib.parser import Parser
 from formats.lib.rwConstants import RWSectionType
 from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
@@ -12,10 +13,11 @@ from formats.sections.GEOMETRY_000F import RW_Geometry
 class RW_GeometryList_Struct(RW_Section):
     header: RWHeader = field(default_factory=RWHeader)
 
-    numGeometries: int = 0  # u32
+    numGeometries: int = field(default=0)  # u32
 
-    @staticmethod
-    def read(parser: Parser) -> "RW_GeometryList_Struct":
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_GeometryList_Struct":
         gl_struct = RW_GeometryList_Struct()
         gl_struct.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -28,10 +30,11 @@ class RW_GeometryList_Struct(RW_Section):
 
         return gl_struct
 
-    def write(this, f, stamp):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        _write_u32(buf, this.numGeometries)
+        write_u32(buf, self.numGeometries)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_STRUCT.value,
@@ -49,8 +52,9 @@ class RW_GeometryList(RW_Section):
 
     geometries: list[RW_Geometry] = field(default_factory=list)  # RW_Geometry each
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_GeometryList":
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_GeometryList":
         geolist = RW_GeometryList()
         geolist.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -67,13 +71,14 @@ class RW_GeometryList(RW_Section):
 
         return geolist
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        this.struct.write(buf, stamp)
+        self.struct.write(buf, stamp)
 
-        for geo in this.geometries:
-            geo.write(buf, stamp, parent=this)
+        for geo in self.geometries:
+            geo.write(buf, stamp, parent=self)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_GEOMETRYLIST.value,
@@ -82,5 +87,3 @@ class RW_GeometryList(RW_Section):
         )
         f.write(rw_header.pack())
         f.write(buf.getvalue())
-
-    header: RWHeader = field(default_factory=RWHeader)

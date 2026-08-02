@@ -1,7 +1,8 @@
 import io
 from dataclasses import dataclass, field
+from typing import override
 
-from formats.lib.writer import _write_f32
+from formats.lib.writer import write_f32
 from formats.lib.parser import Parser
 from formats.lib.rwConstants import RWSectionType
 from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
@@ -12,11 +13,12 @@ class RW_Rockstar_SpecularMaterial(RW_Section):
     header: RWHeader = field(default_factory=RWHeader)
     
     specular_level: float = field(default=0.0) # Specular Level (0.0-1.0)
-    specular_texture_name: float = field(default=0.0) # Specular Texture Name
+    specular_texture_name: str = field(default="") # Specular Texture Name
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_Rockstar_SpecularMaterial":
-        specmat = RW_Rockstar_SpecularMaterial()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_Rockstar_SpecularMaterial":
+        specmat = cls()
         specmat.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             specmat.header,
@@ -30,12 +32,13 @@ class RW_Rockstar_SpecularMaterial(RW_Section):
 
         return specmat
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        _write_f32(buf, this.specular_level)  # specular level
+        write_f32(buf, self.specular_level)  # specular level
 
-        encoded_texture_name = this.specular_texture_name.encode("latin-1")
+        encoded_texture_name = self.specular_texture_name.encode("latin-1")
         buf.write(encoded_texture_name.ljust(24, b"\x00"))
 
         rw_header = RWHeader(

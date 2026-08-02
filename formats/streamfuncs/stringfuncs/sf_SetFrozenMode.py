@@ -1,5 +1,6 @@
 import io
 from dataclasses import dataclass, field
+from typing import Any, override
 
 from formats.lib.parser import Parser
 from formats.lib.rwConstants import strfunc_func
@@ -11,8 +12,10 @@ from formats.lib.rw_basics import RW_StreamFunc, RWHeader, expect_chunk_type_or_
 class RW_sf_SetFrozenMode(RW_StreamFunc):
     header: RWHeader = field(default_factory=RWHeader)
 
-    def read(parser: Parser) -> "RW_sf_SetFrozenMode":
-        frozenmode = RW_sf_SetFrozenMode()
+    @classmethod
+    @override
+    def read(cls, parser: Parser) -> "RW_sf_SetFrozenMode":
+        frozenmode = cls()
 
         frozenmode.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -23,7 +26,8 @@ class RW_sf_SetFrozenMode(RW_StreamFunc):
 
         return frozenmode
 
-    def write(this, f, stamp):
+    @override
+    def write(self, f, stamp):
         buf = io.BytesIO()
 
 
@@ -36,5 +40,19 @@ class RW_sf_SetFrozenMode(RW_StreamFunc):
         f.write(buf.getvalue())
 
     @property
+    @override
     def streamfunc(self):
         return strfunc_func.sf_SetFrozenMode
+
+    @override
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "header": self.header.to_dict(),
+        }
+
+    @classmethod
+    @override
+    def from_dict(cls, content: dict[str, Any]) -> "RW_StreamFunc":
+        header = RWHeader.from_dict(content.get("header", {}))
+
+        return cls(header=header)

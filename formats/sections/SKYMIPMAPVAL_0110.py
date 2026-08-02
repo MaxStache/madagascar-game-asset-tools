@@ -1,6 +1,7 @@
 import io
 from dataclasses import dataclass, field
 import struct
+from typing import override
 
 from formats.lib.parser import Parser
 from formats.lib.rwConstants import RWSectionType
@@ -16,9 +17,10 @@ class RW_SkyMipmapVal(RW_Section):
     k_val: int = 0  # signed 12-bit integer
     l_val: int = 0  # unsigned 2-bit integer
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_SkyMipmapVal":
-        skymmv = RW_SkyMipmapVal()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_SkyMipmapVal":
+        skymmv = cls()
         skymmv.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             skymmv.header,
@@ -38,11 +40,12 @@ class RW_SkyMipmapVal(RW_Section):
 
         return skymmv
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
         # Pack K and L into a single 32-bit integer
-        packed = (this.l_val & 0x3) << 12 | (this.k_val & 0xFFF)
+        packed = (self.l_val & 0x3) << 12 | (self.k_val & 0xFFF)
         buf.write(struct.pack("<I", packed))
 
         rw_header = RWHeader(

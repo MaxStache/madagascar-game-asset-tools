@@ -1,5 +1,6 @@
 from enum import Enum
 import io
+from typing import BinaryIO, override
 import uuid
 from dataclasses import dataclass, field
 
@@ -9,10 +10,10 @@ from formats.lib.rw_basics import (
     RW_Section,
     RWHeader,
     expect_chunk_type_or_raise,
-    _write_u8,
-    _write_u16,
-    _write_u32,
-    _write_bytes,
+    write_u8,
+    write_u16,
+    write_u32,
+    write_bytes,
 )
 
 # ---------------------------------------------------------------------------
@@ -35,7 +36,7 @@ from formats.lib.rw_basics import (
 #       decoded with uuid.UUID(bytes_le=...) (NOT bytes=...) to read correctly.
 # ---------------------------------------------------------------------------
 
-# Name blocks are padded to this alignment (RwAudio alloc alignment, DAT_006322c0
+# Name blocks are padded to self alignment (RwAudio alloc alignment, DAT_006322c0
 # in Game.exe -- runtime-initialized, so read as 0 statically; value 16 verified
 # from real wave structs, e.g. an 18-char name occupies a 32-byte field).
 _NAME_ALIGNMENT = 16
@@ -63,19 +64,17 @@ class CodecUUID(Enum):
 # fmt: on
 
 
-def _read_rwguid(parser: Parser) -> uuid.UUID:
+def read_rwguid(parser: Parser) -> uuid.UUID:
     """Read a 16-byte RenderWare GUID (Data1/2/3 little-endian on disk)."""
     return uuid.UUID(bytes_le=parser.readBytes(16))
 
 
-def _rwguid_bytes(value: uuid.UUID) -> bytes:
+def rwguid_bytes(value: uuid.UUID) -> bytes:
     return value.bytes_le
 
 
 def resolve_codec(guid: uuid.UUID):
     """Return the matching CodecUUID enum member, or None if unknown."""
-    if guid is None:
-        return None
     try:
         return CodecUUID(guid)
     except ValueError:
@@ -100,12 +99,12 @@ class RWA_WaveFormat:
     _aux_ref: int = 0           # u32  +0x10  runtime ptr on disk; nonzero => aux data present
     aux_size: int = 0           # u32  +0x14  size of aux/codec data
     _tail: bytes = b"\x00\x00\x00\x00"  # +0x18  (u8 flags, u8, u16 pad) kept verbatim
-    codec_uuid: uuid.UUID = None        # +0x1C  16-byte GUID (present when _format_ref != 0)
+    codec_uuid: uuid.UUID = field(default_factory=uuid.UUID)        # +0x1C  16-byte GUID (present when _format_ref != 0)
     aux_data: bytes = b""               # aux_size bytes (present when _aux_ref != 0)
 
     @property
     def codec(self):
-        """The CodecUUID enum member for this format, or None if unrecognized."""
+        """The CodecUUID enum member for self format, or None if unrecognized."""
         return resolve_codec(self.codec_uuid)
 
     @staticmethod
@@ -122,28 +121,29 @@ class RWA_WaveFormat:
         fmt._tail = parser.readBytes(4)
 
         if fmt._format_ref != 0:
-            fmt.codec_uuid = _read_rwguid(parser)
+            fmt.codec_uuid = read_rwguid(parser)
         if fmt._aux_ref != 0:
             fmt.aux_data = parser.readBytes(fmt.aux_size)
 
         return fmt
 
-    def write(self, f):
-        _write_u32(f, self.sample_rate)
-        _write_u32(f, self._format_ref)
-        _write_u32(f, self.data_size)
-        _write_u8(f, self.bit_depth)
-        _write_u8(f, self.channels)
-        _write_u16(f, self._pad0)
-        _write_u32(f, self._aux_ref)
-        _write_u32(f, self.aux_size)
-        _write_bytes(f, self._tail)
+    def write(self, f: BinaryIO):
+        write_u32(f, self.sample_rate)
+        write_u32(f, self._format_ref)
+        write_u32(f, self.data_size)
+        write_u8(f, self.bit_depth)
+        write_u8(f, self.channels)
+        write_u16(f, self._pad0)
+        write_u32(f, self._aux_ref)
+        write_u32(f, self.aux_size)
+        write_bytes(f, self._tail)
 
         if self._format_ref != 0:
-            _write_bytes(f, _rwguid_bytes(self.codec_uuid))
+            write_bytes(f, rwguid_bytes(self.codec_uuid))
         if self._aux_ref != 0:
-            _write_bytes(f, self.aux_data)
+            write_bytes(f, self.aux_data)
 
+    @override
     def __repr__(self):
         codec = self.codec.name if self.codec else (
             str(self.codec_uuid) if self.codec_uuid else "None"
@@ -166,11 +166,11 @@ class RWA_WaveStruct(RW_Section):
 
     loop_stream_flag: int = 0  # u32
 
-    identifier_uuid: uuid.UUID = None  # flags & FLAG_HAS_IDENTIFIER (wave-instance GUID)
+    identifier_uuid: uuid.UUID = field(default_factory=uuid.UUID)  # flags & FLAG_HAS_IDENTIFIER (wave-instance GUID)
     stream_name: str = ""              # flags & FLAG_HAS_NAME
     _name_padding: bytes = b""         # padding after the name (kept for exact round-trip)
-    decoder_uuid: uuid.UUID = None     # flags & FLAG_HAS_CODEC (codec/decoder class GUID)
-    aux_uuid: uuid.UUID = None         # flags & FLAG_HAS_AUX (auxiliary class GUID)
+    decoder_uuid: uuid.UUID = field(default_factory=uuid.UUID)     # flags & FLAG_HAS_CODEC (codec/decoder class GUID)
+    aux_uuid: uuid.UUID = field(default_factory=uuid.UUID)         # flags & FLAG_HAS_AUX (auxiliary class GUID)
 
     _trailing: bytes = b""  # any bytes after the parsed fields (normally empty)
 
@@ -199,9 +199,10 @@ class RWA_WaveStruct(RW_Section):
     def codec(self):
         return self.source_format.codec
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RWA_WaveStruct":
-        wavestruct = RWA_WaveStruct()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RWA_WaveStruct":
+        wavestruct = cls()
         wavestruct.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             wavestruct.header,
@@ -217,7 +218,7 @@ class RWA_WaveStruct(RW_Section):
         wavestruct.loop_stream_flag = parser.readUint32()
 
         if wavestruct.flags & FLAG_HAS_IDENTIFIER:
-            wavestruct.identifier_uuid = _read_rwguid(parser)
+            wavestruct.identifier_uuid = read_rwguid(parser)
 
         if wavestruct.flags & FLAG_HAS_NAME:
             start = parser.tell()
@@ -227,44 +228,45 @@ class RWA_WaveStruct(RW_Section):
             wavestruct._name_padding = parser.readBytes(pad_len)
 
         if wavestruct.flags & FLAG_HAS_CODEC:
-            wavestruct.decoder_uuid = _read_rwguid(parser)
+            wavestruct.decoder_uuid = read_rwguid(parser)
 
         if wavestruct.flags & FLAG_HAS_AUX:
-            wavestruct.aux_uuid = _read_rwguid(parser)
+            wavestruct.aux_uuid = read_rwguid(parser)
 
         #wavestruct._trailing = parser.readRemaining()
 
         return wavestruct
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        _write_u32(buf, this.flags)
-        this.source_format.write(buf)
-        this.dest_format.write(buf)
-        _write_u32(buf, this.loop_stream_flag)
+        write_u32(buf, self.flags)
+        self.source_format.write(buf)
+        self.dest_format.write(buf)
+        write_u32(buf, self.loop_stream_flag)
 
-        if this.flags & FLAG_HAS_IDENTIFIER:
-            _write_bytes(buf, _rwguid_bytes(this.identifier_uuid))
+        if self.flags & FLAG_HAS_IDENTIFIER:
+            write_bytes(buf, rwguid_bytes(self.identifier_uuid))
 
-        if this.flags & FLAG_HAS_NAME:
-            encoded = this.stream_name.encode("latin-1") + b"\x00"
-            _write_bytes(buf, encoded)
+        if self.flags & FLAG_HAS_NAME:
+            encoded = self.stream_name.encode("latin-1") + b"\x00"
+            write_bytes(buf, encoded)
             pad_len = (-len(encoded)) % _NAME_ALIGNMENT
             # Reproduce the original padding verbatim when the name is unchanged
             # (real files carry non-zero garbage there); otherwise zero-fill.
-            if len(this._name_padding) == pad_len:
-                _write_bytes(buf, this._name_padding)
+            if len(self._name_padding) == pad_len:
+                write_bytes(buf, self._name_padding)
             else:
-                _write_bytes(buf, b"\x00" * pad_len)
+                write_bytes(buf, b"\x00" * pad_len)
 
-        if this.flags & FLAG_HAS_CODEC:
-            _write_bytes(buf, _rwguid_bytes(this.decoder_uuid))
+        if self.flags & FLAG_HAS_CODEC:
+            write_bytes(buf, rwguid_bytes(self.decoder_uuid))
 
-        if this.flags & FLAG_HAS_AUX:
-            _write_bytes(buf, _rwguid_bytes(this.aux_uuid))
+        if self.flags & FLAG_HAS_AUX:
+            write_bytes(buf, rwguid_bytes(self.aux_uuid))
 
-        _write_bytes(buf, this._trailing)
+        write_bytes(buf, self._trailing)
 
         payload = buf.getvalue()
         rw_header = RWHeader(
@@ -275,11 +277,12 @@ class RWA_WaveStruct(RW_Section):
         f.write(rw_header.pack())
         f.write(payload)
 
+    @override
     def __repr__(self):
         return (
             f"RWA_WaveStruct(name={self.stream_name!r}, flags=0x{self.flags:X}, "
-            f"source={self.source_format!r}, dest={self.dest_format!r}, "
-            f"loop_stream_flag={self.loop_stream_flag}, "
-            f"identifier=\"{self.identifier_uuid}\", decoder=\"{self.decoder_uuid}\", "
-            f"aux=\"{self.aux_uuid}\")"
+            + f"source={self.source_format!r}, dest={self.dest_format!r}, "
+            + f"loop_stream_flag={self.loop_stream_flag}, "
+            + f"identifier=\"{self.identifier_uuid}\", decoder=\"{self.decoder_uuid}\", "
+            + f"aux=\"{self.aux_uuid}\")"
         )

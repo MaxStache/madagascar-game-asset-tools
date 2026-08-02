@@ -1,7 +1,8 @@
 import io
 from dataclasses import dataclass, field
+from typing import BinaryIO, override
 
-from formats.lib.writer import _write_u32, _write_s32
+from formats.lib.writer import write_u32, write_s32
 from formats.lib.parser import Parser
 from formats.lib.rwConstants import RWSectionType
 from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
@@ -22,8 +23,9 @@ class RW_MaterialList_Struct(RW_Section):
         default_factory=list
     )  # uint32 each material_count
 
-    @staticmethod
-    def read(parser: Parser) -> "RW_MaterialList_Struct":
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_MaterialList_Struct":
         matlist_s = RW_MaterialList_Struct()
         matlist_s.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -41,13 +43,14 @@ class RW_MaterialList_Struct(RW_Section):
 
         return matlist_s
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f: BinaryIO, stamp: int, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        _write_u32(buf,  len(this.materialIndices))
+        write_u32(buf,  len(self.materialIndices))
 
-        for idx in this.materialIndices:
-            _write_s32(buf, idx)
+        for idx in self.materialIndices:
+            write_s32(buf, idx)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_STRUCT.value,
@@ -67,9 +70,10 @@ class RW_MaterialList(RW_Section):
         default_factory=list
     )  # RW_Material each material_count
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_MaterialList":
-        matlist = RW_MaterialList()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_MaterialList":
+        matlist = cls()
         matlist.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             matlist.header,
@@ -85,18 +89,19 @@ class RW_MaterialList(RW_Section):
 
         return matlist
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f: BinaryIO, stamp: int, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        this.struct.write(buf, stamp)
+        self.struct.write(buf, stamp)
 
-        if len(this.struct.materialIndices) != len(this.materials):
+        if len(self.struct.materialIndices) != len(self.materials):
             raise ValueError(
-                f"Failed to write MATLIST! {len(this.materials)} materials but materialIndices has {len(this.struct.materialIndices)} entries"
+                f"Failed to write MATLIST! {len(self.materials)} materials but materialIndices has {len(self.struct.materialIndices)} entries"
             )
 
-        for mat in this.materials:
-            mat.write(buf, stamp, parent=this)
+        for mat in self.materials:
+            mat.write(buf, stamp, parent=self)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_MATLIST.value,

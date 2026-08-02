@@ -1,8 +1,9 @@
 import io
 from dataclasses import dataclass, field
+from typing import override
 
 from formats.lib.parser import Parser
-from formats.lib.writer import _write_u32, _write_f32, _write_u16
+from formats.lib.writer import write_u32, write_f32, write_u16
 from formats.lib.rwConstants import RWSectionType
 from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise, RWSphere, RW_UV, RWColor32, RW_GeometryTriangle, Vector3, library_id_unpack
 
@@ -128,9 +129,10 @@ class RW_Geometry_Struct(RW_Section):
         default_factory=list
     )  # RW_Geometry_Struct_MorphTarget each numMorphTargets
 
-    @staticmethod
-    def read(parser: Parser) -> "RW_Geometry_Struct":
-        geo_s = RW_Geometry_Struct()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_Geometry_Struct":
+        geo_s = cls()
         geo_s.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             geo_s.header,
@@ -164,7 +166,7 @@ class RW_Geometry_Struct(RW_Section):
                     uvSetCount = 2
 
             for _ in range(uvSetCount):
-                uv_set = []
+                uv_set: list[RW_UV] = []
                 for _ in range(geo_s.numVertices):
                     uv_set.append(RW_UV(u=parser.readFloat(), v=parser.readFloat()))
                 geo_s.texCordSets.append(uv_set)
@@ -198,41 +200,42 @@ class RW_Geometry_Struct(RW_Section):
 
         return geo_s
 
-    def write(this, f, stamp):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        _write_u32(buf, this.format.encode())  # format
-        _write_u32(buf, this.numTriangles)  # numTriangles
-        _write_u32(buf, this.numVertices)  # numVertices
-        _write_u32(buf, this.numMorphTargets)  # numMorphTargets
+        write_u32(buf, self.format.encode())  # format
+        write_u32(buf, self.numTriangles)  # numTriangles
+        write_u32(buf, self.numVertices)  # numVertices
+        write_u32(buf, self.numMorphTargets)  # numMorphTargets
 
         if library_id_unpack(stamp)[0] <= 0x34000:
-            _write_f32(buf, this.ambient)
-            _write_f32(buf, this.specular)
-            _write_f32(buf, this.diffuse)
+            write_f32(buf, self.ambient)
+            write_f32(buf, self.specular)
+            write_f32(buf, self.diffuse)
 
-        if not this.format.native:
-            if this.format.preLit:
-                for color in this.preLitColors:
+        if not self.format.native:
+            if self.format.preLit:
+                for color in self.preLitColors:
                     color.write(buf)
 
             # region UV sets
-            for uv_set in this.texCordSets:
+            for uv_set in self.texCordSets:
                 for uv in uv_set:
-                    _write_f32(buf, uv.u)
-                    _write_f32(buf, uv.v)
+                    write_f32(buf, uv.u)
+                    write_f32(buf, uv.v)
             # endregion
 
-            for tri in this.triangles:
-                _write_u16(buf, tri.vertex2)
-                _write_u16(buf, tri.vertex1)
-                _write_u16(buf, tri.materialIndex)
-                _write_u16(buf, tri.vertex3)
+            for tri in self.triangles:
+                write_u16(buf, tri.vertex2)
+                write_u16(buf, tri.vertex1)
+                write_u16(buf, tri.materialIndex)
+                write_u16(buf, tri.vertex3)
 
-            for mt in this.morphTargets:
+            for mt in self.morphTargets:
                 mt.boundingSphere.write(buf)
-                _write_u32(buf, int(mt.hasVertices))
-                _write_u32(buf, int(mt.hasNormals))
+                write_u32(buf, int(mt.hasVertices))
+                write_u32(buf, int(mt.hasNormals))
 
                 if mt.hasVertices:
                     for v in mt.vertices:
@@ -260,9 +263,10 @@ class RW_Geometry(RW_Section):
 
     extension: RW_Extension = field(default_factory=RW_Extension)
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_Geometry":
-        geo = RW_Geometry()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_Geometry":
+        geo = cls()
         geo.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             geo.header,
@@ -277,13 +281,14 @@ class RW_Geometry(RW_Section):
 
         return geo
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        this.struct.write(buf, stamp)
-        this.material_list.write(buf, stamp, parent=this)
+        self.struct.write(buf, stamp)
+        self.material_list.write(buf, stamp, parent=self)
 
-        this.extension.write(buf, stamp, parent=this)
+        self.extension.write(buf, stamp, parent=self)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_GEOMETRY.value,

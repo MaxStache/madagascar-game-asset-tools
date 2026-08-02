@@ -1,10 +1,12 @@
 import io
 from dataclasses import dataclass, field
+from typing import cast, override
 
-from formats.lib.writer import _write_u8, _write_f32, _write_u32
+from formats.lib.writer import write_u8, write_f32, write_u32
 from formats.lib.parser import Parser
 from formats.lib.rwConstants import RWSectionType
 from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise, RW_Matrix4x4, library_id_unpack
+from formats.sections.GEOMETRY_000F import RW_Geometry
 
 
 @dataclass
@@ -49,11 +51,11 @@ class RW_SkinPlugin(RW_Section):
         default_factory=list
     )  # u8 each, length = usedBones  - A list of bone indices, that are affected by the skin.
 
-    vertex_bone_mappings: list[list[tuple[int]]] = field(
+    vertex_bone_mappings: list[tuple[int, int, int, int]] = field(
         default_factory=list
     )  # (u8,u8,u8,u8) each, length = parent.struct.numVertices   - A list that maps all vertices to (up to) four bones of the skeleton.
 
-    vertex_bone_mapping_weights: list[tuple[float]] = field(
+    vertex_bone_mapping_weights: list[tuple[float, float, float, float]] = field(
         default_factory=list
     )  # (f32,f32,f32,f32) each, length = parent.struct.numVertices   - A list that weights each vertex-bone mapping.
 
@@ -78,9 +80,10 @@ class RW_SkinPlugin(RW_Section):
         default_factory=list
     )  # RW_SkinPlugin_BoneRemap each, length = numRemaps
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_SkinPlugin":
-        skinplg = RW_SkinPlugin()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_SkinPlugin":
+        skinplg = cls()
         skinplg.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             skinplg.header,
@@ -96,13 +99,14 @@ class RW_SkinPlugin(RW_Section):
         for _ in range(skinplg.usedBones):
             skinplg.affected_bone_indices.append(parser.readUint8())
 
+        assert parent is not None, "RW_SkinPlugin must have a parent RW_Section."
         if parent.header.type != RWSectionType.rwID_GEOMETRY.value:
             raise ValueError(
                 "RW_SkinPlugin must be a child of RW_Geometry, but parent is "
                 + RWSectionType(parent.header.type).name
             )
 
-        pNumVertices = parent.struct.numVertices
+        pNumVertices = cast(RW_Geometry, parent).struct.numVertices
 
         skinplg.vertex_bone_mappings = []
         for _ in range(pNumVertices):
@@ -156,50 +160,51 @@ class RW_SkinPlugin(RW_Section):
 
         return skinplg
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        _write_u8(buf, len(this.bone_transform_matrices))
-        _write_u8(buf, len(this.affected_bone_indices))
-        _write_u8(buf, this.maxVertexWeights)
-        _write_u8(buf, 0) # padding to align to 4 bytes
+        write_u8(buf, len(self.bone_transform_matrices))
+        write_u8(buf, len(self.affected_bone_indices))
+        write_u8(buf, self.maxVertexWeights)
+        write_u8(buf, 0) # padding to align to 4 bytes
 
-        for bone_index in this.affected_bone_indices:
-            _write_u8(buf, bone_index)
+        for bone_index in self.affected_bone_indices:
+            write_u8(buf, bone_index)
 
-        for m in this.vertex_bone_mappings:
-             _write_u8(buf, m[0])
-             _write_u8(buf, m[1])
-             _write_u8(buf, m[2])
-             _write_u8(buf, m[3])
+        for m in self.vertex_bone_mappings:
+             write_u8(buf, m[0])
+             write_u8(buf, m[1])
+             write_u8(buf, m[2])
+             write_u8(buf, m[3])
 
-        for w in this.vertex_bone_mapping_weights:
-            _write_f32(buf, w[0])
-            _write_f32(buf, w[1])
-            _write_f32(buf, w[2])
-            _write_f32(buf, w[3])
+        for w in self.vertex_bone_mapping_weights:
+            write_f32(buf, w[0])
+            write_f32(buf, w[1])
+            write_f32(buf, w[2])
+            write_f32(buf, w[3])
 
-        for bone in this.bone_transform_matrices:
-            if library_id_unpack(stamp)[0] < 0x37000 and this.maxVertexWeights == 0:
-                _write_u32(buf, bone.unused) # Only stored if version < 0x37000 && maxVertexWeights == 0
+        for bone in self.bone_transform_matrices:
+            if library_id_unpack(stamp)[0] < 0x37000 and self.maxVertexWeights == 0:
+                write_u32(buf, bone.unused) # Only stored if version < 0x37000 && maxVertexWeights == 0
 
             bone.transform.write(buf)
 
-        _write_u32(buf, this.boneLimit)
-        _write_u32(buf, len(this.boneGroups))
-        _write_u32(buf, len(this.boneRemaps))
+        write_u32(buf, self.boneLimit)
+        write_u32(buf, len(self.boneGroups))
+        write_u32(buf, len(self.boneRemaps))
 
-        if len(this.boneGroups) > 0:
-            for bRmpIdx in this.boneRemapIndices:
-                _write_u8(buf, bRmpIdx)
+        if len(self.boneGroups) > 0:
+            for bRmpIdx in self.boneRemapIndices:
+                write_u8(buf, bRmpIdx)
 
-            for bgrp in this.boneGroups:
-                _write_u8(buf, bgrp.firstBone)
-                _write_u8(buf, bgrp.numBones)
+            for bgrp in self.boneGroups:
+                write_u8(buf, bgrp.firstBone)
+                write_u8(buf, bgrp.numBones)
 
-            for brmp in this.boneRemaps:
-                _write_u8(buf, brmp.boneIndex)
-                _write_u8(buf, brmp.indices)
+            for brmp in self.boneRemaps:
+                write_u8(buf, brmp.boneIndex)
+                write_u8(buf, brmp.indices)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_SKINPLUGIN.value,

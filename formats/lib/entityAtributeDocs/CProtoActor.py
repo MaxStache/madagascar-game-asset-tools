@@ -56,7 +56,7 @@ HEADER_SKIP = 0
 # CPROTOACTOR_FIELDS_NOT_IN_ATTR1) to be non-null to take effect -- that
 # pointer lives outside command 1's block, so what's decoded here is only
 # the flag bit, not the fully-resolved runtime value.
-CPROTOACTOR_ATTR1_FIELDS = {
+CPROTOACTOR_ATTR1_FIELDS: dict[str, tuple[int, str] | tuple[int, str, int]] = {
     "solid_collision": (0x1B0, "flag", 0),
     "wall_climber": (0x1B0, "flag", 1),
     "wall_collision": (0x1B0, "flag", 2),
@@ -117,7 +117,7 @@ CPROTOACTOR_FIELDS_NOT_IN_ATTR1 = {
 }
 
 
-def parse_CProtoActor_attribute1(data: bytes) -> dict:
+def parse_CProtoActor_attribute1(data: bytes) -> dict[str, int | None | bool]:
     """
     Decode CProtoActor's stream "attribute 1" payload -- i.e.
     RW_strfunc_CreateEntity_Attribute.data for command==1 under class
@@ -127,17 +127,17 @@ def parse_CProtoActor_attribute1(data: bytes) -> dict:
     or None for any field whose offset falls outside the given data.
     """
     payload = data[HEADER_SKIP:]
-    result = {}
+    result: dict[str, int | None | bool] = {}
     flags = None
 
     for name, spec in CPROTOACTOR_ATTR1_FIELDS.items():
         offset, kind = spec[0], spec[1]
-        rel = offset - BASE_OFFSET
+        rel: int = offset - BASE_OFFSET
         if rel < 0 or rel + 4 > len(payload):
             result[name] = None
             continue
 
-        if kind == "flag":
+        if kind == "flag" and len(spec) == 3:
             if flags is None:
                 flags = struct.unpack_from("<I", payload, rel)[0]
             bit = spec[2]

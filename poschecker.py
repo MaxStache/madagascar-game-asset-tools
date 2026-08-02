@@ -3,7 +3,6 @@ from tkinter import ttk
 
 from formats.lib.game_memory import PlayerPosition
 
-
 UPDATE_MS = 50
 
 
@@ -26,8 +25,8 @@ class PositionViewer:
         )
         pos_frame.pack(fill="x")
 
-        self.value_labels = {}
-        self.entries = {}
+        self.value_labels: dict[str, ttk.Label] = {}
+        self.entries: dict[str, ttk.Entry] = {}
 
         for row, axis in enumerate(("X", "Y", "Z")):
             ttk.Label(
@@ -83,13 +82,13 @@ class PositionViewer:
 
     def update_position(self):
         try:
-            x, y, z = self.player.position
+            x, y, z = self.player.position # type: ignore
 
             self.value_labels["X"].config(text=f"{x:10.3f}")
             self.value_labels["Y"].config(text=f"{y:10.3f}")
             self.value_labels["Z"].config(text=f"{z:10.3f}")
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             for label in self.value_labels.values():
                 label.config(text="Error")
 
@@ -110,9 +109,9 @@ class PositionViewer:
                 if value:
                     values[axis.lower()] = float(value)
 
-            self.player.set_position(**values)
+            self.player.set_position(**values) # type: ignore
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             print(e)
 
 

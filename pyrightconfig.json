@@ -1,0 +1,46 @@
+{
+  "pythonVersion": "3.14",
+  "typeCheckingMode": "standard",
+
+  "exclude": [
+    "generated",
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.*",
+    "env",
+    ".venv",
+    "other/**",
+    "tools/**",
+    "formats/old_stream.py",
+    "blender_mad_import_bsp/**",
+    "stream_unpack.py",
+    "stream_repack.py"
+  ],
+
+  "reportMissingTypeStubs": "none",
+  "reportUnknownVariableType": "none",
+  "reportUnknownMemberType": "warning",
+  "reportUnknownArgumentType": "warning",
+  "reportUnknownLambdaType": "warning",
+  "reportUnknownParameterType": "warning",
+
+  "reportUnusedImport": "error",
+  "reportUnusedVariable": "warning",
+  "reportUnusedFunction": "warning",
+
+  "reportMissingImports": "error",
+  "reportMissingModuleSource": "warning",
+
+  "reportPrivateUsage": "warning",
+  "reportUnnecessaryCast": "warning",
+  "reportUnnecessaryComparison": "warning",
+  "reportUnnecessaryContains": "warning",
+  "reportUnnecessaryIsInstance": "warning",
+  "reportAssertAlwaysTrue": "warning",
+
+  "reportImplicitStringConcatenation": "warning",
+  "reportImplicitOverride": "error",
+  "reportPropertyTypeMismatch": "error",
+
+  "useLibraryCodeForTypes": true
+}

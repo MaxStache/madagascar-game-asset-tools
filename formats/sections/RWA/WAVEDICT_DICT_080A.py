@@ -1,4 +1,5 @@
 import io
+from typing import override
 import uuid
 from dataclasses import dataclass, field
 
@@ -8,10 +9,10 @@ from formats.lib.rw_basics import (
     RW_Section,
     RWHeader,
     expect_chunk_type_or_raise,
-    _write_u32,
-    _write_bytes,
+    write_u32,
+    write_bytes,
 )
-from formats.sections.RWA.WAVESTRUCT_0803 import _read_rwguid, _rwguid_bytes
+from formats.sections.RWA.WAVESTRUCT_0803 import read_rwguid, rwguid_bytes
 
 # ---------------------------------------------------------------------------
 # rwaID_WAVEDICT_DICT (0x80A) -- the wave dictionary's own struct chunk.
@@ -67,7 +68,7 @@ class RW_WaveDict_Dict(RW_Section):
     _registry_prev: int = 0   # +0x20  global dict-registry link .prev (recomputed on load)
 
     # -- persisted data --
-    guid: uuid.UUID = None    # +0x24  dictionary GUID
+    guid: uuid.UUID = field(default_factory=uuid.UUID)    # +0x24  dictionary GUID
     name: str = ""            # +0x34  null-terminated dictionary name
 
     _trailing: bytes = b""    # leftover bytes after the name (padding / buffer garbage)
@@ -85,53 +86,55 @@ class RW_WaveDict_Dict(RW_Section):
         """True when the dictionary's sample data is stored big-endian (GCN/Wii)."""
         return bool(self.info[3] & 0x08)
 
-    @staticmethod
-    def read(orig_parser: Parser, parent=None) -> "RW_WaveDict_Dict":
-        dict_struct = RW_WaveDict_Dict()
-        dict_struct.header = RWHeader.read(orig_parser)
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_WaveDict_Dict":
+        dict_struct = cls()
+        dict_struct.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             dict_struct.header,
             RWSectionType.rwaID_WAVEDICT_DICT.value,
             "RW_WaveDict_Dict chunk type",
         )
 
-        parser = Parser(orig_parser.read(dict_struct.header.size), endian="little")
+        p = Parser(parser.read(dict_struct.header.size), endian="little")
 
-        dict_struct._guid_ptr = parser.readUint32()
-        dict_struct._name_ptr = parser.readUint32()
-        dict_struct._ownership = parser.readUint32()
-        dict_struct._entries_next = parser.readUint32()
-        dict_struct._entries_prev = parser.readUint32()
-        dict_struct._entries_end = parser.readUint32()
-        dict_struct.info = parser.readBytes(4)
-        dict_struct._registry_next = parser.readUint32()
-        dict_struct._registry_prev = parser.readUint32()
-        dict_struct.guid = _read_rwguid(parser)
-        dict_struct.name = parser.readCString()
-        dict_struct._trailing = parser.readRemaining()
+        dict_struct._guid_ptr = p.readUint32()
+        dict_struct._name_ptr = p.readUint32()
+        dict_struct._ownership = p.readUint32()
+        dict_struct._entries_next = p.readUint32()
+        dict_struct._entries_prev = p.readUint32()
+        dict_struct._entries_end = p.readUint32()
+        dict_struct.info = p.readBytes(4)
+        dict_struct._registry_next = p.readUint32()
+        dict_struct._registry_prev = p.readUint32()
+        dict_struct.guid = read_rwguid(p)
+        dict_struct.name = p.readCString()
+        dict_struct._trailing = p.readRemaining()
 
         return dict_struct
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
         # Synthesize valid presence flags for freshly-built dicts (the loader only
         # checks for nonzero); preserve the original pointer values on round-trip.
-        guid_ptr = this._guid_ptr or (_PRESENT if this.guid is not None else 0)
-        name_ptr = this._name_ptr or (_PRESENT if this.name else 0)
+        guid_ptr = self._guid_ptr or (_PRESENT)
+        name_ptr = self._name_ptr or (_PRESENT)
 
-        _write_u32(buf, guid_ptr)
-        _write_u32(buf, name_ptr)
-        _write_u32(buf, this._ownership)
-        _write_u32(buf, this._entries_next)
-        _write_u32(buf, this._entries_prev)
-        _write_u32(buf, this._entries_end)
-        _write_bytes(buf, this.info)
-        _write_u32(buf, this._registry_next)
-        _write_u32(buf, this._registry_prev)
-        _write_bytes(buf, _rwguid_bytes(this.guid) if this.guid is not None else b"\x00" * 16)
-        _write_bytes(buf, this.name.encode("latin-1") + b"\x00")
-        _write_bytes(buf, this._trailing)
+        write_u32(buf, guid_ptr)
+        write_u32(buf, name_ptr)
+        write_u32(buf, self._ownership)
+        write_u32(buf, self._entries_next)
+        write_u32(buf, self._entries_prev)
+        write_u32(buf, self._entries_end)
+        write_bytes(buf, self.info)
+        write_u32(buf, self._registry_next)
+        write_u32(buf, self._registry_prev)
+        write_bytes(buf, rwguid_bytes(self.guid))
+        write_bytes(buf, self.name.encode("latin-1") + b"\x00")
+        write_bytes(buf, self._trailing)
 
         payload = buf.getvalue()
         rw_header = RWHeader(
@@ -142,6 +145,7 @@ class RW_WaveDict_Dict(RW_Section):
         f.write(rw_header.pack())
         f.write(payload)
 
+    @override
     def __repr__(self):
         return (
             f"RW_WaveDict_Dict(name={self.name!r}, guid=\"{self.guid}\", "

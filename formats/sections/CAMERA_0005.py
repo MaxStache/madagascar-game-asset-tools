@@ -1,7 +1,8 @@
 import io
 from dataclasses import dataclass, field
+from typing import override
 
-from formats.lib.writer import _write_u32, _write_f32
+from formats.lib.writer import write_u32, write_f32
 from formats.lib.parser import Parser
 from formats.lib.rwConstants import RWSectionType
 from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
@@ -53,9 +54,10 @@ class RW_Camera_Struct(RW_Section):
         default_factory=RpCameraProjectionMode
     )
 
-    @staticmethod
-    def read(parser: Parser) -> "RW_Camera_Struct":
-        cam_s = RW_Camera_Struct()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_Camera_Struct":
+        cam_s = cls()
         cam_s.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             cam_s.header,
@@ -74,17 +76,18 @@ class RW_Camera_Struct(RW_Section):
 
         return cam_s
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        _write_f32(buf, this.horizontalFOVTangent)
-        _write_f32(buf, this.verticalFOVTangent)
-        _write_f32(buf, this.viewportWidth)
-        _write_f32(buf, this.viewportHeight)
-        _write_f32(buf, this.nearPlane)
-        _write_f32(buf, this.farPlane)
-        _write_f32(buf, this.fogDistance)
-        _write_u32(buf, this.projectionMode.encode())  # flags
+        write_f32(buf, self.horizontalFOVTangent)
+        write_f32(buf, self.verticalFOVTangent)
+        write_f32(buf, self.viewportWidth)
+        write_f32(buf, self.viewportHeight)
+        write_f32(buf, self.nearPlane)
+        write_f32(buf, self.farPlane)
+        write_f32(buf, self.fogDistance)
+        write_u32(buf, self.projectionMode.encode())  # flags
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_STRUCT.value,
@@ -102,9 +105,10 @@ class RW_Camera(RW_Section):
 
     extension: RW_Extension = field(default_factory=RW_Extension)
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_Camera":
-        cam = RW_Camera()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_Camera":
+        cam = cls()
         cam.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             cam.header,
@@ -118,12 +122,13 @@ class RW_Camera(RW_Section):
 
         return cam
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        this.struct.write(buf, stamp, parent=this)
+        self.struct.write(buf, stamp, parent=self)
 
-        this.extension.write(buf, stamp, parent=this)
+        self.extension.write(buf, stamp, parent=self)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_CAMERA.value,
@@ -133,4 +138,3 @@ class RW_Camera(RW_Section):
         f.write(rw_header.pack())
         f.write(buf.getvalue())
 
-    header: RWHeader = field(default_factory=RWHeader)

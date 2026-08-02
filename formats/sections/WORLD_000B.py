@@ -1,6 +1,6 @@
 import io
 from dataclasses import dataclass, field
-from typing import Union
+from typing import BinaryIO, override
 
 from formats.lib.parser import Parser
 from formats.lib.rwConstants import RWSectionType
@@ -10,7 +10,7 @@ from formats.lib.rw_basics import (
     Vector3,
     expect_chunk_type_or_raise,
 )
-from formats.lib.writer import _write_u32
+from formats.lib.writer import write_u32
 from formats.sections.ATOMICSECT_0009 import RW_AtomicSector
 from formats.sections.EXTENSION_0003 import RW_Extension
 from formats.sections.MATLIST_0008 import RW_MaterialList
@@ -38,9 +38,10 @@ class RW_World_Struct(RW_Section):
     boxMax: Vector3 = field(default_factory=Vector3)
     boxMin: Vector3 = field(default_factory=Vector3)
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_World_Struct":
-        world_s = RW_World_Struct()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_World_Struct":
+        world_s = cls()
         world_s.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             world_s.header,
@@ -77,34 +78,35 @@ class RW_World_Struct(RW_Section):
 
         return world_s
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f: BinaryIO, stamp: int, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        _write_u32(buf, this.rootIsWorldSector)
-        this.inverseOrigin.write(buf)
+        write_u32(buf, self.rootIsWorldSector)
+        self.inverseOrigin.write(buf)
 
-        if this._struct_size not in (0x30, 0x40):
+        if self._struct_size not in (0x30, 0x40):
             raise ValueError(
-                f"Unexpected RW_WorldStruct payload size: {this._struct_size}. Could not determine to write a struct type A or B! For more information look into docs!"
+                f"Unexpected RW_WorldStruct payload size: {self._struct_size}. Could not determine to write a struct type A or B! For more information look into docs!"
             )
 
-        if this._struct_size == 0x40:
-            _write_u32(buf, this.numTriangles)
-            _write_u32(buf, this.numVertices)
-            _write_u32(buf, this.numPlaneSectors)
-            _write_u32(buf, this.numAtomicSectors)
-            _write_u32(buf, this.colSectorSize)
-            _write_u32(buf, this.worldFlags.encode())
-            this.boxMax.write(buf)
-            this.boxMin.write(buf)
-        elif this._struct_size == 0x30:
-            this.boxMax.write(buf)
-            _write_u32(buf, this.numTriangles)
-            _write_u32(buf, this.numVertices)
-            _write_u32(buf, this.numPlaneSectors)
-            _write_u32(buf, this.numAtomicSectors)
-            _write_u32(buf, this.colSectorSize)
-            _write_u32(buf, this.worldFlags.encode())
+        if self._struct_size == 0x40:
+            write_u32(buf, self.numTriangles)
+            write_u32(buf, self.numVertices)
+            write_u32(buf, self.numPlaneSectors)
+            write_u32(buf, self.numAtomicSectors)
+            write_u32(buf, self.colSectorSize)
+            write_u32(buf, self.worldFlags.encode())
+            self.boxMax.write(buf)
+            self.boxMin.write(buf)
+        elif self._struct_size == 0x30:
+            self.boxMax.write(buf)
+            write_u32(buf, self.numTriangles)
+            write_u32(buf, self.numVertices)
+            write_u32(buf, self.numPlaneSectors)
+            write_u32(buf, self.numAtomicSectors)
+            write_u32(buf, self.colSectorSize)
+            write_u32(buf, self.worldFlags.encode())
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_STRUCT.value,
@@ -123,9 +125,7 @@ class RW_World(RW_Section):
 
     material_list: RW_MaterialList = field(default_factory=RW_MaterialList)
 
-    root_sector: Union[RW_PlaneSector, RW_AtomicSector] = (
-        None  # can be either a plane sector or an atomic sector
-    )
+    root_sector: RW_PlaneSector | RW_AtomicSector | None = field(default=None)
 
     extension: RW_Extension = field(default_factory=RW_Extension)
 
@@ -134,9 +134,10 @@ class RW_World(RW_Section):
         """Exposed so children (sectors) can resolve worldFlags from their parent."""
         return self.struct.worldFlags
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_World":
-        world = RW_World()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_World":
+        world = cls()
         world.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             world.header,
@@ -165,15 +166,17 @@ class RW_World(RW_Section):
 
         return world
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f, stamp: int, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        this.struct.write(buf, stamp, parent=this)
-        this.material_list.write(buf, stamp, parent=this)
+        self.struct.write(buf, stamp, parent=self)
+        self.material_list.write(buf, stamp, parent=self)
 
-        this.root_sector.write(buf, stamp, parent=this)
+        assert self.root_sector is not None, "Root sector is None. Cannot write RW_World without a root sector."
+        self.root_sector.write(buf, stamp, parent=self)
 
-        this.extension.write(buf, stamp, parent=this)
+        self.extension.write(buf, stamp, parent=self)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_WORLD.value,
@@ -183,20 +186,14 @@ class RW_World(RW_Section):
         f.write(rw_header.pack())
         f.write(buf.getvalue())
 
-    def collect_atomic_sectors(
-        this,
-    ) -> list[RW_AtomicSector]:
-        if this.root_sector is None:
+    def collect_atomic_sectors(self) -> list[RW_AtomicSector]:
+        if self.root_sector is None:
             return []
 
-        sectors = []
-        if isinstance(this.root_sector, RW_AtomicSector):
-            sectors.append(this.root_sector)
-        elif isinstance(this.root_sector, RW_PlaneSector):
-            sectors.extend(this.root_sector.collect_atomic_sectors())
+        sectors: list[RW_AtomicSector] = []
+        if isinstance(self.root_sector, RW_AtomicSector):
+            sectors.append(self.root_sector)
         else:
-            raise ValueError(
-                f"Unexpected root sector type: {type(this.root_sector)}. Expected either RW_PlaneSector or RW_AtomicSector."
-            )
+            sectors.extend(self.root_sector.collect_atomic_sectors())
 
         return sectors

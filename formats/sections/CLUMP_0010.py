@@ -1,7 +1,8 @@
 import io
 from dataclasses import dataclass, field
+from typing import BinaryIO, override
 
-from formats.lib.writer import _write_u32
+from formats.lib.writer import write_u32
 from formats.lib.parser import Parser
 from formats.lib.rwConstants import RWSectionType
 from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
@@ -14,16 +15,17 @@ from formats.sections.CAMERA_0005 import RW_Camera
 
 
 @dataclass
-class RW_Clump_Struct:
+class RW_Clump_Struct(RW_Section):
     header: RWHeader = field(default_factory=RWHeader)
 
     numAtomics: int = 0  # u32
     numLights: int = 0  # u32 - only present after version 0x33000
     numCameras: int = 0  # u32 - only present after version 0x33000
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_Clump_Struct":
-        clump_s = RW_Clump_Struct()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_Clump_Struct":
+        clump_s = cls()
         clump_s.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             clump_s.header,
@@ -37,12 +39,13 @@ class RW_Clump_Struct:
 
         return clump_s
 
-    def write(this, f, stamp):
+    @override
+    def write(self, f: BinaryIO, stamp: int, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        _write_u32(buf, this.numAtomics)
-        _write_u32(buf, this.numLights)
-        _write_u32(buf, this.numCameras)
+        write_u32(buf, self.numAtomics)
+        write_u32(buf, self.numLights)
+        write_u32(buf, self.numCameras)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_STRUCT.value,
@@ -68,9 +71,10 @@ class RW_Clump(RW_Section):
     
     extension: RW_Extension = field(default_factory=RW_Extension)
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_Clump":
-        clump = RW_Clump()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_Clump":
+        clump = cls()
         clump.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             clump.header,
@@ -109,23 +113,24 @@ class RW_Clump(RW_Section):
 
         return clump
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        this.struct.write(buf, stamp)
+        self.struct.write(buf, stamp)
 
-        this.frame_list.write(buf, stamp, parent=this)
+        self.frame_list.write(buf, stamp, parent=self)
 
-        this.geometry_list.write(buf, stamp, parent=this)
+        self.geometry_list.write(buf, stamp, parent=self)
 
-        for atomic in this.atomics:
-            atomic.write(buf, stamp, parent=this)
+        for atomic in self.atomics:
+            atomic.write(buf, stamp, parent=self)
 
-        for cam in range(this.struct.numCameras):
-            _write_u32(buf, this.camera_frame_indices[cam])
-            this.cameras[cam].write(buf, stamp, parent=this)
+        for cam in range(self.struct.numCameras):
+            write_u32(buf, self.camera_frame_indices[cam])
+            self.cameras[cam].write(buf, stamp, parent=self)
 
-        this.extension.write(buf, stamp, parent=this)
+        self.extension.write(buf, stamp, parent=self)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_CLUMP.value,

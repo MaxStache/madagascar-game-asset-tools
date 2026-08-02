@@ -151,33 +151,33 @@ class RW_strfunc_CreateEntity:
     def write(self, f: BinaryIO, stamp: int = DEFAULT_VERSION_STAMP):
         buf = io.BytesIO()
 
-        _write_u32(buf, self.isGlobal)
+        write_u32(buf, self.isGlobal)
 
         # Write attributes in top level
         behaviour_bytes = bytes_pad4_BF(self.behaviour.encode("latin-1") + b"\x00")
-        _write_u32(buf, len(behaviour_bytes) + 2 * 4)
+        write_u32(buf, len(behaviour_bytes) + 2 * 4)
 
-        _write_u32(buf, RWSPH_CREATECLASSID)
-        _write_bytes(buf, behaviour_bytes)
+        write_u32(buf, RWSPH_CREATECLASSID)
+        write_bytes(buf, behaviour_bytes)
 
         # ---
 
-        _write_u32(buf, len(self.entityID.bytes) + 2 * 4)
-        _write_u32(buf, RWSPH_INSTANCEID)
-        _write_bytes(buf, self.entityID.bytes)
+        write_u32(buf, len(self.entityID.bytes) + 2 * 4)
+        write_u32(buf, RWSPH_INSTANCEID)
+        write_bytes(buf, self.entityID.bytes)
 
         # ---
 
         for atr_class in self.classes:
             class_name_bytes = bytes_pad4_BF(atr_class.class_name.encode("latin-1") + b"\x00")
-            _write_u32(buf, len(class_name_bytes) + 2 * 4)
-            _write_u32(buf, RWSPH_CLASSID)
-            _write_bytes(buf, class_name_bytes)
+            write_u32(buf, len(class_name_bytes) + 2 * 4)
+            write_u32(buf, RWSPH_CLASSID)
+            write_bytes(buf, class_name_bytes)
 
             for attr in atr_class.attributes:
-                _write_u32(buf, len(attr.data) + 2 * 4)
-                _write_u32(buf, attr.command)
-                _write_bytes(buf, attr.data)
+                write_u32(buf, len(attr.data) + 2 * 4)
+                write_u32(buf, attr.command)
+                write_bytes(buf, attr.data)
 
         f.write(buf.getvalue())
 
@@ -280,7 +280,7 @@ class RW_StreamFile:
                 len(sector.data),
                 sector.header.library_id_stamp,
             )
-            _write_bytes(buf, sector.data)
+            write_bytes(buf, sector.data)
 
         with open(filepath, "wb") as f:
             f.write(buf.getvalue())
@@ -295,10 +295,10 @@ class RW_StreamFile:
         result = _SectorClass_to_RW_StreamFileSector(sectorClass)
         self.contents[index] = result
 
-    def write_log(this, output_path: Union[str, Path]):
+    def write_log(self, output_path: Union[str, Path]):
         with open(output_path, "w", encoding="utf-8") as f:
             f.write("Read a file stream\n\n")
-            for idx, e in enumerate(this.contents):
+            for idx, e in enumerate(self.contents):
                 f.write(f"{'═' * 20} Sector {idx} {'═' * 20}\n")
                 f.write(
                     f"Length: {e.header.size} Type: {e.header.type} ({_getStrfuncFromChunkType(e.header.type).name})\n"
@@ -331,27 +331,27 @@ class RW_StreamFile:
 # ═══════════════════════════════════════════════════════
 
 
-def _write_u8(f, v):
+def write_u8(f, v):
     f.write(struct.pack("<B", v))
 
 
-def _write_u16(f, v):
+def write_u16(f, v):
     f.write(struct.pack("<H", v))
 
 
-def _write_u32(f, v):
+def write_u32(f, v):
     f.write(struct.pack("<I", v))
 
 
-def _write_s32(f, v):
+def write_s32(f, v):
     f.write(struct.pack("<i", v))
 
 
-def _write_f32(f, v):
+def write_f32(f, v):
     f.write(struct.pack("<f", v))
 
 
-def _write_bytes(f, data):
+def write_bytes(f, data):
     f.write(data)
 
 
@@ -693,5 +693,5 @@ def _strfunc_to_chunktype(strfunc: strfunc_func) -> int:
 
 if __name__ == "__main__":
     # Example usage
-    stream = load_stream("kingofny.stream")
+    stream = load_stream("Levels/beach.stream")
     stream.write_log("stream_log.txt")

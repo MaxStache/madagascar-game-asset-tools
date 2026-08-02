@@ -1,7 +1,7 @@
 from enum import Enum, IntEnum
 
 
-def MAKECHUNKID(vId, sId):
+def MAKECHUNKID(vId: int, sId: int) -> int:
     """
     vId = vendorID
     sId = sectionID
@@ -226,6 +226,8 @@ class RWSectionType(Enum):
 
 
 class strfunc_func(Enum):
+    sf_NONE                  = MAKECHUNKID(0x0, 0x0)
+    
     sf_VersionNumber            = MAKECHUNKID(RwVendor.CRITERIONRM, -0x1)
     sf_Reset                    = MAKECHUNKID(RwVendor.CRITERIONRM, 0x00)
     sf_Reserved1                = MAKECHUNKID(RwVendor.CRITERIONRM, 0x01)

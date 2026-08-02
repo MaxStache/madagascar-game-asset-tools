@@ -1,9 +1,9 @@
 from enum import Enum
 import io
 from dataclasses import dataclass, field
-from typing import ClassVar, Optional
+from typing import BinaryIO, ClassVar, override
 
-from formats.lib.writer import _write_u32, _write_s32, _write_f32
+from formats.lib.writer import write_u32, write_s32, write_f32
 from formats.lib.parser import Parser
 from formats.lib.rwConstants import RWSectionType
 from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
@@ -26,7 +26,7 @@ class RW_MaterialEffectsPlugin_Variant(Enum):
     AtomicExtension = 1  # On Atomic
 
 
-def _parent_is_atomic(parent) -> bool:
+def _parent_is_atomic(parent: RW_Section | None) -> bool:
     """
     Whether the extension's parent chunk is an Atomic (or Atomic Sector).
 
@@ -35,7 +35,8 @@ def _parent_is_atomic(parent) -> bool:
     """
     if parent is None:
         return False
-    return parent.header.type in (
+    assert hasattr(parent, "header")
+    return parent.header.type in ( # type: ignore
         RWSectionType.rwID_ATOMICSECT.value,
         RWSectionType.rwID_ATOMIC.value,
     )
@@ -73,11 +74,11 @@ class RW_MaterialEffectsPlugin_Effect:
         # Effects without a body (Null / UV Transform) rely on this default.
         return cls()
 
-    def write(self, f, stamp):
-        _write_u32(f, self.EFFECT_TYPE.value)
+    def write(self, f: BinaryIO, stamp: int):
+        write_u32(f, self.EFFECT_TYPE.value)
         self._write_body(f, stamp)
 
-    def _write_body(self, f, stamp):
+    def _write_body(self, f: BinaryIO, stamp: int):
         # No body by default.
         pass
 
@@ -97,11 +98,12 @@ class RW_MatFXEffectBumpMap(RW_MaterialEffectsPlugin_Effect):
 
     intensity: float = 0.0  # float32
     hasBumpMap: bool = False  # uint32 (bool32)
-    bumpMap: Optional[RW_Texture] = None  # RW_Texture, present if hasBumpMap
+    bumpMap: RW_Texture | None = None  # RW_Texture, present if hasBumpMap
     hasHeightMap: bool = False  # uint32 (bool32)
-    heightMap: Optional[RW_Texture] = None  # RW_Texture, present if hasHeightMap
+    heightMap: RW_Texture | None = None  # RW_Texture, present if hasHeightMap
 
     @classmethod
+    @override
     def _read_body(cls, parser: Parser) -> "RW_MatFXEffectBumpMap":
         e = cls()
         e.intensity = parser.readFloat()
@@ -113,13 +115,16 @@ class RW_MatFXEffectBumpMap(RW_MaterialEffectsPlugin_Effect):
             e.heightMap = RW_Texture.read(parser)
         return e
 
+    @override
     def _write_body(self, f, stamp):
-        _write_f32(f, self.intensity)
-        _write_u32(f, int(bool(self.hasBumpMap)))
+        write_f32(f, self.intensity)
+        write_u32(f, int(bool(self.hasBumpMap)))
         if self.hasBumpMap:
+            assert self.bumpMap is not None
             self.bumpMap.write(f, stamp)
-        _write_u32(f, int(bool(self.hasHeightMap)))
+        write_u32(f, int(bool(self.hasHeightMap)))
         if self.hasHeightMap:
+            assert self.heightMap is not None
             self.heightMap.write(f, stamp)
 
 
@@ -132,9 +137,10 @@ class RW_MatFXEffectEnvMap(RW_MaterialEffectsPlugin_Effect):
     reflectionCoefficient: float = 0.0  # float32
     useFrameBufferAlpha: bool = False  # uint32 (bool32)
     hasEnvMap: bool = False  # uint32 (bool32)
-    envMap: Optional[RW_Texture] = None  # RW_Texture, present if hasEnvMap
+    envMap: RW_Texture | None = None  # RW_Texture, present if hasEnvMap
 
     @classmethod
+    @override
     def _read_body(cls, parser: Parser) -> "RW_MatFXEffectEnvMap":
         e = cls()
         e.reflectionCoefficient = parser.readFloat()
@@ -144,11 +150,13 @@ class RW_MatFXEffectEnvMap(RW_MaterialEffectsPlugin_Effect):
             e.envMap = RW_Texture.read(parser)
         return e
 
+    @override
     def _write_body(self, f, stamp):
-        _write_f32(f, self.reflectionCoefficient)
-        _write_u32(f, int(bool(self.useFrameBufferAlpha)))
-        _write_u32(f, int(bool(self.hasEnvMap)))
+        write_f32(f, self.reflectionCoefficient)
+        write_u32(f, int(bool(self.useFrameBufferAlpha)))
+        write_u32(f, int(bool(self.hasEnvMap)))
         if self.hasEnvMap:
+            assert self.envMap is not None
             self.envMap.write(f, stamp)
 
 
@@ -161,9 +169,10 @@ class RW_MatFXEffectDual(RW_MaterialEffectsPlugin_Effect):
     srcBlendMode: int = 0  # int32
     dstBlendMode: int = 0  # int32
     hasTexture: bool = False  # uint32 (bool32)
-    texture: Optional[RW_Texture] = None  # RW_Texture, present if hasTexture
+    texture: RW_Texture | None = None  # RW_Texture, present if hasTexture
 
     @classmethod
+    @override
     def _read_body(cls, parser: Parser) -> "RW_MatFXEffectDual":
         e = cls()
         e.srcBlendMode = parser.readInt32()
@@ -173,11 +182,13 @@ class RW_MatFXEffectDual(RW_MaterialEffectsPlugin_Effect):
             e.texture = RW_Texture.read(parser)
         return e
 
+    @override
     def _write_body(self, f, stamp):
-        _write_s32(f, self.srcBlendMode)
-        _write_s32(f, self.dstBlendMode)
-        _write_u32(f, int(bool(self.hasTexture)))
+        write_s32(f, self.srcBlendMode)
+        write_s32(f, self.dstBlendMode)
+        write_u32(f, int(bool(self.hasTexture)))
         if self.hasTexture:
+            assert self.texture is not None
             self.texture.write(f, stamp)
 
 
@@ -235,9 +246,10 @@ class RW_MaterialEffectsPlugin(RW_Section):
         default_factory=list
     )  # always two slots
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_MaterialEffectsPlugin":
-        matfx = RW_MaterialEffectsPlugin()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_MaterialEffectsPlugin":
+        matfx = cls()
         matfx.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             matfx.header,
@@ -257,14 +269,16 @@ class RW_MaterialEffectsPlugin(RW_Section):
 
         return matfx
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f: BinaryIO, stamp: int, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        if this.variant == RW_MaterialEffectsPlugin_Variant.AtomicExtension:
-            _write_u32(buf, int(this.matFXEnabled))
+        if self.variant == RW_MaterialEffectsPlugin_Variant.AtomicExtension:
+            write_u32(buf, int(self.matFXEnabled))
         else:
-            _write_u32(buf, this.effectType.value)
-            for effect in this.effects:
+            write_u32(buf, self.effectType.value)
+            for effect in self.effects:
+                assert isinstance(effect, RW_MaterialEffectsPlugin_Effect)
                 effect.write(buf, stamp)
 
         rw_header = RWHeader(
@@ -275,8 +289,9 @@ class RW_MaterialEffectsPlugin(RW_Section):
         f.write(rw_header.pack())
         f.write(buf.getvalue())
 
+    @override
     def __repr__(self):
         if self.variant == RW_MaterialEffectsPlugin_Variant.AtomicExtension:
-            return f"RW_MaterialEffectsPlugin(header={repr(self.header)},variant={repr(self.variant)}, matFXEnabled={repr(self.matFXEnabled)})"
+            return f"RW_MaterialEffectsPlugin(header={self.header!r},variant={self.variant!r}, matFXEnabled={self.matFXEnabled!r})"
         else:
-            return f"RW_MaterialEffectsPlugin(header={repr(self.header)},variant={repr(self.variant)}, effectType={repr(self.effectType)},effects={repr(self.effects)})"
+            return f"RW_MaterialEffectsPlugin(header={self.header!r},variant={self.variant!r}, effectType={self.effectType!r},effects={self.effects!r})"

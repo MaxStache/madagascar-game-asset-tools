@@ -3,9 +3,9 @@ import io
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Union
+from typing import BinaryIO, override
 
-from formats.lib.writer import _write_u32, _write_u16
+from formats.lib.writer import write_u32, write_u16
 from formats.lib.parser import Parser
 from formats.lib.rwConstants import RWSectionType
 from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise, library_id_unpack
@@ -30,12 +30,13 @@ class RW_TextureDictionary_Struct(RW_Section):
 
     deviceId: RW_TextureDictionary_DeviceId = RW_TextureDictionary_DeviceId.D3D8
     # else
-    textureCount: int = 0 # u32 - determines count of Raster sections
+    # textureCount: int = 0 # u32 - determines count of Raster sections
     # endif
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_TextureDictionary_Struct":
-        texdict_s = RW_TextureDictionary_Struct()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_TextureDictionary_Struct":
+        texdict_s = cls()
         texdict_s.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             texdict_s.header,
@@ -46,19 +47,21 @@ class RW_TextureDictionary_Struct(RW_Section):
         if texdict_s.header.version > 0x3600:
             texdict_s.textureCount = parser.readUint16()
             texdict_s.deviceId = RW_TextureDictionary_DeviceId(parser.readUint16())
+            print(f"Read RW_TextureDictionary_Struct: textureCount={texdict_s.textureCount}, deviceId={texdict_s.deviceId}")
         else:
             texdict_s.textureCount = parser.readUint32()
 
         return texdict_s
-
-    def write(this, f, stamp, parent=None):
+    
+    @override
+    def write(self, f: BinaryIO, stamp: int, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
         if library_id_unpack(stamp)[0] > 0x3600:
-            _write_u16(buf, this.textureCount)
-            _write_u16(buf, this.deviceId.value)
+            write_u16(buf, self.textureCount)
+            write_u16(buf, self.deviceId.value)
         else:
-            _write_u32(buf, this.textureCount)
+            write_u32(buf, self.textureCount)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_STRUCT.value,
@@ -78,9 +81,10 @@ class RW_TextureDictionary(RW_Section):
 
     extension: RW_Extension = field(default_factory=RW_Extension)
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_TextureDictionary":
-        texdict = RW_TextureDictionary()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_TextureDictionary":
+        texdict = cls()
         texdict.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             texdict.header,
@@ -98,20 +102,21 @@ class RW_TextureDictionary(RW_Section):
 
         return texdict
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         if isinstance(f, (str, os.PathLike)):
             with open(f, "wb") as out:
-                this.write(out, stamp, parent=parent)
+                self.write(out, stamp, parent=parent)
             return
 
         buf = io.BytesIO()
 
-        this.struct.write(buf, stamp, parent=this)
+        self.struct.write(buf, stamp, parent=self)
 
-        for tex in this.textures:
-            tex.write(buf, stamp, parent=this)
+        for tex in self.textures:
+            tex.write(buf, stamp, parent=self)
 
-        this.extension.write(buf, stamp, parent=this)
+        self.extension.write(buf, stamp, parent=self)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_TEXDICTIONARY.value,
@@ -122,34 +127,43 @@ class RW_TextureDictionary(RW_Section):
         f.write(buf.getvalue())
     
     
-    def export_all(this, output_dir: Union[str, Path], raise_on_error: bool = True):
+    def export_all(
+        self,
+        output_dir: str | Path,
+        raise_on_error: bool = True,
+        all_mipmaps: bool = False,
+    ):
         """Export all textures in a TXD to PNG files.
 
         Args:
             output_dir: Directory to write PNGs into (created if needed).
+            raise_on_error: Abort on the first failed texture instead of
+                reporting it and carrying on.
+            all_mipmaps: Write every mipmap level side by side, largest first,
+                instead of just the full resolution level.
         """
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        for i, tex in enumerate(this.textures):
+        for i, tex in enumerate(self.textures):
             name = tex.struct.name if tex.struct.name else f"texture_{i}"
             out_path = output_dir / f"{name}.png"
             try:
-                tex.export_png(out_path)
+                tex.export_png(out_path, all_mipmaps=all_mipmaps)
             except Exception as e:
                 if raise_on_error:
                     raise RuntimeError(f"Failed to export texture {name} to {out_path}: {e}") from e
                 else:
                     print(f"  Failed to export {name}: {e}")
 
-    def add_texture(this, texture: RW_TextureNative):
+    def add_texture(self, texture: RW_TextureNative):
         """Add a texture to the dictionary an update textureCount"""
-        this.textures.append(texture)
-        this.struct.textureCount = len(this.textures)
+        self.textures.append(texture)
+        self.struct.textureCount = len(self.textures)
 
-    def find_texture_by_name(this, name: str) -> RW_TextureNative:
+    def find_texture_by_name(self, name: str) -> RW_TextureNative | None:
         """Find a texture by name in the dictionary."""
-        for tex in this.textures:
+        for tex in self.textures:
             if tex.struct.name == name:
                 return tex
         return None

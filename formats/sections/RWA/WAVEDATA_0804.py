@@ -1,5 +1,6 @@
 import io
 from dataclasses import dataclass, field
+from typing import override
 
 from formats.lib.parser import Parser
 from formats.lib.rwConstants import RWSectionType
@@ -12,9 +13,10 @@ class RWA_WaveData(RW_Section):
     data: bytes = b""  # Wave data bytes
 
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RWA_WaveData":
-        wave_dta = RWA_WaveData()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RWA_WaveData":
+        wave_dta = cls()
         wave_dta.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             wave_dta.header,
@@ -26,7 +28,8 @@ class RWA_WaveData(RW_Section):
 
         return wave_dta
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
         # Writing here

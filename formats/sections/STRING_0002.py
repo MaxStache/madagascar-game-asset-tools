@@ -1,3 +1,5 @@
+from typing import BinaryIO, override
+
 from formats.lib.utils import bytes_pad4
 from formats.lib.rwConstants import RWSectionType
 from formats.lib.parser import Parser
@@ -10,8 +12,9 @@ class RW_String(RW_Section):
     header: RWHeader = field(default_factory=RWHeader)
     content: str = ""  # header.payload_size
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_String":
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_String":
         string = RW_String()
 
         string.header = RWHeader.read(parser)
@@ -21,17 +24,20 @@ class RW_String(RW_Section):
             "RW_String chunk type",
         )
 
-        string.content = parser.readBytes(
-            string.header.size
-        ).decode("latin-1", errors="replace")
+        string.content = (
+            parser.readBytes(string.header.size)
+            .split(b"\x00", 1)[0]
+            .decode("latin-1", errors="replace")
+        )
       
         return string
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f: BinaryIO, stamp: int, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
         enc_string = bytes_pad4(
-            this.content.encode("latin-1", errors="replace")
+            self.content.encode("latin-1", errors="replace")
         )
         buf.write(enc_string)
     

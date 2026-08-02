@@ -1,12 +1,13 @@
-from formats.lib.writer import _write_u8, _write_u16
-from formats.lib.rwConstants import RWSectionType
+import io
+from dataclasses import dataclass, field
+from typing import BinaryIO, override
+
 from formats.lib.parser import Parser
 from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
-from dataclasses import dataclass, field
-import io
-
-from formats.sections.STRING_0002 import RW_String
+from formats.lib.rwConstants import RWSectionType
+from formats.lib.writer import write_u8, write_u16
 from formats.sections.EXTENSION_0003 import RW_Extension
+from formats.sections.STRING_0002 import RW_String
 
 
 @dataclass
@@ -17,9 +18,10 @@ class RW_Texture_Struct(RW_Section):
     addressModes: int = 0  # u8
     useMipLevels: bool = False  # u16
 
-    @staticmethod
-    def read(parser: Parser) -> "RW_Texture_Struct":
-        texture_s = RW_Texture_Struct()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_Texture_Struct":
+        texture_s = cls()
         texture_s.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             texture_s.header,
@@ -33,12 +35,13 @@ class RW_Texture_Struct(RW_Section):
 
         return texture_s
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f: BinaryIO, stamp: int, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        _write_u8(buf, this.filterMode)
-        _write_u8(buf, this.addressModes)
-        _write_u16(buf, this.useMipLevels)
+        write_u8(buf, self.filterMode)
+        write_u8(buf, self.addressModes)
+        write_u16(buf, self.useMipLevels)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_STRUCT.value,
@@ -61,9 +64,10 @@ class RW_Texture(RW_Section):
 
     extension: RW_Extension = field(default_factory=RW_Extension)
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_Texture":
-        texture = RW_Texture()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_Texture":
+        texture = cls()
         texture.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             texture.header,
@@ -80,17 +84,18 @@ class RW_Texture(RW_Section):
         texture.extension = RW_Extension.read(parser, parent=texture)
 
         return texture
-
-    def write(this, f, stamp, parent=None):
+    
+    @override
+    def write(self, f: BinaryIO, stamp: int, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        this.struct.write(buf, stamp)
+        self.struct.write(buf, stamp)
 
-        this.diffuseTextureName.write(buf, stamp, parent=this)
+        self.diffuseTextureName.write(buf, stamp, parent=self)
 
-        this.alphaTextureName.write(buf, stamp, parent=this)
+        self.alphaTextureName.write(buf, stamp, parent=self)
 
-        this.extension.write(buf, stamp, parent=this)
+        self.extension.write(buf, stamp, parent=self)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_TEXTURE.value,

@@ -1,16 +1,16 @@
 import io
-from dataclasses import dataclass, field
 import uuid
+from dataclasses import dataclass, field
+from typing import Any, BinaryIO, override
 
 from formats.lib.parser import Parser
-from formats.lib.writer import (
-    _write_alignedString,
-    _write_guid,
-    _write_lengthPrefixedString,
-    _write_u32,
-)
-from formats.lib.rwConstants import strfunc_func
 from formats.lib.rw_basics import RW_StreamFunc, RWHeader, expect_chunk_type_or_raise
+from formats.lib.rwConstants import strfunc_func
+from formats.lib.writer import (
+    write_guid,
+    write_lengthPrefixedString,
+    write_u32,
+)
 
 
 @dataclass
@@ -22,7 +22,7 @@ class RW_sf_LoadEmbeddedAsset(RW_StreamFunc):
 
     name: str = ""
 
-    guid: uuid.UUID = field(default=None)
+    guid: uuid.UUID = field(default=uuid.UUID(int=0))
 
     type: str = ""
 
@@ -32,9 +32,10 @@ class RW_sf_LoadEmbeddedAsset(RW_StreamFunc):
 
     data: bytes = b""
 
-    @staticmethod
-    def read(parser: Parser) -> "RW_sf_LoadEmbeddedAsset":
-        sf_LEA = RW_sf_LoadEmbeddedAsset()
+    @classmethod
+    @override
+    def read(cls, parser: Parser) -> "RW_sf_LoadEmbeddedAsset":
+        sf_LEA = cls()
         sf_LEA.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             sf_LEA.header,
@@ -64,29 +65,38 @@ class RW_sf_LoadEmbeddedAsset(RW_StreamFunc):
 
         return sf_LEA
 
-    def write(this, f, stamp):
+    @override
+    def write(self, f: BinaryIO, stamp: int) -> None:
         buf = io.BytesIO()
 
         # --- header
         headerBuf = io.BytesIO()
-        _write_lengthPrefixedString(headerBuf, this.name, addNullTerminator=True, alignTo4=True)
+        write_lengthPrefixedString(
+            headerBuf, self.name, addNullTerminator=True, alignTo4=True
+        )
 
-        _write_guid(headerBuf, this.guid)
+        write_guid(headerBuf, self.guid)
 
-        _write_lengthPrefixedString(headerBuf, this.type, addNullTerminator=True, alignTo4=True)
+        write_lengthPrefixedString(
+            headerBuf, self.type, addNullTerminator=True, alignTo4=True
+        )
 
-        _write_lengthPrefixedString(headerBuf, this.filePath, addNullTerminator=True, alignTo4=True)
+        write_lengthPrefixedString(
+            headerBuf, self.filePath, addNullTerminator=True, alignTo4=True
+        )
 
-        _write_lengthPrefixedString(headerBuf, this.deps, addNullTerminator=True, alignTo4=True)
+        write_lengthPrefixedString(
+            headerBuf, self.deps, addNullTerminator=True, alignTo4=True
+        )
 
-        _write_u32(headerBuf, 0) # doing this because renderware wants it, idk
+        write_u32(headerBuf, 0)  # doing this because renderware wants it, idk
         # ---
 
-        _write_u32(buf, len(headerBuf.getvalue()))
+        write_u32(buf, len(headerBuf.getvalue()))
         buf.write(headerBuf.getvalue())
 
-        _write_u32(buf, len(this.data))
-        buf.write(this.data)
+        write_u32(buf, len(self.data))
+        buf.write(self.data)
 
         padding_length = (4 - (len(buf.getvalue()) % 4)) % 4
         buf.write(b"\x58" * padding_length)
@@ -100,8 +110,36 @@ class RW_sf_LoadEmbeddedAsset(RW_StreamFunc):
         f.write(buf.getvalue())
 
     @property
+    @override
     def streamfunc(self):
         return strfunc_func.sf_LoadEmbeddedAsset
-    
+
+    @override
     def __repr__(self):
-        return f"RW_sf_LoadEmbeddedAsset(name=\"{self.name!r}\", guid=\"{str(self.guid)!r}\", type=\"{self.type!r}\", filePath=\"{self.filePath!r}\", deps=\"{self.deps!r}\", dataSize={len(self.data)!r})"
+        return f'RW_sf_LoadEmbeddedAsset(name="{self.name!r}", guid="{str(self.guid)!r}", type="{self.type!r}", filePath="{self.filePath!r}", deps="{self.deps!r}", dataSize={len(self.data)!r})'
+
+    @override
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "header": self.header.to_dict(),
+            "name": self.name,
+            "guid": str(self.guid),
+            "type": self.type,
+            "filePath": self.filePath,
+            "deps": self.deps,
+        }
+
+    @classmethod
+    @override
+    def from_dict(cls, content: dict[str, Any]) -> "RW_StreamFunc":
+        header = RWHeader.from_dict(content.get("header", {}))
+
+        return cls(
+            header=header,
+            name=content.get("name", ""),
+            guid=uuid.UUID(content.get("guid", "00000000-0000-0000-0000-000000000000")),
+            type=content.get("type", ""),
+            filePath=content.get("filePath", ""),
+            deps=content.get("deps", ""),
+            data=bytes.fromhex(content.get("data", "")),
+        )

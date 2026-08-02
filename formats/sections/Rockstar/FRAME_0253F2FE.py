@@ -1,5 +1,6 @@
 import io
 from dataclasses import dataclass, field
+from typing import override
 
 from formats.lib.parser import Parser
 from formats.lib.rwConstants import RWSectionType
@@ -11,9 +12,10 @@ class RW_Rockstar_Frame(RW_Section):
     
     name: str = field(default="")
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_Rockstar_Frame":
-        frame = RW_Rockstar_Frame()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_Rockstar_Frame":
+        frame = cls()
         frame.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             frame.header,
@@ -25,10 +27,11 @@ class RW_Rockstar_Frame(RW_Section):
 
         return frame
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        buf.write(this.name.encode("latin-1"))
+        buf.write(self.name.encode("latin-1"))
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_rockstar_Frame.value,

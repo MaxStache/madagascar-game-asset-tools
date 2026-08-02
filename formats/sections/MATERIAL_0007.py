@@ -1,9 +1,9 @@
 import io
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import BinaryIO, override
 
 from formats.lib.parser import Parser
-from formats.lib.writer import _write_u32, _write_f32
+from formats.lib.writer import write_u32, write_f32
 from formats.lib.rwConstants import RWSectionType
 from formats.lib.rw_basics import RW_Section, RWColor32, RWHeader, expect_chunk_type_or_raise
 from formats.sections.TEXTURE_0006 import RW_Texture
@@ -23,9 +23,10 @@ class RW_Material_Struct(RW_Section):
     specular: float = 0.0
     diffuse: float = 0.0
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_Material_Struct":
-        mat_s = RW_Material_Struct()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_Material_Struct":
+        mat_s = cls()
         mat_s.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             mat_s.header,
@@ -44,17 +45,18 @@ class RW_Material_Struct(RW_Section):
 
         return mat_s
 
-    def write(this, f, stamp):
+    @override
+    def write(self, f: BinaryIO, stamp: int, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        _write_u32(buf, this.flags)
-        this.color.write(buf)
-        _write_u32(buf, this.unknown)
-        _write_u32(buf, this.isTextured)
+        write_u32(buf, self.flags)
+        self.color.write(buf)
+        write_u32(buf, self.unknown)
+        write_u32(buf, self.isTextured)
 
-        _write_f32(buf, this.ambient)
-        _write_f32(buf, this.specular)
-        _write_f32(buf, this.diffuse)
+        write_f32(buf, self.ambient)
+        write_f32(buf, self.specular)
+        write_f32(buf, self.diffuse)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_STRUCT.value,
@@ -72,13 +74,14 @@ class RW_Material(RW_Section):
     struct: RW_Material_Struct = field(default_factory=RW_Material_Struct)
 
     # if struct.isTextured
-    texture: Optional[RW_Texture] = None
+    texture: RW_Texture | None = None
     # endifs
 
     extension: RW_Extension = field(default_factory=RW_Extension)
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_Material":
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_Material":
         mat = RW_Material()
         mat.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -98,15 +101,16 @@ class RW_Material(RW_Section):
 
         return mat
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        this.struct.write(buf, stamp)
+        self.struct.write(buf, stamp)
 
-        if this.struct.isTextured and this.texture is not None:
-            this.texture.write(buf, stamp, parent=this)
+        if self.struct.isTextured and self.texture is not None:
+            self.texture.write(buf, stamp, parent=self)
 
-        this.extension.write(buf, stamp, parent=this)
+        self.extension.write(buf, stamp, parent=self)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_MATERIAL.value,

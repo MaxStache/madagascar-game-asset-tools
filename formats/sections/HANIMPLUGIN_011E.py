@@ -1,7 +1,8 @@
 import io
 from dataclasses import dataclass, field
+from typing import override
 
-from formats.lib.writer import _write_u32
+from formats.lib.writer import write_u32
 from formats.lib.parser import Parser
 from formats.lib.rwConstants import RWSectionType
 from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
@@ -94,9 +95,10 @@ class RW_HAnimPlugin(RW_Section):
     bones: list[RW_HAnimPlugin_Bone] = field(default_factory=list) # RW_HAnimPlugin_Bone[numNodes] - array of bones (if this bone is a root bone; for all other bones this parameter is not present)
     # endif
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_HAnimPlugin":
-        hanim = RW_HAnimPlugin()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_HAnimPlugin":
+        hanim = cls()
         hanim.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             hanim.header,
@@ -122,24 +124,25 @@ class RW_HAnimPlugin(RW_Section):
 
         return hanim
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        _write_u32(buf, this.hAnimVersion)
-        _write_u32(buf, this.nodeId)
-        _write_u32(buf, this.numNodes)
+        write_u32(buf, self.hAnimVersion)
+        write_u32(buf, self.nodeId)
+        write_u32(buf, self.numNodes)
 
-        if this.numNodes > 0:
-            _write_u32(buf, this.flags.encode())
-            _write_u32(buf, this.keyFrameSize)
+        if self.numNodes > 0:
+            write_u32(buf, self.flags.encode())
+            write_u32(buf, self.keyFrameSize)
 
-            for bone in this.bones:
-                _write_u32(buf, bone.nodeId)
-                _write_u32(buf, bone.nodeIndex)
-                _write_u32(buf, bone.flags.encode())
+            for bone in self.bones:
+                write_u32(buf, bone.nodeId)
+                write_u32(buf, bone.nodeIndex)
+                write_u32(buf, bone.flags.encode())
 
         rw_header = RWHeader(
-            type=RWSectionType.rwID_HANIMPLUGIN.value,  # TODO: REPLACE!
+            type=RWSectionType.rwID_HANIMPLUGIN.value,
             size=len(buf.getvalue()),
             library_id_stamp=stamp,
         )

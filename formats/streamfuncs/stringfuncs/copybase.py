@@ -1,8 +1,9 @@
 import io
 from dataclasses import dataclass, field
+from typing import Any, BinaryIO, override
 
 from formats.lib.parser import Parser
-from formats.lib.writer import _write_u32
+from formats.lib.writer import write_u32  # pyright: ignore[reportUnusedImport] # noqa: F401
 from formats.lib.rwConstants import MAKECHUNKID, RwVendor, strfunc_func
 from formats.lib.rw_basics import RW_StreamFunc, RWHeader, expect_chunk_type_or_raise
 
@@ -11,9 +12,10 @@ class RW_sf_NameHere(RW_StreamFunc):
     header: RWHeader = field(default_factory=RWHeader)
     
 
-    @staticmethod
-    def read(parser: Parser) -> "RW_sf_NameHere":
-        sf_NameHere = RW_sf_NameHere()
+    @classmethod
+    @override
+    def read(cls, parser: Parser) -> "RW_sf_NameHere":
+        sf_NameHere = cls()
         sf_NameHere.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             sf_NameHere.header,
@@ -23,7 +25,8 @@ class RW_sf_NameHere(RW_StreamFunc):
 
         return sf_NameHere
 
-    def write(this, f, stamp):
+    @override
+    def write(self, f: BinaryIO, stamp: int):
         buf = io.BytesIO()
 
         # Writing here
@@ -35,3 +38,16 @@ class RW_sf_NameHere(RW_StreamFunc):
         )
         f.write(rw_header.pack())
         f.write(buf.getvalue())
+
+    @override
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "header": self.header.to_dict(),
+        }
+
+    @classmethod
+    @override
+    def from_dict(cls, content: dict[str, Any]) -> "RW_StreamFunc":
+        header = RWHeader.from_dict(content.get("header", {}))
+
+        return cls(header=header)

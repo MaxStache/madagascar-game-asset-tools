@@ -1,5 +1,6 @@
 import io
 from dataclasses import dataclass, field
+from typing import BinaryIO, override
 
 from formats.lib.parser import Parser
 from formats.lib.rwConstants import RWSectionType
@@ -17,11 +18,12 @@ class RW_Extension(RW_Section):
 
     children: list[RW_Section] = field(default_factory=list)
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_Extension":
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_Extension":
         from formats.sections import SECTION_REGISTRY
 
-        ext = RW_Extension()
+        ext = cls()
         ext.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             ext.header,
@@ -50,10 +52,11 @@ class RW_Extension(RW_Section):
 
         return ext
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f: BinaryIO, stamp: int, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        for child in this.children:
+        for child in self.children:
             child.write(buf, stamp, parent=parent)
 
         rw_header = RWHeader(

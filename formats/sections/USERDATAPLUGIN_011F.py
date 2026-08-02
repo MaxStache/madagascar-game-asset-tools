@@ -1,9 +1,9 @@
 import io
 from dataclasses import dataclass, field
-from typing import Union
+from typing import override
 
 from formats.lib.parser import Parser
-from formats.lib.writer import _write_u32, _write_f32
+from formats.lib.writer import write_u32, write_f32
 from formats.lib.rwConstants import RWSectionType
 from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
 
@@ -22,7 +22,7 @@ class RW_UserDataPlugin_Entry:
     dataType: RW_UserDataPlugin_EntryType = RW_UserDataPlugin_EntryType.Integer
 
     numberOfObjects: int = 0
-    objects: Union[list[int], list[float], list[str]] = field(default_factory=list)
+    objects: list[int] | list[float] | list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -35,9 +35,10 @@ class RW_UserDataPlugin(RW_Section):
 
     entries: list[RW_UserDataPlugin_Entry] = field(default_factory=list)
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_UserDataPlugin":
-        usrdataplg = RW_UserDataPlugin()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_UserDataPlugin":
+        usrdataplg = cls()
         usrdataplg.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             usrdataplg.header,
@@ -55,7 +56,7 @@ class RW_UserDataPlugin(RW_Section):
             if entry.dataType == RW_UserDataPlugin_EntryType.Integer:
                 entry.objects = [parser.readInt32() for _ in range(entry.numberOfObjects)]
             elif entry.dataType == RW_UserDataPlugin_EntryType.Float:
-                entry.objects = [parser.readFloat32() for _ in range(entry.numberOfObjects)]
+                entry.objects = [parser.readFloat() for _ in range(entry.numberOfObjects)]
             elif entry.dataType == RW_UserDataPlugin_EntryType.String:
                 entry.objects = [parser.readLengthPrefixedString() for _ in range(entry.numberOfObjects)]
             else:
@@ -65,26 +66,30 @@ class RW_UserDataPlugin(RW_Section):
 
         return usrdataplg
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        _write_u32(buf, len(this.entries))
+        write_u32(buf, len(self.entries))
 
-        for entry in this.entries:
-            _write_u32(buf, len(entry.label))
+        for entry in self.entries:
+            write_u32(buf, len(entry.label))
             buf.write(entry.label.encode("latin-1", errors="replace"))
-            _write_u32(buf, entry.dataType.value)
-            _write_u32(buf, entry.numberOfObjects)
+            write_u32(buf, entry.dataType.value)
+            write_u32(buf, entry.numberOfObjects)
 
             if entry.dataType == RW_UserDataPlugin_EntryType.Integer:
                 for obj in entry.objects:
-                    _write_u32(buf, obj)
+                    assert isinstance(obj, int)
+                    write_u32(buf, obj)
             elif entry.dataType == RW_UserDataPlugin_EntryType.Float:
                 for obj in entry.objects:
-                    _write_f32(buf, obj)
+                    assert isinstance(obj, float)
+                    write_f32(buf, obj)
             elif entry.dataType == RW_UserDataPlugin_EntryType.String:
                 for obj in entry.objects:
-                    _write_u32(buf, len(obj))
+                    assert isinstance(obj, str)
+                    write_u32(buf, len(obj))
                     buf.write(obj.encode("latin-1", errors="replace"))
             else:
                 raise ValueError(f"Unknown data type: {entry.dataType}")

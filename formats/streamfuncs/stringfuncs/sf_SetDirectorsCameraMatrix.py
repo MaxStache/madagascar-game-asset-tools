@@ -1,10 +1,11 @@
 import io
 from dataclasses import dataclass, field
+from typing import Any, override
 
 from formats.lib.parser import Parser
 from formats.lib.rwConstants import strfunc_func
 from formats.lib.rw_basics import RW_Matrix4x4, RW_StreamFunc, RWHeader, expect_chunk_type_or_raise
-from formats.old_stream import _write_f32
+from formats.old_stream import write_f32
 
 
 
@@ -15,8 +16,10 @@ class RW_sf_SetDirectorsCameraMatrix(RW_StreamFunc):
     matrix: RW_Matrix4x4 = field(default_factory=RW_Matrix4x4)
     fov: float = 0.0
 
-    def read(parser: Parser) -> "RW_sf_SetDirectorsCameraMatrix":
-        sf = RW_sf_SetDirectorsCameraMatrix()
+    @classmethod
+    @override
+    def read(cls, parser: Parser) -> "RW_sf_SetDirectorsCameraMatrix":
+        sf = cls()
 
         sf.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -30,11 +33,12 @@ class RW_sf_SetDirectorsCameraMatrix(RW_StreamFunc):
 
         return sf
 
-    def write(this, f, stamp):
+    @override
+    def write(self, f, stamp):
         buf = io.BytesIO()
 
-        this.matrix.write(buf)
-        _write_f32(buf, this.fov)
+        self.matrix.write(buf)
+        write_f32(buf, self.fov)
 
 
         rw_header = RWHeader(
@@ -46,5 +50,22 @@ class RW_sf_SetDirectorsCameraMatrix(RW_StreamFunc):
         f.write(buf.getvalue())
 
     @property
+    @override
     def streamfunc(self):
         return strfunc_func.sf_SetDirectorsCameraMatrix
+
+    @override
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "header": self.header.to_dict(),
+            "matrix": self.matrix.to_dict(),
+        }
+
+    @classmethod
+    @override
+    def from_dict(cls, content: dict[str, Any]) -> "RW_StreamFunc":
+        header = RWHeader.from_dict(content.get("header", {}))
+
+        matrix = RW_Matrix4x4.from_dict(content.get("matrix", {}))
+
+        return cls(header=header, matrix=matrix)

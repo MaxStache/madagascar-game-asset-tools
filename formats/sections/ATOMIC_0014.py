@@ -1,7 +1,8 @@
 import io
 from dataclasses import dataclass, field
+from typing import override
 
-from formats.lib.writer import _write_u32
+from formats.lib.writer import write_u32
 from formats.lib.parser import Parser
 from formats.lib.rwConstants import RWSectionType
 from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
@@ -12,9 +13,9 @@ from formats.sections.EXTENSION_0003 import RW_Extension
 class RpAtomicFlags:
     # https://gtamods.com/wiki/Atomic_(RW_Section)
     collision_test: bool = (
-        False  # 0x00000001 — Include this atomic in RenderWare's collision system.
+        False  # 0x00000001 — Include self atomic in RenderWare's collision system.
     )
-    render: bool = False  # 0x00000004 — Render this atomic when it is inside the camera's view frustum. Almost every visible model has this enabled.
+    render: bool = False  # 0x00000004 — Render self atomic when it is inside the camera's view frustum. Almost every visible model has self enabled.
 
     @staticmethod
     def decode(value: int) -> "RpAtomicFlags":
@@ -50,9 +51,10 @@ class RW_Atomic_Struct(RW_Section):
     flags: RpAtomicFlags = field(default_factory=RpAtomicFlags)
     unused: int = 0  # u32
 
-    @staticmethod
-    def read(parser: Parser) -> "RW_Atomic_Struct":
-        atomic_s = RW_Atomic_Struct()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_Atomic_Struct":
+        atomic_s = cls()
         atomic_s.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             atomic_s.header,
@@ -67,13 +69,14 @@ class RW_Atomic_Struct(RW_Section):
 
         return atomic_s
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        _write_u32(buf, this.frame_index)  # frame_index
-        _write_u32(buf, this.geometry_index)  # geometry_index
-        _write_u32(buf, this.flags.encode())  # flags
-        _write_u32(buf, this.unused)  # unused
+        write_u32(buf, self.frame_index)  # frame_index
+        write_u32(buf, self.geometry_index)  # geometry_index
+        write_u32(buf, self.flags.encode())  # flags
+        write_u32(buf, self.unused)  # unused
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_STRUCT.value,
@@ -91,9 +94,10 @@ class RW_Atomic(RW_Section):
 
     extension: RW_Extension = field(default_factory=RW_Extension)
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_Atomic":
-        atomic = RW_Atomic()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_Atomic":
+        atomic = cls()
         atomic.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             atomic.header,
@@ -107,12 +111,13 @@ class RW_Atomic(RW_Section):
 
         return atomic
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        this.struct.write(buf, stamp, parent=this)
+        self.struct.write(buf, stamp, parent=self)
 
-        this.extension.write(buf, stamp, parent=this)
+        self.extension.write(buf, stamp, parent=self)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_ATOMIC.value,

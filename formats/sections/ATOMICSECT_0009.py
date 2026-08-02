@@ -1,6 +1,6 @@
 import io
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import BinaryIO, override
 
 from formats.lib.parser import Parser
 from formats.lib.rwConstants import RWSectionType
@@ -32,18 +32,20 @@ class RW_AtomicSector_Struct(RW_Section):
     vertices: list[Vector3] = field(default_factory=list, init=False)  # num_vertices
 
     # if not handled as collision bsp in TFB games
-    colors: Optional[list[RWColor32]] = field(
+    colors: list[RWColor32] | None = field(
         default_factory=list, init=False
     )  # num_vertices
-    uvs: Optional[list[RW_UV]] = field(default_factory=list, init=False)  # num_vertices
+    uvs: list[RW_UV] | None = field(default_factory=list, init=False)  # num_vertices
     # endif
 
     triangles: list[RW_Triangle] = field(
         default_factory=list, init=False
     )  # num_triangles
 
-    @staticmethod
-    def read(parser: Parser, parent=None, worldFlags: RpWorldFlags=None) -> "RW_AtomicSector_Struct":
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None, worldFlags: RpWorldFlags | None =None) -> "RW_AtomicSector_Struct":
+        assert worldFlags is not None, "worldFlags must be provided to read RW_AtomicSector_Struct"
         atsec_s = RW_AtomicSector_Struct()
         atsec_s.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -69,9 +71,6 @@ class RW_AtomicSector_Struct(RW_Section):
 
         atsec_s.colors = []
         atsec_s.uvs = []
-
-        if worldFlags is None:
-            raise ValueError("worldFlags must be provided to determine if vertex colors and UVs should be read.")
 
         # Prelit colors are present whenever rpWORLDPRELIT is set — NOT
         # modulateMaterialColor, which only changes how they're used at
@@ -106,16 +105,18 @@ class RW_AtomicSector_Struct(RW_Section):
         if consumed != atsec_s.header.size:
             raise ValueError(
                 f"RW_AtomicSector_Struct consumed {consumed} bytes but header "
-                f"declares {atsec_s.header.size} (numVertices={atsec_s.numVertices}, "
-                f"numTriangles={atsec_s.numTriangles}, worldFlags=0x{worldFlags.encode():08X})"
+                + f"declares {atsec_s.header.size} (numVertices={atsec_s.numVertices}, "
+                + f"numTriangles={atsec_s.numTriangles}, worldFlags=0x{worldFlags.encode():08X})"
             )
 
         return atsec_s
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f: BinaryIO, stamp: int, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
         # Writing here
+        # TODO! TODO: IMPLEMENT!!
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_STRUCT.value,
@@ -135,11 +136,12 @@ class RW_AtomicSector(RW_Section):
 
     # kept so children can resolve worldFlags from their parent; hidden from
     # repr to avoid repeating the flags at every tree node
-    worldFlags: RpWorldFlags = field(default=None, repr=False)
+    worldFlags: RpWorldFlags = field(default_factory=RpWorldFlags, repr=False)
 
-    @staticmethod
-    def read(parser: Parser, parent=None, worldFlags: RpWorldFlags=None) -> "RW_AtomicSector":
-        atsec = RW_AtomicSector()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None, worldFlags: RpWorldFlags) -> "RW_AtomicSector": # pyright: ignore[reportIncompatibleMethodOverride]
+        atsec = cls()
         atsec.worldFlags = worldFlags
         atsec.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -153,11 +155,12 @@ class RW_AtomicSector(RW_Section):
 
         return atsec
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        this.struct.write(buf, stamp, parent=this)
-        this.extension.write(buf, stamp, parent=this)
+        self.struct.write(buf, stamp, parent=self)
+        self.extension.write(buf, stamp, parent=self)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_ATOMICSECT.value,

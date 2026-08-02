@@ -1,11 +1,11 @@
 from enum import Enum
 
 
-def text_rgb_square(r, g, b):
+def text_rgb_square(r: int, g: int, b: int):
     return f"\033[38;2;{r};{g};{b}m■ \033[0m"
 
 
-def ANSI_COLOR(color):
+def ANSI_COLOR(color: str | tuple[int, int, int]) -> str:
     if isinstance(color, str):
         color = color.lstrip("#")
         if len(color) != 6:
@@ -25,7 +25,7 @@ class Color(Enum):
     OPERATOR = ANSI_COLOR("#56b6c2")
     METHOD = ANSI_COLOR("#61afef")
     RGBACOLOR = ANSI_COLOR("#98c379")
-    STRING = ANSI_COLOR("#98c379")
+    STRING = ANSI_COLOR("#98c379")  # noqa: PIE796
     COMMENT = ANSI_COLOR("#5c6370")
     ENUM_VALUE = ANSI_COLOR("#c678dd")
 

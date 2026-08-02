@@ -1,8 +1,9 @@
 import io
 from dataclasses import dataclass, field
+from typing import override
 
 from formats.lib.parser import Parser
-from formats.lib.writer import _write_u32
+from formats.lib.writer import write_u32
 from formats.lib.rwConstants import RWSectionType
 from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
 
@@ -15,9 +16,10 @@ class RW_RightToRender(RW_Section):
     plugin_id: int = 0 # should be a RWSectionType
     extra_data: bytes = b""
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_RightToRender":
-        rtt = RW_RightToRender()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_RightToRender":
+        rtt = cls()
         rtt.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             rtt.header,
@@ -30,11 +32,12 @@ class RW_RightToRender(RW_Section):
 
         return rtt
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        _write_u32(buf, this.plugin_id)
-        buf.write(this.extra_data)
+        write_u32(buf, self.plugin_id)
+        buf.write(self.extra_data)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_RIGHTTORENDER.value,

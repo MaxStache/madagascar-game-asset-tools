@@ -1,7 +1,8 @@
 import io
 from dataclasses import dataclass, field
+from typing import override
 
-from formats.lib.writer import _write_f32
+from formats.lib.writer import write_f32
 from formats.lib.parser import Parser
 from formats.lib.rwConstants import RWSectionType
 from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
@@ -29,9 +30,10 @@ class RW_Rockstar_ReflectionMaterial(RW_Section):
         default=b""
     )  # 4b - Environment Texture Ptr, always 0 (zero)
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_Rockstar_ReflectionMaterial":
-        refmat = RW_Rockstar_ReflectionMaterial()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_Rockstar_ReflectionMaterial":
+        refmat = cls()
         refmat.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             refmat.header,
@@ -51,18 +53,19 @@ class RW_Rockstar_ReflectionMaterial(RW_Section):
 
         return refmat
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        _write_f32(buf, this.environment_map_scale_x)
-        _write_f32(buf, this.environment_map_scale_y)
+        write_f32(buf, self.environment_map_scale_x)
+        write_f32(buf, self.environment_map_scale_y)
 
-        _write_f32(buf, this.environment_map_offset_x)
-        _write_f32(buf, this.environment_map_offset_y)
+        write_f32(buf, self.environment_map_offset_x)
+        write_f32(buf, self.environment_map_offset_y)
 
-        _write_f32(buf, this.reflection_intensity)
+        write_f32(buf, self.reflection_intensity)
 
-        buf.write(this.environment_texture_ptr.pad(4, b"\x00"))
+        buf.write(self.environment_texture_ptr.ljust(4, b"\x00"))
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_rockstar_ReflectionMaterial.value,

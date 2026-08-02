@@ -1,10 +1,10 @@
 import io
 from dataclasses import dataclass, field
-from typing import Union
+from typing import Any, override
 import uuid
 
 from formats.lib.parser import Parser
-from formats.lib.writer import _write_alignedString, _write_u32, _write_bool
+from formats.lib.writer import write_alignedString, write_u32, write_bool
 from formats.lib.rwConstants import strfunc_func
 from formats.lib.rw_basics import RW_StreamFunc, RWHeader, expect_chunk_type_or_raise
 
@@ -24,14 +24,23 @@ class RW_sf_CreateEntity_AttributeClass:
     class_name: str = ""
     attributes: list[RW_sf_CreateEntity_Attribute] = field(default_factory=list)
 
-    def find_first_attribute(self, command: int) -> Union[bytes, None]:
+    def find_first_attribute(self, command: int) -> RW_sf_CreateEntity_Attribute | None:
         for attr in self.attributes:
             if attr.command == command:
                 return attr
         return None
 
-    def find_all_attributes(self, command: int) -> Union[bytes, None]:
+    def find_all_attributes(self, command: int) -> list[RW_sf_CreateEntity_Attribute]:
         return [attr for attr in self.attributes if attr.command == command]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "class_name": self.class_name,
+            "attributes": [
+                {"command": attr.command, "data": attr.data.hex()}
+                for attr in self.attributes
+            ],
+        }
 
 
 @dataclass
@@ -39,14 +48,15 @@ class RW_sf_CreateEntity(RW_StreamFunc):
     header: RWHeader = field(default_factory=RWHeader)
 
     behaviour: str = ""
-    entityID: uuid.UUID = uuid.UUID(int=0)
+    entityID: uuid.UUID = field(default=uuid.UUID(int=0))
     isGlobal: bool = False
 
     classes: list[RW_sf_CreateEntity_AttributeClass] = field(default_factory=list)
 
-    @staticmethod
-    def read(parser: Parser) -> "RW_sf_CreateEntity":
-        entity = RW_sf_CreateEntity()
+    @classmethod
+    @override
+    def read(cls, parser: Parser) -> "RW_sf_CreateEntity":
+        entity = cls()
 
         entity.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -97,46 +107,45 @@ class RW_sf_CreateEntity(RW_StreamFunc):
 
         return entity
 
-    def write(this, f, stamp):
+    @override
+    def write(self, f, stamp):
         buf = io.BytesIO()
 
-        _write_bool(buf, this.isGlobal)
+        write_bool(buf, self.isGlobal)
 
         # Behaviour (CreateClassID)
-        if this.behaviour:
+        if self.behaviour:
             behaviour_buf = io.BytesIO()
-            _write_alignedString(behaviour_buf, this.behaviour)
+            write_alignedString(behaviour_buf, self.behaviour)
             behaviour_data = behaviour_buf.getvalue()
 
-            _write_u32(buf, len(behaviour_data) + 8)
-            _write_u32(buf, RWSPH_CREATECLASSID)
+            write_u32(buf, len(behaviour_data) + 8)
+            write_u32(buf, RWSPH_CREATECLASSID)
             buf.write(behaviour_data)
 
         # Entity UUID (InstanceID)
-        if this.entityID.int != 0:
-            _write_u32(buf, 16 + 8)
-            _write_u32(buf, v=RWSPH_INSTANCEID)
-            buf.write(this.entityID.bytes_le)
+        if self.entityID.int != 0:
+            write_u32(buf, 16 + 8)
+            write_u32(buf, v=RWSPH_INSTANCEID)
+            buf.write(self.entityID.bytes_le)
 
         # Classes and attributes
-        for cls in this.classes:
+        for cls in self.classes:
             class_buf = io.BytesIO()
-            _write_alignedString(class_buf, cls.class_name)
+            write_alignedString(class_buf, cls.class_name)
             class_data = class_buf.getvalue()
 
-            _write_u32(buf, len(class_data) + 8)
-            _write_u32(buf, RWSPH_CLASSID)
+            write_u32(buf, len(class_data) + 8)
+            write_u32(buf, RWSPH_CLASSID)
             buf.write(class_data)
 
             for attr in cls.attributes:
-                _write_u32(buf, len(attr.data) + 8)
-                _write_u32(buf, attr.command)
+                write_u32(buf, len(attr.data) + 8)
+                write_u32(buf, attr.command)
                 buf.write(attr.data)
 
-        _write_u32(buf, 0) # because rw wants it
-        _write_u32(buf, 0) # because rw wants it
-
-
+        write_u32(buf, 0)  # because rw wants it
+        write_u32(buf, 0)  # because rw wants it
 
         rw_header = RWHeader(
             type=strfunc_func.sf_CreateEntity.value,
@@ -146,13 +155,17 @@ class RW_sf_CreateEntity(RW_StreamFunc):
         f.write(rw_header.pack())
         f.write(buf.getvalue())
 
-    def find_first_class(self, class_name: str) -> RW_sf_CreateEntity_AttributeClass:
+    def find_first_class(
+        self, class_name: str
+    ) -> RW_sf_CreateEntity_AttributeClass | None:
         for cls in self.classes:
             if cls.class_name == class_name:
                 return cls
         return None
-    
-    def find_first_class_with_command(self, class_name: str, command: int) -> RW_sf_CreateEntity_AttributeClass:
+
+    def find_first_class_with_command(
+        self, class_name: str, command: int
+    ) -> RW_sf_CreateEntity_AttributeClass | None:
         for cls in self.classes:
             if cls.class_name == class_name:
                 for attr in cls.attributes:
@@ -160,7 +173,44 @@ class RW_sf_CreateEntity(RW_StreamFunc):
                         return cls
         return None
 
-
     @property
+    @override
     def streamfunc(self):
         return strfunc_func.sf_CreateEntity
+
+    @override
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "header": self.header.to_dict(),
+            "behaviour": self.behaviour,
+            "entityID": str(self.entityID),
+            "isGlobal": self.isGlobal,
+            "classes": [cls.to_dict() for cls in self.classes],
+        }
+
+    @classmethod
+    @override
+    def from_dict(cls, content: dict[str, Any]) -> "RW_StreamFunc":
+        header = RWHeader.from_dict(content.get("header", {}))
+
+        return cls(
+            header=header,
+            behaviour=content.get("behaviour", ""),
+            entityID=uuid.UUID(
+                content.get("entityID", "00000000-0000-0000-0000-000000000000")
+            ),
+            isGlobal=content.get("isGlobal", False),
+            classes=[
+                RW_sf_CreateEntity_AttributeClass(
+                    class_name=cls.get("class_name", ""),
+                    attributes=[
+                        RW_sf_CreateEntity_Attribute(
+                            command=attr.get("command", 0),
+                            data=bytes.fromhex(attr.get("data", "")),
+                        )
+                        for attr in cls.get("attributes", [])
+                    ],
+                )
+                for cls in content.get("classes", [])
+            ],
+        )

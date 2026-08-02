@@ -1,0 +1,196 @@
+CrossFern_Leaves.png
+  Changed pixels : 655
+  Similarity     : 84.01%
+
+FLOORDIRT_1A.png
+  Changed pixels : 5,602
+  Similarity     : 65.81%
+
+GLOWYHALO.png
+  Changed pixels : 8,802
+  Similarity     : 46.28%
+
+GRASSEDGE_2.png
+  Changed pixels : 3,452
+  Similarity     : 57.86%
+
+IMPACT_GLOW.png
+  Changed pixels : 3,819
+  Similarity     : 6.76%
+
+IMPACT_STAR.png
+  Changed pixels : 827
+  Similarity     : 79.81%
+
+INFO_BOX_BOTTOM.png
+  Changed pixels : 5,038
+  Similarity     : 69.25%
+
+INFO_BOX_MID.png
+  Changed pixels : 1,513
+  Similarity     : 63.06%
+
+MENU_BOTTOM.png
+  Changed pixels : 4,597
+  Similarity     : 71.94%
+
+METERBORDER.png
+  Changed pixels : 2,503
+  Similarity     : 69.45%
+
+MINI_ICON_EXTENDER.png
+  Changed pixels : 2,949
+  Similarity     : 82.00%
+
+MINI_ICON_FRAME.png
+  Changed pixels : 844
+  Similarity     : 79.39%
+
+MINI_TEXT_BACKING.png
+  Changed pixels : 10,282
+  Similarity     : 37.24%
+
+MINI_TIMER_FRAME.png
+  Changed pixels : 1,127
+  Similarity     : 44.97%
+
+PalmSuess_02.png
+  Changed pixels : 770
+  Similarity     : 81.20%
+
+PalmTall_leaf_01.png
+  Changed pixels : 673
+  Similarity     : 83.57%
+
+PalmTreeBark_01.png
+  Changed pixels : 131
+  Similarity     : 48.83%
+
+PalmTreeBark_Cap01.png
+  Changed pixels : 231
+  Similarity     : 54.88%
+
+Palm_Leaf02.png
+  Changed pixels : 1,106
+  Similarity     : 73.00%
+
+PlantLeaf_03.png
+  Changed pixels : 1,626
+  Similarity     : 60.30%
+
+Plant_Blade.png
+  Changed pixels : 8,490
+  Similarity     : 48.18%
+
+Plant_leaf_04.png
+  Changed pixels : 994
+  Similarity     : 75.73%
+
+SMOKECLOUD.png
+  Changed pixels : 3,479
+  Similarity     : 15.06%
+
+SPRITE_USETALK.png
+  Changed pixels : 363
+  Similarity     : 82.28%
+
+SpikyPalm_leaves.png
+  Changed pixels : 7,411
+  Similarity     : 54.77%
+
+Water_Ring1.png
+  Changed pixels : 1,123
+  Similarity     : 72.58%
+
+banana_tree_leaves.png
+  Changed pixels : 1,038
+  Similarity     : 74.66%
+
+blur.png
+  Changed pixels : 5,106
+  Similarity     : 37.67%
+
+flame1.png
+  Changed pixels : 1,079
+  Similarity     : 47.31%
+
+flame2.png
+  Changed pixels : 1,007
+  Similarity     : 50.83%
+
+flame3.png
+  Changed pixels : 1,244
+  Similarity     : 39.26%
+
+footprint_alex2.png
+  Changed pixels : 731
+  Similarity     : 64.31%
+
+footprint_gloria.png
+  Changed pixels : 760
+  Similarity     : 62.89%
+
+footprint_marty_melman.png
+  Changed pixels : 750
+  Similarity     : 63.38%
+
+junglebits_transBG.png
+  Changed pixels : 4,692
+  Similarity     : 71.36%
+
+marty_body2.png
+  Changed pixels : 49,195
+  Similarity     : 24.93%
+
+maur_hair_black.png
+  Changed pixels : 1,183
+  Similarity     : 71.12%
+
+maur_hair_white.png
+  Changed pixels : 332
+  Similarity     : 67.58%
+
+melman_hair32.png
+  Changed pixels : 177
+  Similarity     : 82.71%
+
+menu_mid.png
+  Changed pixels : 2,250
+  Similarity     : 45.07%
+
+menu_top.png
+  Changed pixels : 8,714
+  Similarity     : 46.81%
+
+mini_dot.png
+  Changed pixels : 383
+  Similarity     : 62.60%
+
+palm_NewSM_tx2.png
+  Changed pixels : 6,126
+  Similarity     : 81.30%
+
+plant_11_leaf.png
+  Changed pixels : 808
+  Similarity     : 80.27%
+
+puff.png
+  Changed pixels : 751
+  Similarity     : 26.66%
+
+seafoam_1.png
+  Changed pixels : 3,110
+  Similarity     : 62.04%
+
+totem_extra6.png
+  Changed pixels : 889
+  Similarity     : 78.30%
+
+water.png
+  Changed pixels : 6,156
+  Similarity     : 62.43%
+
+will.png
+  Changed pixels : 34,475
+  Similarity     : 47.40%
+

@@ -1,9 +1,9 @@
 from enum import IntEnum
 import io
 from dataclasses import dataclass, field
-from typing import Union
+from typing import BinaryIO, override
 
-from formats.lib.writer import _write_f32, _write_f16, _write_u32
+from formats.lib.writer import write_f32, write_f16, write_u32
 from formats.lib.parser import Parser
 from formats.lib.rwConstants import RWSectionType
 from formats.lib.rw_basics import (
@@ -39,8 +39,9 @@ class RW_AnimAnimation_CompressedKeyframe:
 
     bone_id: int = field(default=-1)  # Bone ID
 
-    def read(parser: Parser) -> "RW_AnimAnimation_CompressedKeyframe":
-        kf = RW_AnimAnimation_CompressedKeyframe()
+    @classmethod
+    def read(cls, parser: Parser) -> "RW_AnimAnimation_CompressedKeyframe":
+        kf = cls()
 
         kf.time = parser.readFloat()  # in seconds
 
@@ -63,23 +64,23 @@ class RW_AnimAnimation_CompressedKeyframe:
 
         return kf
 
-    def write(this, f, idx, prev_keyframe_offsets):
-        _write_f32(f, this.time)
+    def write(self, f: BinaryIO, idx: int, prev_keyframe_offsets: dict[int, int]):
+        write_f32(f, self.time)
 
-        _write_f16(f, this.rotation[0])
-        _write_f16(f, this.rotation[1])
-        _write_f16(f, this.rotation[2])
-        _write_f16(f, this.rotation[3])
+        write_f16(f, self.rotation[0])
+        write_f16(f, self.rotation[1])
+        write_f16(f, self.rotation[2])
+        write_f16(f, self.rotation[3])
 
-        _write_f16(f, this.position[0])
-        _write_f16(f, this.position[1])
-        _write_f16(f, this.position[2])
+        write_f16(f, self.position[0])
+        write_f16(f, self.position[1])
+        write_f16(f, self.position[2])
 
-        if this.bone_id in prev_keyframe_offsets:
-            _write_u32(f, KEYFRAME_PARENT_NONE_OFFSET)
+        if self.bone_id in prev_keyframe_offsets:
+            write_u32(f, KEYFRAME_PARENT_NONE_OFFSET)
         else:
-            _write_u32(f, prev_keyframe_offsets[this.bone_id])
-        prev_keyframe_offsets[this.bone_id] = idx * 22
+            write_u32(f, prev_keyframe_offsets[self.bone_id])
+        prev_keyframe_offsets[self.bone_id] = idx * 22
 
 
 @dataclass
@@ -97,16 +98,17 @@ class RW_AnimAnimation(RW_Section):
 
     duration: float = field(default=0.0)  # duration in seconds
 
-    keyframes: Union[list[RW_AnimAnimation_CompressedKeyframe]] = field(
+    keyframes: list[RW_AnimAnimation_CompressedKeyframe] = field(
         default_factory=list
     )
 
     pos_offset: Vector3 = field(default_factory=Vector3)
     pos_scale: Vector3 = field(default_factory=Vector3)
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_AnimAnimation":
-        anim = RW_AnimAnimation()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_AnimAnimation":
+        anim = cls()
         anim.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             anim.header,
@@ -126,7 +128,6 @@ class RW_AnimAnimation(RW_Section):
             raise NotImplementedError("Uncompressed keyframes are not implemented yet.")
         elif anim.keyframe_type == RW_AnimAnimation_KeyframeType.COMPRESSED:
             anim._read_keyframes_compressed(parser)
-            pass
         else:
             raise ValueError(f"Unhandled keyframe type: {anim.keyframe_type}")
 
@@ -134,7 +135,7 @@ class RW_AnimAnimation(RW_Section):
 
     def _read_keyframes_compressed(self, parser: Parser):
         KEYFRAME_SIZE = 22  # Each compressed keyframe is 22 bytes
-        keyframe_offsets = []
+        keyframe_offsets: list[int] = []
         bone_id = -1
 
         for idx in range(self.keyframe_count):
@@ -158,11 +159,12 @@ class RW_AnimAnimation(RW_Section):
         self.pos_offset = Vector3.read(parser)
         self.pos_scale = Vector3.read(parser)
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        prev_keyframe_offsets = {}
-        for kf_idx, kf in enumerate(this.keyframes):
+        prev_keyframe_offsets: dict[int,int] = {}
+        for kf_idx, kf in enumerate(self.keyframes):
             kf.write(buf, kf_idx, prev_keyframe_offsets)
 
         rw_header = RWHeader(

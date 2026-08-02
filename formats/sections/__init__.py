@@ -49,7 +49,7 @@ from formats.sections.RWA.WAVEDATA_0804 import RWA_WaveData
 # ----
 
 # fmt: off
-SECTION_REGISTRY: dict[int, RW_Section] = {
+SECTION_REGISTRY: dict[int, type[RW_Section]] = {
     RWSectionType.rwID_NAOBJECT.value             : RW_Section_NotImplemented,
     RWSectionType.rwID_STRUCT.value               : RW_Section_NotImplemented,
     RWSectionType.rwID_STRING.value               : RW_String,

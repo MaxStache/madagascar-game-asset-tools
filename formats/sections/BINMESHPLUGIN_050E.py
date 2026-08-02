@@ -1,8 +1,9 @@
 from enum import Enum
 import io
 from dataclasses import dataclass, field
+from typing import override
 
-from formats.lib.writer import _write_u32
+from formats.lib.writer import write_u32
 from formats.lib.parser import Parser
 from formats.lib.rwConstants import RWSectionType
 from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
@@ -51,9 +52,10 @@ class RW_BinMeshPlugin(RW_Section):
     )  # RW_BinMeshPLG_Mesh[numMeshes]
 
 
-    @staticmethod
-    def read(parser: Parser, parent=None) -> "RW_BinMeshPlugin":
-        binmesh = RW_BinMeshPlugin()
+    @classmethod
+    @override
+    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_BinMeshPlugin":
+        binmesh = cls()
         binmesh.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             binmesh.header,
@@ -66,7 +68,7 @@ class RW_BinMeshPlugin(RW_Section):
         binmesh.numIndices = parser.readUint32()
 
         binmesh.meshes = []
-        for meshIndex in range(binmesh.numMeshes):
+        for _meshIndex in range(binmesh.numMeshes):
             mesh = RW_BinMeshPlugin_Mesh()
             mesh.numIndices = parser.readUint32()
             mesh.materialIndex = parser.readUint32()
@@ -75,17 +77,18 @@ class RW_BinMeshPlugin(RW_Section):
 
         return binmesh
 
-    def write(this, f, stamp, parent=None):
+    @override
+    def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        _write_u32(buf, this.flags.value)
-        _write_u32(buf, this.numMeshes)
-        _write_u32(buf, this.numIndices)
-        for mesh in this.meshes:
-            _write_u32(buf, mesh.numIndices)
-            _write_u32(buf, mesh.materialIndex)
+        write_u32(buf, self.flags.value)
+        write_u32(buf, self.numMeshes)
+        write_u32(buf, self.numIndices)
+        for mesh in self.meshes:
+            write_u32(buf, mesh.numIndices)
+            write_u32(buf, mesh.materialIndex)
             for idx in mesh.indices:
-                _write_u32(buf, idx)
+                write_u32(buf, idx)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_BINMESHPLUGIN.value,

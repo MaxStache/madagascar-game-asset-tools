@@ -1,13 +1,10 @@
 import struct
-from typing import Any, Dict
+from typing import Any
 import uuid
 
 
 class Parser:
     def __init__(self, data: bytes, endian: str = "little"):
-        if not isinstance(data, (bytes, bytearray)):
-            raise TypeError("data must be bytes or bytearray")
-
         self.data = data
         self.offset = 0
 
@@ -194,7 +191,7 @@ class Parser:
             "version": self.peekUint32(),
         }
 
-    def readColor32(self) -> Dict[str, int]:
+    def readColor32(self) -> dict[str, int]:
         r = self.readUint8()
         g = self.readUint8()
         b = self.readUint8()

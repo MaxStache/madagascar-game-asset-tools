@@ -1,5 +1,13 @@
+from enum import Enum
+
 from ..cli import app
-from ..utils import ValidatedExistingFile, ValidatedDir, progress, loadEmbeddedAssets_to_file_name, sanitize_filename
+from ..utils import (
+    ValidatedExistingFile,
+    ValidatedDir,
+    progress,
+    loadEmbeddedAssets_to_file_name,
+    sanitize_filename,
+)
 from formats.stream import load_stream
 from formats.lib.rwConstants import strfunc_func
 import json
@@ -8,11 +16,18 @@ from pathlib import Path
 from typing import Any, cast
 from formats.streamfuncs.stringfuncs.sf_LoadEmbeddedAsset import RW_sf_LoadEmbeddedAsset
 
+
+class FileNaming(Enum):
+    GUID = 0
+    SEC_IDX = 1
+
+
 @app.command
 def unpack(
     stream_file: ValidatedExistingFile,
     output_dir: ValidatedDir,
-    readable: bool = False,
+    naming: FileNaming = FileNaming.SEC_IDX,
+    human: bool = True,
     gzipped: bool = False,
 ):
     """Unpack a stream files assets into a directory (including a manifest).
@@ -23,7 +38,7 @@ def unpack(
         File to unpack.
     output_dir : str
         Directory to unpack the stream file into.
-    readable : bool
+    human : bool
         Whether to make the manifest more human-readable (pretty-printed).
     gzipped : bool
         Whether the stream file is gzipped or not.
@@ -36,7 +51,12 @@ def unpack(
     MANIFEST_FILE = Path(output_dir, "manifest.json")
     MANIFEST_CONTENTS: list[dict[str, Any]] = []
 
-    for sec in progress(strm.contents, description="Processing..."):
+    enumerated_contents = enumerate(strm.contents)
+    for i, sec in progress(
+        enumerate(strm.contents),
+        description="Processing...",
+        total=len(list(enumerated_contents)),
+    ):
         extra: dict[str, Any] = {}
 
         if sec.streamfunc == strfunc_func.sf_LoadEmbeddedAsset:
@@ -46,10 +66,15 @@ def unpack(
 
             stem = Path(base_file_name).stem
             suffix = Path(base_file_name).suffix
-            
-            file_name = f"{stem}_{{{sec.guid}}}{suffix}"
+
+            if naming == FileNaming.GUID:
+                file_name = f"{stem}_{{{sec.guid}}}{suffix}"
+
+            elif naming == FileNaming.SEC_IDX:
+                file_name = f"{i}_{stem}{suffix}"
+
             file_name = sanitize_filename(file_name)
-            
+
             with open(Path(output_dir, file_name), "wb") as f:
                 f.write(sec.data)
 
@@ -65,7 +90,7 @@ def unpack(
         )
 
     with open(MANIFEST_FILE, "w") as f:
-        if readable:
+        if human:
             json.dump(MANIFEST_CONTENTS, f, indent=4)
         else:
             json.dump(MANIFEST_CONTENTS, f)

@@ -45,3 +45,7 @@ Thumbs.db
 *.dff
 
 Levels/*
+
+
+# .gig.* = Dont track this file
+**/*.gig.* 

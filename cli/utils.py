@@ -17,8 +17,10 @@ from formats.streamfuncs.stringfuncs.sf_LoadEmbeddedAsset import RW_sf_LoadEmbed
 def progress[T](
     iterable: Iterable[T],
     description: str = "Processing...",
+    total: int | None = None,
 ) -> Iterator[T]:
-    total = len(iterable) if isinstance(iterable, Sized) else None
+    if total is None and isinstance(iterable, Sized):
+        total = len(iterable)
 
     with Progress(
         TextColumn("[progress.description]{task.description}"),
@@ -79,6 +81,8 @@ def loadEmbeddedAssets_to_file_name(sec: RW_sf_LoadEmbeddedAsset) -> str:
         file_name += ".fnt"
     elif sec.type == "KFset":
         file_name += ".lpa"
+    elif sec.type == "TEXT":
+        file_name += ".txt" # NOT CONFIRMED EXTENSION
     else:
         file_name += Path(sec.name).suffix
 

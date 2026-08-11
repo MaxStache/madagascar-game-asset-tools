@@ -480,15 +480,15 @@ class RW_TextureNative_Struct(RW_Section):
             b, g, ra, a = struct.unpack("<BBBB", parser.read(4))  # Xbox = BGRA
             self.palette.append(PaletteEntry(ra, g, b, a))
 
-        mipmap_data_size = 0
+        texel_data_size = 0
 
         for mip_level in range(self.mipmap_count):
             data_size, w, h = self._xbox_calc_mipmap(mip_level)
-            mipmap_data_size += data_size
+            texel_data_size += data_size
 
             self.mipmaps.append(MipmapLevel(w, h, data_size, parser.read(data_size)))
 
-        padding = ((mipmap_data_size + 3) & ~3) - mipmap_data_size
+        padding = ((texel_data_size + 3) & ~3) - texel_data_size # pad to 4b
         parser.skip(padding)
 
     def _xbox_calc_mipmap(self, mip_level: int) -> tuple[int, int, int]:
@@ -559,12 +559,12 @@ class RW_TextureNative_Struct(RW_Section):
         write_u8(buf, self.tex_code_type)
         write_u8(buf, self.dxt_compression)
 
-        mipmap_data_size = 0
+        texel_data_size = 0
         for mip_level in range(self.mipmap_count):
             data_size, _, _ = self._xbox_calc_mipmap(mip_level)
-            mipmap_data_size += data_size
+            texel_data_size += data_size
 
-        write_u32(buf, (mipmap_data_size + 3) & ~3)  # pad to 4b aligned
+        write_u32(buf, (texel_data_size + 3) & ~3)  # pad to 4b aligned
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_STRUCT.value,
@@ -724,7 +724,7 @@ class RW_TextureNative(RW_Section):
         )  # Should never run actually
 
         if all_mipmaps:
-            self._mipmap_sheet().save(filepath, format="PNG")
+            self._mipmap_sheet().save(filepath, format="PNG") # type: ignore
             return
 
         mip = self.struct.mipmaps[mipmap_index]
@@ -735,7 +735,7 @@ class RW_TextureNative(RW_Section):
 
         img.save(filepath, format="PNG")
 
-    def _mipmap_sheet(self, gap: int = 0) -> "Image.Image":
+    def _mipmap_sheet(self, gap: int = 0) -> "Image.Image": # type: ignore
         """Compose every mipmap level into one image, largest first.
 
         Args:

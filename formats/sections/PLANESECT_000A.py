@@ -1,40 +1,21 @@
-from enum import IntEnum
 import io
 from dataclasses import dataclass, field
 from typing import BinaryIO, Union, override
 
 from formats.lib.parser import Parser
 from formats.lib.rwConstants import RWSectionType
-from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise, RW_Axis_Type
 from formats.lib.writer import write_f32, write_u32
 from formats.sections.ATOMICSECT_0009 import RW_AtomicSector
 from formats.sections.shared.worldflags import RpWorldFlags
 
-
-class RW_PlaneSector_Type(IntEnum):
-    """
-    These specific numbers aren't arbitrary,
-    they're byte offsets into an RwV3d struct,
-    which is just three consecutive floats {x, y, z} at offsets 0, 4, and 8.
-    So the engine can use type directly to index the relevant coordinate of a point
-    (that's what the GETCOORD macro in the headers does).
-    You can see self in the whitepaper's iterator example: partition->type = 4;
-    /* the y-axis */.
-
-    REFRENCE TO: RenderWare Whitepapers - worlds.pdf
-    WRITTEN BY: Claude Opus 4.8 Extra
-    """
-
-    rwPLANE_X = 0
-    rwPLANE_Y = 4
-    rwPLANE_Z = 8
 
 
 @dataclass
 class RW_PlaneSector_Struct(RW_Section):
     header: RWHeader = field(default_factory=RWHeader)
 
-    type: RW_PlaneSector_Type = RW_PlaneSector_Type.rwPLANE_X  # uint32 (axis)
+    type: RW_Axis_Type = RW_Axis_Type.rwPLANE_X  # uint32 (axis)
     value: float = 0.0  # float32
     """
     value - the position of that plane along the chosen axis,
@@ -80,7 +61,7 @@ class RW_PlaneSector_Struct(RW_Section):
             "RW_PlaneSector_Struct chunk type",
         )
 
-        ps_s.type = RW_PlaneSector_Type(parser.readUint32())
+        ps_s.type = RW_Axis_Type(parser.readUint32())
 
         ps_s.value = parser.readFloat()
 

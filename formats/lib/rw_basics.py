@@ -1,3 +1,4 @@
+from enum import IntEnum
 import struct
 from dataclasses import dataclass, field
 from typing import Any, BinaryIO, override
@@ -186,6 +187,24 @@ class RWHeader:
         return f"RWHeader(type={hex(self.type)}, size={self.size}, library_id_stamp={hex(self.library_id_stamp if self.library_id_stamp else 0)}, version={hex(self.version)}, build={self.build})"
 
 
+class RW_Axis_Type(IntEnum):
+    """
+    These specific numbers aren't arbitrary,
+    they're byte offsets into an RwV3d struct,
+    which is just three consecutive floats {x, y, z} at offsets 0, 4, and 8.
+    So the engine can use type directly to index the relevant coordinate of a point
+    (that's what the GETCOORD macro in the headers does).
+    You can see self in the whitepaper's iterator example: partition->type = 4;
+    /* the y-axis */.
+
+    REFRENCE TO: RenderWare Whitepapers - worlds.pdf
+    WRITTEN BY: Claude Opus 4.8 Extra
+    """
+
+    rwPLANE_X = 0
+    rwPLANE_Y = 4
+    rwPLANE_Z = 8
+    
 @dataclass(frozen=True, slots=True)
 class Vector3:
     x: float = 0.0

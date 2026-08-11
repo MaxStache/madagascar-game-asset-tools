@@ -4,16 +4,10 @@ from typing import BinaryIO, override
 
 from formats.lib.parser import Parser
 from formats.lib.rwConstants import RWSectionType
-from formats.lib.rw_basics import RW_UV, RW_Section, RWColor32, RWHeader, Vector3, expect_chunk_type_or_raise
+from formats.lib.rw_basics import RW_UV, RW_Section, RW_Triangle, RWColor32, RWHeader, Vector3, expect_chunk_type_or_raise
+from formats.lib.writer import write_f32, write_u16, write_u32
 from formats.sections.shared.worldflags import RpWorldFlags
 from formats.sections.EXTENSION_0003 import RW_Extension
-
-@dataclass
-class RW_Triangle:
-    vertex1: int = 0  # uint16
-    vertex2: int = 0  # uint16
-    vertex3: int = 0  # uint16
-    materialIndex: int = 0  # uint16
 
 @dataclass
 class RW_AtomicSector_Struct(RW_Section):
@@ -72,9 +66,6 @@ class RW_AtomicSector_Struct(RW_Section):
         atsec_s.colors = []
         atsec_s.uvs = []
 
-        # Prelit colors are present whenever rpWORLDPRELIT is set — NOT
-        # modulateMaterialColor, which only changes how they're used at
-        # render time (collision BSPs have preLit without modulate).
         if worldFlags.preLit:
             for _ in range(atsec_s.numVertices):
                 atsec_s.colors.append(RWColor32.read(parser))
@@ -113,10 +104,66 @@ class RW_AtomicSector_Struct(RW_Section):
 
     @override
     def write(self, f: BinaryIO, stamp: int, parent: RW_Section | None = None):
+        worldFlags = getattr(parent, "worldFlags", None)
+        if worldFlags is None:
+            raise ValueError(
+                "RW_AtomicSector_Struct.write needs the owning RW_AtomicSector as "
+                + "`parent` to resolve worldFlags"
+            )
+
+        # The counts are what the reader trusts; keep them in sync with the
+        # actual arrays so appending/rebuilding geometry can't desync them.
+        self.numVertices = len(self.vertices)
+        self.numTriangles = len(self.triangles)
+
         buf = io.BytesIO()
 
-        # Writing here
-        # TODO! TODO: IMPLEMENT!!
+        write_u32(buf, self.matListWindowBase)
+        write_u32(buf, self.numTriangles)
+        write_u32(buf, self.numVertices)
+
+        self.boxMax.write(buf)
+        self.boxMin.write(buf)
+
+        write_u32(buf, self.collSectorPresent)
+        write_u32(buf, self.unused)
+
+        for vertex in self.vertices:
+            vertex.write(buf)
+
+        if worldFlags.preLit:
+            colors = self.colors or []
+            if len(colors) != self.numVertices:
+                raise ValueError(
+                    f"rpWORLDPRELIT set but sector has {len(colors)} colors for "
+                    + f"{self.numVertices} vertices"
+                )
+            for color in colors:
+                color.write(buf)
+
+        numUVSets = worldFlags.numTexCoordSets or (
+            2 if worldFlags.textured2 else (1 if worldFlags.textured else 0)
+        )
+        if numUVSets > 1:
+            raise NotImplementedError(
+                f"Atomic sector has {numUVSets} UV sets; only 1 is supported."
+            )
+        if numUVSets:
+            uvs = self.uvs or []
+            if len(uvs) != self.numVertices:
+                raise ValueError(
+                    f"{numUVSets} UV set(s) declared but sector has {len(uvs)} UVs "
+                    + f"for {self.numVertices} vertices"
+                )
+            for uv in uvs:
+                write_f32(buf, uv.u)
+                write_f32(buf, uv.v)
+
+        for triangle in self.triangles:
+            write_u16(buf, triangle.vertex1)
+            write_u16(buf, triangle.vertex2)
+            write_u16(buf, triangle.vertex3)
+            write_u16(buf, triangle.materialIndex)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_STRUCT.value,

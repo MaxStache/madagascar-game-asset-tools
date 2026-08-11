@@ -77,7 +77,7 @@ class RW_World_Struct(RW_Section):
             )
 
         return world_s
-
+ 
     @override
     def write(self, f: BinaryIO, stamp: int, parent: RW_Section | None = None):
         buf = io.BytesIO()
@@ -163,6 +163,8 @@ class RW_World(RW_Section):
             )
 
         world.extension = RW_Extension.read(parser, parent=world)
+
+        world.struct.worldFlags.print()
 
         return world
 

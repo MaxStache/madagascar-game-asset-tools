@@ -1,44 +1,47 @@
+# Python
 __pycache__/
+*.py[cod]
+*.pyd
 
-other/ai.html
-other/ai.txt
-
+# Virtual environments
 env/
 .venv/
+venv/
 
-banquet/
-map/
-research_unk/
+# Python build/package output
+build/
+dist/
+*.egg-info/
 
-Logfile.csv
-stack.CSV
+# uv
+# uv.lock is intentionally NOT ignored
 
-banquet_stream_log.PML
+# Test / tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
-banquet.rar
-map.rar
-research_unk.rar
+# IDE
+.vscode/
+.idea/
+.claude/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
 
 *.stream
 *.txd
 *.rws
 *.wav
-*.bin
-*.log
-parsers/*/*.png
 *.bsp
-
-.claude
-.secdata
-
-parsed_bsps/*.mtl
-parsed_bsps/*.obj
-parsed_bsps/*/*.png
+*.dff
 
 Levels/*
-
-__pycache__/*
-
-mods/overlay/bin/
-mods/overlay/obj/
-mods/overlay/*.user

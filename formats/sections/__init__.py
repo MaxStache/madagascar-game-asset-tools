@@ -28,6 +28,7 @@ from formats.sections.SKINPLUGIN_0116 import RW_SkinPlugin
 from formats.sections.TEXDICTIONARY_0016 import RW_TextureDictionary
 from formats.sections.TEXTURENATIVE_0015 import RW_TextureNative
 from formats.sections.ANIMANIMATION_001B import RW_AnimAnimation
+from formats.sections.COLLISIONPLG_011D import RW_CollisionPlugin
 
 # SKY (PS2)
 from formats.sections.SKYMIPMAPVAL_0110 import RW_SkyMipmapVal
@@ -121,7 +122,7 @@ SECTION_REGISTRY: dict[int, type[RW_Section]] = {
     RWSectionType.rwID_SYNTHCOREPLUGIN.value      : RW_Section_NotImplemented,
     RWSectionType.rwID_STQPPPLUGIN.value          : RW_Section_NotImplemented,
     RWSectionType.rwID_PARTPPPLUGIN.value         : RW_Section_NotImplemented,
-    RWSectionType.rwID_COLLISPLUGIN.value         : RW_Section_NotImplemented,
+    RWSectionType.rwID_COLLISPLUGIN.value         : RW_CollisionPlugin,
     RWSectionType.rwID_HANIMPLUGIN.value          : RW_HAnimPlugin,
     RWSectionType.rwID_USERDATAPLUGIN.value       : RW_UserDataPlugin,
     RWSectionType.rwID_MATERIALEFFECTSPLUGIN.value: RW_MaterialEffectsPlugin,
@@ -221,14 +222,14 @@ SECTION_REGISTRY: dict[int, type[RW_Section]] = {
     RWSectionType.rwID_rockstar_Breakable.value         : RW_Section_NotImplemented,
 
     # TFB
-    0x800000D4: RW_Section_NotImplemented, # found on atomic world sector
-    0x800000FE: RW_Section_NotImplemented, # found on atomic world sector
-    0x800000B0: RW_Section_NotImplemented, # found on world 
-    0x800000F6: RW_Section_NotImplemented, # found on material (in world)
-    0x800000ED: RW_Section_NotImplemented, # found on atomic
+    0x800000D4: RW_Section_NotImplemented, # found on atomic world sector    NO READER IN PC VERSION
+    0x800000FE: RW_Section_NotImplemented, # found on atomic world sector    
+    0x800000B0: RW_Section_NotImplemented, # found on world                    
+    0x800000F6: RW_Section_NotImplemented, # found on material (in world)      
+    0x800000ED: RW_Section_NotImplemented, # found on atomic                 NO READER IN PC VERSION
     0x800000FD: RW_Section_NotImplemented, # found on atomic
     0x800000B1: RW_Section_NotImplemented, # found on clump
-    0x800000DD: RW_Section_NotImplemented, # found on TextureNative
+    0x800000DD: RW_Section_NotImplemented, # found on Raster / Texture       NO READER IN PC VERSION
 }
 # fmt: on
 

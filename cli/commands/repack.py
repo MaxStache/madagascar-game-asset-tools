@@ -1,14 +1,14 @@
 from ..cli import app
 from ..utils import ValidatedDir, ValidatedFile, progress
-from formats.lib.rwConstants import strfunc_func
+from madagascar.lib.rwConstants import strfunc_func
 import json
 import io
 from pathlib import Path
 from typing import cast
-from formats.streamfuncs.stringfuncs.sf_LoadEmbeddedAsset import RW_sf_LoadEmbeddedAsset
-from formats.stream import RW_StreamFile
-from formats.streamfuncs import STRFUNC_REGISTRY
-from formats.lib.rw_basics import RW_StreamFunc_NotImplemented
+from madagascar.streamfuncs.stringfuncs.sf_LoadEmbeddedAsset import RW_sf_LoadEmbeddedAsset
+from madagascar.stream import RW_StreamFile
+from madagascar.streamfuncs import STRFUNC_REGISTRY
+from madagascar.lib.rw_basics import RW_StreamFunc_NotImplemented
 
 @app.command
 def repack(

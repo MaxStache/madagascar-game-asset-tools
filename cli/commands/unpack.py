@@ -8,13 +8,13 @@ from ..utils import (
     loadEmbeddedAssets_to_file_name,
     sanitize_filename,
 )
-from formats.stream import load_stream
-from formats.lib.rwConstants import strfunc_func
+from madagascar.stream import load_stream
+from madagascar.lib.rwConstants import strfunc_func
 import json
 import os
 from pathlib import Path
 from typing import Any, cast
-from formats.streamfuncs.stringfuncs.sf_LoadEmbeddedAsset import RW_sf_LoadEmbeddedAsset
+from madagascar.streamfuncs.stringfuncs.sf_LoadEmbeddedAsset import RW_sf_LoadEmbeddedAsset
 
 
 class FileNaming(Enum):

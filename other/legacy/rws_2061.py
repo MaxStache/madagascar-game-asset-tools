@@ -1,9 +1,9 @@
-from formats.lib.parser import Parser
+from madagascar.lib.parser import Parser
 from enum import Enum
 import tkinter as tk
 from tkinter import ttk
 import wave
-import formats.lib.ima_adpcm as ima_adpcm
+import madagascar.lib.ima_adpcm as ima_adpcm
 
 
 class CodecUUID(Enum):

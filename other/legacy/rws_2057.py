@@ -1,4 +1,4 @@
-from formats.lib.parser import Parser
+from madagascar.lib.parser import Parser
 from enum import Enum
 import wave
 import tkinter as tk

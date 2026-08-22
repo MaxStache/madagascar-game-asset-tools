@@ -47,7 +47,14 @@ uv sync
 
 This automatically creates a virtual environment and installs the dependencies specified by the project.
 
-### 4. Running scripts with UV
+### 4. Installing the folders as packages
+
+```bash
+uv add --editable ./madlysimple
+uv add --editable ./madagascar
+```
+
+### 5. Running scripts with UV
 
 You can run Python scripts through `uv` without manually activating the virtual environment:
 

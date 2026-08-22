@@ -12,7 +12,7 @@ from cyclopts import Parameter, validators
 from typing import Annotated
 from pathlib import Path
 
-from formats.streamfuncs.stringfuncs.sf_LoadEmbeddedAsset import RW_sf_LoadEmbeddedAsset
+from madagascar.streamfuncs.stringfuncs.sf_LoadEmbeddedAsset import RW_sf_LoadEmbeddedAsset
 
 def progress[T](
     iterable: Iterable[T],

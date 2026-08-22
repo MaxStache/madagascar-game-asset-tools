@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 
-from formats.lib.game_memory import PlayerPosition
+from madagascar.lib.game_memory import PlayerPosition
 
 UPDATE_MS = 50
 
@@ -12,7 +12,7 @@ class PositionViewer:
 
         self.root = tk.Tk()
         self.root.title("Player Position")
-        self.root.geometry("360x180")
+        self.root.geometry("360x220")
         self.root.resizable(False, False)
 
         main = ttk.Frame(self.root, padding=12)
@@ -76,13 +76,22 @@ class PositionViewer:
             pady=(12, 0),
         )
 
+        ttk.Button(
+            main,
+            text="Reload",
+            command=self.reinitialize_player,
+        ).pack(
+            fill="x",
+            pady=(6, 0),
+        )
+
         self.update_position()
 
         self.root.mainloop()
 
     def update_position(self):
         try:
-            x, y, z = self.player.position # type: ignore
+            x, y, z = self.player.position  # type: ignore
 
             self.value_labels["X"].config(text=f"{x:10.3f}")
             self.value_labels["Y"].config(text=f"{y:10.3f}")
@@ -109,7 +118,15 @@ class PositionViewer:
                 if value:
                     values[axis.lower()] = float(value)
 
-            self.player.set_position(**values) # type: ignore
+            self.player.set_position(**values)  # type: ignore
+
+        except Exception as e:  # noqa: BLE001
+            print(e)
+
+    def reinitialize_player(self):
+        try:
+            self.player = PlayerPosition("Game.exe")
+            print("PlayerPosition reinitialized")
 
         except Exception as e:  # noqa: BLE001
             print(e)

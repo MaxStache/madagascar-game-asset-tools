@@ -1,4 +1,4 @@
-"""Madagascar (2005, PC) ``SaveGames.mem`` reader.
+"""Madagascar (2005, PC) ``SaveGames.mem`` reader and writer.
 
 The file is four fixed slots, each a 0x2C header followed by a payload.  The
 payload is *not* self-describing: it is a flat sequence of
@@ -34,25 +34,66 @@ Which objects end up in a save is decided by a watermark: the serializer scans
 once in ``FUN_004610b0`` right after ``LoadStreamFile("LEVELS\\GLOBAL.STREAM")``.
 Everything a level declares lives above that mark and is destroyed on every
 transition, so only GLOBAL.STREAM's ``LevelHub`` globals are persisted.
+
+Writing
+-------
+Slots are a fixed stride, so a rebuilt payload must be exactly ``payload_size``
+bytes - the same constraint the game works under.  ``SaveFile.write`` re-emits
+each entry in its original order, recomputes the header's entry count and
+rot-xor checksum, and preserves the fields it does not own (the runtime
+``payload_ptr``, the language id, the level name).  A slot that never walked is
+written back verbatim.  Read-then-write with no edits is byte-identical to the
+input; :func:`roundtrip_ok` asserts exactly that.
+
+    save = read_save(path, global_stream)
+    save[0].set("ZoosterLives", 99)
+    save[0].set_placement_removed(1234, False)
+    save[0].placements_removed = []          # restore every collectible
+    save.write(path)
 """
 
 from __future__ import annotations
 
 import struct
 import zlib
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from typing import override
+
 from madagascar.stream import load_stream
 from madagascar.streamfuncs import RW_sf_CreateEntity
-from typing import override
-__version__ = "1.0.0"
+
+__version__ = "1.2.0"
+
+__all__ = [
+    "SaveError",
+    "SaveFile",
+    "Slot",
+    "Entry",
+    "Declaration",
+    "read_save",
+    "write_save",
+    "roundtrip_ok",
+    "tfb_hash",
+    "entry_id",
+    "build_catalog",
+    "read_declarations",
+    "saved_declarations",
+    "payload_checksum",
+    "bit_get",
+    "bit_set",
+    "set_bits",
+    "bit_runs",
+]
 
 SLOT_COUNT = 4
 HEADER_SIZE = 0x2C
 SAVE_VERSION = 8
 CHECKSUM_SEED = 0x55555555
 INT_TAG = 0x80000000
+INT_MAX = 0x7FFFFFFF
 
 #: ``FUN_00419910`` masks the tag with 0xFFFFFF7F and switches 0..7; bit 7 means
 #: the global is a *set* of that type.  Only a plain type-0 single value ends up
@@ -153,17 +194,17 @@ def set_bits(blob: bytes) -> list[int]:
 def bit_runs(indices: list[int]) -> list[tuple[int, int]]:
     """Collapse an index list into inclusive ``(first, last)`` runs."""
     runs: list[tuple[int, int]] = []
-    start = prev = None
-    for i in indices:
-        if start is None:
-            start = prev = i
-        elif i == prev + 1:
+    if not indices:
+        return runs
+
+    start = prev = indices[0]
+    for i in indices[1:]:
+        if i == prev + 1:
             prev = i
         else:
             runs.append((start, prev))
             start = prev = i
-    if start is not None:
-        runs.append((start, prev))
+    runs.append((start, prev))
     return runs
 
 
@@ -271,8 +312,57 @@ class Entry:
             return self.blob
         assert self.raw is not None
         if self.raw & INT_TAG:
-            return self.raw & 0x7FFFFFFF
+            return self.raw & INT_MAX
         return struct.unpack("<f", struct.pack("<I", self.raw))[0]
+
+    @value.setter
+    def value(self, new: int | float | bytes) -> None:  # noqa: PYI041 - int and float differ here
+        """Assign, keeping the entry's existing shape.
+
+        A blob may only be replaced by one of the same length: the slot is a
+        fixed stride, so any size change would push every following entry out
+        of the payload.
+        """
+        if isinstance(new, (bytes, bytearray)):
+            if self.blob is None:
+                raise SaveError(f"{self.name!r} is a scalar, not a blob")
+            if len(new) != len(self.blob):
+                raise SaveError(
+                    f"{self.name!r} is {len(self.blob)} bytes; cannot store "
+                    + f"{len(new)} without resizing the payload"
+                )
+            self.blob = bytes(new)
+            return
+
+        if self.blob is not None:
+            raise SaveError(f"{self.name!r} is a blob, not a scalar")
+        assert self.raw is not None
+
+        if isinstance(new, bool):
+            new = int(new)
+
+        # Keep the stored type: the live object behind this entry has a fixed
+        # type, so writing 100 into a float global must still store a float.
+        if self.raw & INT_TAG:
+            if isinstance(new, float):
+                if not new.is_integer():
+                    raise SaveError(
+                        f"{self.name!r} stores an int; {new} is not a whole number"
+                    )
+                new = int(new)
+            if not 0 <= new <= INT_MAX:
+                raise SaveError(f"int {new} out of range 0..{INT_MAX}")
+            self.raw = INT_TAG | new
+        else:
+            (self.raw,) = struct.unpack("<I", struct.pack("<f", float(new)))
+
+    def pack(self) -> bytes:
+        """The entry's on-disk bytes: the id dword, then the value or blob."""
+        head = struct.pack("<I", self.id)
+        if self.blob is not None:
+            return head + self.blob
+        assert self.raw is not None
+        return head + struct.pack("<I", self.raw)
 
     @override
     def __str__(self) -> str:
@@ -306,6 +396,13 @@ class Slot:
     def checksum_ok(self) -> bool:
         return payload_checksum(self.payload) == self.checksum
 
+    def entry(self, name: str) -> Entry:
+        """The named entry, for in-place mutation.  Raises if absent."""
+        for e in self.entries:
+            if e.name == name:
+                return e
+        raise SaveError(f"no entry named {name!r} in slot {self.index}")
+
     def get(self, name: str) -> int | float | bytes | None:
         for e in self.entries:
             if e.name == name:
@@ -318,15 +415,34 @@ class Slot:
         v = self.get("Global Placement Removed")
         return v if isinstance(v, bytes) else None
 
+    @property
     def placements_removed(self) -> list[int]:
         """Placement ids this slot records as removed (collected/destroyed).
 
         The id is the placement's own ``obj+4``, loaded into the set's subscript
         register by ``FUN_0043bb70`` whenever the script's current object changes,
         so a bit index *is* a placement id.
+
+        Assigning replaces the whole set - ``slot.placements_removed = []``
+        restores every collectible in the save.
         """
         blob = self.placement_blob
         return set_bits(blob) if blob else []
+
+    @placements_removed.setter
+    def placements_removed(self, ids: Iterable[int]) -> None:
+        e = self.entry("Global Placement Removed")
+        if e.blob is None:
+            raise SaveError("Global Placement Removed did not parse as a blob")
+        limit = len(e.blob) * 8
+        buf = bytearray(len(e.blob))
+        for pid in ids:
+            if not 0 <= pid < limit:
+                raise SaveError(
+                    f"placement id {pid} is past the {limit} bits this save stores"
+                )
+            bit_set(buf, pid, True)
+        e.blob = bytes(buf)
 
     def is_placement_removed(self, placement_id: int) -> bool:
         blob = self.placement_blob
@@ -334,6 +450,70 @@ class Slot:
             return False
         return bit_get(blob, placement_id)
 
+    # -- writing -----------------------------------------------------------
+
+    def set(self, name: str, value: int | float | bytes) -> None:  # noqa: PYI041
+        """Set one named global.  Raises if this slot has no such entry."""
+        self.entry(name).value = value
+
+    def set_placement_removed(self, placement_id: int, removed: bool = True) -> None:
+        """Mark a placement collected/destroyed, or restore it."""
+        e = self.entry("Global Placement Removed")
+        if e.blob is None:
+            raise SaveError("Global Placement Removed did not parse as a blob")
+        if placement_id >= len(e.blob) * 8:
+            raise SaveError(
+                f"placement id {placement_id} is past the "
+                + f"{len(e.blob) * 8} bits this save stores"
+            )
+        buf = bytearray(e.blob)
+        bit_set(buf, placement_id, removed)
+        e.blob = bytes(buf)
+
+    def pack_payload(self, payload_size: int) -> bytes:
+        """Rebuild the payload.  A slot that never walked is emitted verbatim."""
+        if not self.entries:
+            return self.payload.ljust(payload_size, b"\x00")[:payload_size]
+
+        body = b"".join(e.pack() for e in self.entries)
+        if len(body) > payload_size:
+            raise SaveError(
+                f"slot {self.index} packs to {len(body)} bytes, which does not "
+                + f"fit the {payload_size}-byte payload"
+            )
+        return body.ljust(payload_size, b"\x00")
+
+    def pack(self, payload_size: int) -> bytes:
+        """Header plus payload, with entry count and checksum recomputed."""
+        payload = self.pack_payload(payload_size)
+        header = struct.pack(
+            "<IIIiIiI",
+            payload_size,
+            self.version,
+            len(self.entries) if self.entries else self.entry_count,
+            self.language_id,
+            self.percent_complete,
+            self.play_time_seconds,
+            payload_checksum(payload),
+        )
+        header += self.stream_name.encode("latin-1")[:11].ljust(12, b"\x00")
+        header += struct.pack("<I", self.payload_ptr)
+        assert len(header) == HEADER_SIZE, len(header)
+        return header + payload
+
+
+COINS_BITS = 11
+COINS_MASK = (1 << COINS_BITS) - 1  # 0x7FF
+
+
+def unpack_percent_complete(value: int) -> tuple[int, int]:
+    """u32 -> (coins_collected, furthest_unlocked_level)"""
+    return value & COINS_MASK, value >> COINS_BITS
+
+
+def pack_percent_complete(coins_collected: int, furthest_unlocked_level: int) -> int:
+    """(coins_collected, furthest_unlocked_level) -> u32"""
+    return (furthest_unlocked_level << COINS_BITS) | (coins_collected & COINS_MASK)
 
 @dataclass
 class SaveFile:
@@ -344,6 +524,26 @@ class SaveFile:
     def __getitem__(self, i: int) -> Slot:
         return self.slots[i]
 
+    def __len__(self) -> int:
+        return len(self.slots)
+
+    def pack(self) -> bytes:
+        return b"".join(s.pack(self.payload_size) for s in self.slots)
+
+    def write(self, path: str | Path) -> None:
+        """Write every slot back out.  The slot stride is fixed, so the file
+        keeps exactly the size it was read at."""
+        Path(path).write_bytes(self.pack())
+
+    def createDevSlot(self, slot:int):
+        self.slots[slot].placements_removed = []
+        self.slots[slot].percent_complete = pack_percent_complete(1100,12)
+        self.slots[slot].set("furthest_level_unlocked", 12)
+        self.slots[slot].set("last_level_played", 7)
+        self.slots[slot].set("Next Level Auto Load", 14)
+        self.slots[slot].set("zoovenir_item_bits", 2146385919)
+        self.slots[slot].play_time_seconds = 0
+        
 
 def _split_slots(data: bytes) -> tuple[int, list[bytes]]:
     if len(data) % (4 * 4):
@@ -463,22 +663,91 @@ def read_save(
     return save
 
 
+def write_save(save: SaveFile, path: str | Path) -> None:
+    """Module-level alias for :meth:`SaveFile.write`."""
+    save.write(path)
+
+
+def roundtrip_ok(
+    path: str | Path, stream_path: str | Path = "Levels/global.stream"
+) -> bool:
+    """True if reading and re-packing ``path`` reproduces it byte for byte.
+
+    Worth running against an unfamiliar save before trusting an edit to it.
+    """
+    return read_save(path, stream_path).pack() == Path(path).read_bytes()
+
+
 # ---------------------------------------------------------------------------
 # cli
 # ---------------------------------------------------------------------------
 
 
+def _parse_assignment(text: str) -> tuple[str, int | float]:
+    """``NAME=VALUE`` -> (name, int or float).  Ints may be 0x-prefixed."""
+    if "=" not in text:
+        raise SystemExit(f"--set expects NAME=VALUE, got {text!r}")
+    name, _, raw = text.partition("=")
+    name, raw = name.strip(), raw.strip()
+    try:
+        return name, int(raw, 0)
+    except ValueError:
+        pass
+    try:
+        return name, float(raw)
+    except ValueError:
+        raise SystemExit(f"{raw!r} is neither an int nor a float") from None
+
+
 def _main(argv: list[str] | None = None) -> int:
     import argparse
 
-    ap = argparse.ArgumentParser(description="Dump a Madagascar SaveGames.mem")
+    ap = argparse.ArgumentParser(description="Dump or edit a Madagascar SaveGames.mem")
     ap.add_argument("save", help="path to SaveGames.mem")
     ap.add_argument("-s", "--stream", default="Levels/global.stream")
     ap.add_argument("-a", "--all", action="store_true", help="show zero entries too")
     ap.add_argument("--strict", action="store_true")
+    ap.add_argument(
+        "--slot", type=int, help="restrict edits to this slot (default: every used slot)"
+    )
+    ap.add_argument(
+        "--set", action="append", default=[], metavar="NAME=VALUE",
+        help="assign a global; repeatable",
+    )
+    ap.add_argument(
+        "--placement", action="append", default=[], metavar="ID[=0|1]",
+        help="mark a placement removed (default 1); repeatable",
+    )
+    ap.add_argument("-o", "--out", help="write edits here (default: in place)")
     args = ap.parse_args(argv)
 
     save = read_save(args.save, args.stream, strict=args.strict)
+
+    if args.set or args.placement:
+        if args.slot is not None:
+            targets = [save[args.slot]]
+        else:
+            targets = [s for s in save.slots if not s.is_empty and s.entries]
+        if not targets:
+            raise SystemExit("no walkable slots to edit")
+
+        for slot in targets:
+            for assignment in args.set:
+                name, value = _parse_assignment(assignment)
+                slot.set(name, value)
+                print(f"slot {slot.index}: {name} = {value}")
+            for spec in args.placement:
+                pid_text, _, flag = spec.partition("=")
+                pid = int(pid_text, 0)
+                removed = flag.strip().lower() not in ("0", "false")
+                slot.set_placement_removed(pid, removed)
+                print(f"slot {slot.index}: placement {pid} removed={removed}")
+
+        out = args.out or args.save
+        save.write(out)
+        print(f"wrote {out}")
+        return 0
+
     print(f"payload {save.payload_size} bytes/slot, {len(save.catalog)} known ids")
 
     for slot in save.slots:
@@ -500,8 +769,15 @@ def _main(argv: list[str] | None = None) -> int:
         if not slot.entries:
             print("  <payload did not walk>")
             continue
+
+        hidden = 0
         for e in slot.entries:
+            if not args.all and not e.is_blob and e.value == 0:
+                hidden += 1
+                continue
             print(f"    {e}")
+        if hidden:
+            print(f"    ({hidden} zero entries hidden; -a to show)")
 
     return 0
 

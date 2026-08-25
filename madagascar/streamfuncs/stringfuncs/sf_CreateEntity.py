@@ -29,6 +29,8 @@ class RW_sf_CreateEntity_Attribute:
         data += b"\xbf" * (-len(data) % 4)  # Align to 4
         self.data = data
 
+    def asString(self) -> str:
+        return self.data.split(b"\x00", 1)[0].decode("latin1")
 
 @dataclass
 class RW_sf_CreateEntity_AttributeClass:
@@ -236,6 +238,7 @@ class RW_sf_CreateEntity(RW_StreamFunc):
     def getAttribute(
         self, class_name: str, command: int
     ) -> RW_sf_CreateEntity_Attribute:
+        """Returns the first instace of a Classes command, for multiple attributes use getAttributes"""
         for cls in self.classes:
             if cls.class_name != class_name:
                 continue
@@ -247,6 +250,35 @@ class RW_sf_CreateEntity(RW_StreamFunc):
         raise ValueError(
             "No matching class/attribute in entity "
             + f"with the name: {class_name}, and command: {command}"
+        )
+
+    def getAttributes(
+        self, class_name: str, command: int
+    ) -> list[RW_sf_CreateEntity_Attribute]:
+        """Return all attributes matching the class name and command."""
+        for cls in self.classes:
+            if cls.class_name != class_name:
+                continue
+
+            return [attr for attr in cls.attributes if attr.command == command]
+
+        raise ValueError(f"No matching class in entity with the name: {class_name}")
+
+    def hasAttribute(self, class_name: str, command: int) -> bool:
+        for cls in self.classes:
+            if cls.class_name != class_name:
+                continue
+
+            for attr in cls.attributes:
+                if attr.command == command:
+                    return True
+
+        return False
+
+    def hasTransform(self) -> bool:
+        return self.hasAttribute(
+            "CSystemCommands",
+            0x01,
         )
 
     def translate(self, x: float, y: float, z: float):
@@ -262,6 +294,61 @@ class RW_sf_CreateEntity(RW_StreamFunc):
             "CSystemCommands",
             0x01,
             matrix.pack(),
+        )
+
+    def getMatrix(self) -> RW_Matrix4x4:
+        attr = self.getAttribute(
+            "CSystemCommands",
+            0x01,
+        )
+        return RW_Matrix4x4.read(Parser(attr.data))
+
+    def setMatrix(self, matrix: RW_Matrix4x4):
+        self.setAttribute(
+            "CSystemCommands",
+            0x01,
+            matrix.pack(),
+        )
+
+    def setTranslation(self, x: float, y: float, z: float):
+        matrix = self.getMatrix()
+        matrix.row4.x = x
+        matrix.row4.y = y
+        matrix.row4.z = z
+        self.setMatrix(matrix)
+
+    def setScale(self, x: float, y: float, z: float):
+        matrix = self.getMatrix()
+
+        # Preserve rotation, replace scale
+        row1_length = (matrix.row1.x**2 + matrix.row1.y**2 + matrix.row1.z**2) ** 0.5
+        row2_length = (matrix.row2.x**2 + matrix.row2.y**2 + matrix.row2.z**2) ** 0.5
+        row3_length = (matrix.row3.x**2 + matrix.row3.y**2 + matrix.row3.z**2) ** 0.5
+
+        matrix.row1.x *= x / row1_length
+        matrix.row1.y *= x / row1_length
+        matrix.row1.z *= x / row1_length
+
+        matrix.row2.x *= y / row2_length
+        matrix.row2.y *= y / row2_length
+        matrix.row2.z *= y / row2_length
+
+        matrix.row3.x *= z / row3_length
+        matrix.row3.y *= z / row3_length
+        matrix.row3.z *= z / row3_length
+
+        self.setMatrix(matrix)
+
+    def getTranslation(self):
+        attr = self.getAttribute(
+            "CSystemCommands",
+            0x01,
+        )
+        matrix = RW_Matrix4x4.read(Parser(attr.data))
+        return (
+            matrix.row4.x,
+            matrix.row4.y,
+            matrix.row4.z,
         )
 
     def print_matrix(self):
@@ -289,3 +376,9 @@ class RW_sf_CreateEntity(RW_StreamFunc):
             self.getAttribute("CTFBSound", 0x0).setString(name)
         elif self.behaviour == "CameraData":
             self.getAttribute("CameraData", 0x0).setString(name)
+
+    def tfbGetName(self) -> str:
+        """Get object name from CTFBCommand"""
+        data = self.getAttribute("CTFBCommand", 0x0).data
+        data = data.replace(b"\xbf", b"").rstrip(b"\x00")
+        return data.decode("latin1")

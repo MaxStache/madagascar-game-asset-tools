@@ -12,7 +12,7 @@ class PositionViewer:
 
         self.root = tk.Tk()
         self.root.title("Player Position")
-        self.root.geometry("360x220")
+        self.root.geometry("360x260")
         self.root.resizable(False, False)
 
         main = ttk.Frame(self.root, padding=12)
@@ -78,6 +78,15 @@ class PositionViewer:
 
         ttk.Button(
             main,
+            text="Copy Position",
+            command=self.copy_position,
+        ).pack(
+            fill="x",
+            pady=(6, 0),
+        )
+
+        ttk.Button(
+            main,
             text="Reload",
             command=self.reinitialize_player,
         ).pack(
@@ -119,6 +128,21 @@ class PositionViewer:
                     values[axis.lower()] = float(value)
 
             self.player.set_position(**values)  # type: ignore
+
+        except Exception as e:  # noqa: BLE001
+            print(e)
+
+    def copy_position(self):
+        try:
+            x, y, z = self.player.position  # type: ignore
+
+            position = f"({x:.2f}, {y:.2f}, {z:.2f})"
+
+            self.root.clipboard_clear()
+            self.root.clipboard_append(position)
+            self.root.update()
+
+            print(f"Copied: {position}")
 
         except Exception as e:  # noqa: BLE001
             print(e)

@@ -118,6 +118,7 @@ dependencies = [
     { name = "numpy" },
     { name = "pillow" },
     { name = "pymem" },
+    { name = "pymemoryeditor" },
     { name = "pyside6" },
     { name = "pyyaml" },
     { name = "rich" },
@@ -139,6 +140,7 @@ requires-dist = [
     { name = "numpy", specifier = "==2.5.1" },
     { name = "pillow", specifier = "==12.3.0" },
     { name = "pymem", specifier = "==1.14.0" },
+    { name = "pymemoryeditor", specifier = ">=2.1.0" },
     { name = "pyside6", specifier = ">=6.11.2" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "rich", specifier = "==14.3.0" },
@@ -331,6 +333,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/1f/fd/1906f383fd9697c0da599580c58f5cd5af48edb55429f6ef994c447fb94e/pymem-1.14.0.tar.gz", hash = "sha256:29f6c32bcad0032888afabadf97d1e4c7757f88873de4d79f7f4c1df9b9e7ef1", size = 24890, upload-time = "2024-10-27T18:59:50.369Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0d/a5/23907a4b55d67cd4c0e4b9a37e32f5f1ffaf7e286dcf172a2a1bb9e12444/pymem-1.14.0-py3-none-any.whl", hash = "sha256:2b9cc64b49d0685f73d616ab1f638611f87e8d649869e7a556f050f677c42a7e", size = 29833, upload-time = "2024-10-27T18:59:48.911Z" },
+]
+
+[[package]]
+name = "pymemoryeditor"
+version = "2.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/23/7e/23a328dc14c5a1e3fbf6b2885b1405a98c42227438651f6e08b85910201d/pymemoryeditor-2.1.0.tar.gz", hash = "sha256:28cdcead3f9f838e70be323a49b0c1d57b3fc7d80a68d5847eabd6b1c4c026ef", size = 1580509, upload-time = "2026-08-19T04:12:35.33Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/25/69/53bc633658b2c54d811f00fcd36bc4559e2e84b522177e4f7d32a5f09d89/pymemoryeditor-2.1.0-py3-none-any.whl", hash = "sha256:810f191bd90d2e5b7d42faba132074b0317a329722bfc428246e84264ec0b23b", size = 222140, upload-time = "2026-08-19T04:12:33.838Z" },
 ]
 
 [[package]]

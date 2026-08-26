@@ -1,11 +1,13 @@
 # pyright: basic
 
-import ctypes
-import platform
+"""Read/write the player's world position in a running Madagascar process.
 
-import pymem
+Uses PyMemoryEditor, which speaks Windows, Linux (ptrace) and macOS, so the
+same pointer chain works against the native game and against a Wine/Proton
+copy of it.
+"""
 
-#import pymem.process
+from PyMemoryEditor import OpenProcess
 
 
 class PlayerPosition:
@@ -15,66 +17,76 @@ class PlayerPosition:
     OFF_Y = 0x154
     OFF_Z = 0x158
 
-    def __init__(self, process_name="Game.exe"):
-        if platform.system() != "Windows":
-            print("Warning: PlayerPosition is only supported on Windows. No memory access will be performed.")
-            return
-        
-        self.pm: pymem.Pymem = pymem.Pymem(process_name)
-        self.base: int = self._resolve_base(process_name)
+    # Game.exe is a 32-bit image, so every pointer in the chain is 4 bytes
+    # wide - regardless of the host we are reading it from.
+    PTR_SIZE = 4
 
-    def _resolve_base(self, process_name) -> int:
-        # 1. canonical path: main module via EnumProcessModulesEx
-        base = self.pm.base_address
-        if base:
-            return base
-        else:
-            raise RuntimeError(
-                f"Could not resolve base address for {process_name!r}. "
-                + f"(python={8 * ctypes.sizeof(ctypes.c_void_p)}-bit, "
-                + f"target_is_wow64={self._is_wow64()})"
-            )
-
-        # 2. fallback: case-insensitive scan over the snapshot
-        #target = process_name.lower()
-        #found = []
-        #for module in pymem.process.list_modules(self.pm.process_handle):
-        #    name = module.name
-        #    if isinstance(name, bytes):
-        #        name = name.decode("utf-8", "ignore")
-        #    found.append(name)
-        #    if name.lower() == target:
-        #        return module.lpBaseOfDll
-
-        #raise RuntimeError(
-        #    f"Could not resolve base address for {process_name!r}. "
-        #    + f"Modules visible: {found or '<none — bitness mismatch?>'} "
-        #    + f"(python={8 * ctypes.sizeof(ctypes.c_void_p)}-bit, "
-        #    + f"target_is_wow64={self._is_wow64()})"
-        #)
-
-    def _is_wow64(self):
-        result = ctypes.c_int(0)
-        ok = ctypes.windll.kernel32.IsWow64Process( # type: ignore
-            self.pm.process_handle,
-            ctypes.byref(result),
+    def __init__(self, process_name="Game.exe", *, pid=None, module_name=None):
+        self.process_name: str = process_name
+        self.process = OpenProcess(
+            pid=pid,
+            name=None if pid is not None else process_name,
+            case_sensitive=False,
         )
-        return bool(result.value) if ok else None
+        self.base: int = self._resolve_base(module_name or process_name)
 
-    def _resolve_pointer(self):
-        addr = self.pm.read_uint(self.base + self.BASE_OFFSET)
+    def _resolve_base(self, module_name) -> int:
+        """Base address of the main module (Game.exe), defeating ASLR."""
+        target = module_name.lower()
+        found = []
+
+        first_base = None
+        for module in self.process.get_modules():
+            name = module.name or module.path.replace("\\", "/").rsplit("/", 1)[-1]
+            found.append(name)
+
+            if first_base is None:
+                first_base = module.base_address
+
+            if name.lower() == target:
+                return module.base_address
+
+        # Fallback: the loader maps the executable itself first, so the first
+        # module is the main image on every backend.
+        if first_base is not None:
+            return first_base
+
+        raise RuntimeError(
+            f"Could not resolve base address for {module_name!r} "
+            f"(pid={self.process.pid}). "
+            f"Modules visible: {found or '<none - permission or bitness mismatch?>'}"
+        )
+
+    def _read_pointer(self, address) -> int:
+        return int.from_bytes(
+            self.process.read_bytes(address, self.PTR_SIZE),
+            "little",
+            signed=False,
+        )
+
+    def _resolve_pointer(self) -> int:
+        addr = self._read_pointer(self.base + self.BASE_OFFSET)
         if not addr:
             raise RuntimeError("Null pointer at base + BASE_OFFSET")
 
-        addr = self.pm.read_uint(addr + 0xA8) # type: ignore
+        addr = self._read_pointer(addr + 0xA8)
         if not addr:
             raise RuntimeError("Null pointer at +0xA8")
 
-        addr = self.pm.read_uint(addr + 0x230) # type: ignore
+        addr = self._read_pointer(addr + 0x230)
         if not addr:
             raise RuntimeError("Null pointer at +0x230")
 
         return addr
+
+    def close(self):
+        self.process.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
 
     @property
     def address(self):
@@ -82,35 +94,35 @@ class PlayerPosition:
 
     @property
     def x(self):
-        return self.pm.read_float(self.address + self.OFF_X) # type: ignore
+        return self.process.read_float(self.address + self.OFF_X)
 
     @x.setter
     def x(self, value):
-        self.pm.write_float(self.address + self.OFF_X, float(value)) # type: ignore
+        self.process.write_float(self.address + self.OFF_X, float(value))
 
     @property
     def y(self):
-        return self.pm.read_float(self.address + self.OFF_Y) # type: ignore
+        return self.process.read_float(self.address + self.OFF_Y)
 
     @y.setter
     def y(self, value):
-        self.pm.write_float(self.address + self.OFF_Y, float(value)) # type: ignore
+        self.process.write_float(self.address + self.OFF_Y, float(value))
 
     @property
     def z(self):
-        return self.pm.read_float(self.address + self.OFF_Z) # type: ignore
+        return self.process.read_float(self.address + self.OFF_Z)
 
     @z.setter
     def z(self, value):
-        self.pm.write_float(self.address + self.OFF_Z, float(value)) # type: ignore
+        self.process.write_float(self.address + self.OFF_Z, float(value))
 
     @property
     def position(self):
         addr = self.address
         return (
-            self.pm.read_float(addr + self.OFF_X), # type: ignore
-            self.pm.read_float(addr + self.OFF_Y), # type: ignore
-            self.pm.read_float(addr + self.OFF_Z), # type: ignore
+            self.process.read_float(addr + self.OFF_X),
+            self.process.read_float(addr + self.OFF_Y),
+            self.process.read_float(addr + self.OFF_Z),
         )
 
     @position.setter
@@ -118,8 +130,6 @@ class PlayerPosition:
         self.set_position(*value)
 
     def set_position(self, x=None, y=None, z=None):
-        if platform.system() != "Windows":
-            return
         addr = self.address
 
         for offset, value in (
@@ -128,4 +138,4 @@ class PlayerPosition:
             (self.OFF_Z, z),
         ):
             if value is not None:
-                self.pm.write_float(addr + offset, float(value)) # type: ignore
+                self.process.write_float(addr + offset, float(value))

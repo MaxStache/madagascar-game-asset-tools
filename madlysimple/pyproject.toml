@@ -2,3 +2,6 @@
 name = "madlysimple"
 description = "Tools to make modding with the madagascar package easier"
 version = "0.1.0"
+
+[tool.setuptools]
+py-modules = ["classes", "cprotoactor"]

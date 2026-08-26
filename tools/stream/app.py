@@ -452,6 +452,7 @@ def run(file_path):
             label = ""
             name = ""
             behaviour = ""
+            guid = ""
             if sf.streamfunc == strfunc_func.sf_CreateEntity:
                 ctfbcommand = sf.find_first_class_with_command("CTFBCommand", 0)
                 name = (
@@ -467,6 +468,8 @@ def run(file_path):
             if sf.streamfunc == strfunc_func.sf_LoadEmbeddedAsset:
                 name = sf.name
                 label = f" - {name}"
+                # braced form so a pasted "{...}" guid matches as well as a bare one
+                guid = f"{{{sf.guid}}}"
 
             iid = tree.insert(
                 "",
@@ -478,7 +481,7 @@ def run(file_path):
 
             STR_FUNCS[iid] = sf
             TREE_ORDER.append(iid)
-            SEARCH_TEXT[iid] = f"{sf.streamfunc.name} {name} {behaviour}".lower()
+            SEARCH_TEXT[iid] = f"{sf.streamfunc.name} {name} {behaviour} {guid}".lower()
             if sf.streamfunc == strfunc_func.sf_CreateEntity and behaviour:
                 ITEM_BEHAVIOUR[iid] = behaviour
 

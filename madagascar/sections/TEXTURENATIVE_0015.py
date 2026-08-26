@@ -252,6 +252,11 @@ class RW_TextureNative_Struct(RW_Section):
 
     texel_data_size: int = field(default=0)
 
+    # False when the struct chunk ended after the fixed fields, carrying no
+    # palette or texels. Every raster the game ships has them, so this means
+    # the file was damaged by a tool that wrote the header without the data.
+    has_texel_data: bool = field(default=True)
+
     pallette_data_size: int = field(default=0)
 
     palette: list[PaletteEntry] = field(default_factory=list)
@@ -279,10 +284,17 @@ class RW_TextureNative_Struct(RW_Section):
         )
         print(texnative_s.header)
 
+        # The chunk's declared size is authoritative for where this section
+        # ends. Every raster in a well formed dictionary carries its palette
+        # and texels, but a file written back by a tool that dropped them
+        # stops right after the fixed fields, and reading on would consume the
+        # following chunks.
+        struct_end = parser.tell() + texnative_s.header.size
+
         texnative_s.platform_id = RW_TextureNative_PlatformId(parser.readUint32())
 
         if texnative_s.platform_id == RW_TextureNative_PlatformId.XBOX:
-            texnative_s._read_xbox(parser)
+            texnative_s._read_xbox(parser, struct_end)
         elif texnative_s.platform_id in (
             RW_TextureNative_PlatformId.D3D8,
             RW_TextureNative_PlatformId.D3D9,
@@ -436,7 +448,7 @@ class RW_TextureNative_Struct(RW_Section):
 
         return data_size, w, h
 
-    def _read_xbox(self: "RW_TextureNative_Struct", parser: Parser):
+    def _read_xbox(self: "RW_TextureNative_Struct", parser: Parser, struct_end: int):
         # Read Xbox-specific texture data
         self.filter_mode = RW_TextureNative_FilterMode(parser.readUint8())
 
@@ -467,6 +479,12 @@ class RW_TextureNative_Struct(RW_Section):
         self.dxt_compression = parser.readUint8()
 
         self.texel_data_size = parser.readUint32()  # total size of all mipmap texels
+
+        if parser.tell() >= struct_end:
+            # texel_data_size is declared but the bytes are not there. Flag it
+            # and stop, rather than reading into the next chunk.
+            self.has_texel_data = False
+            return
 
         # Palette
         if self.raster_format.pal8:
@@ -565,6 +583,19 @@ class RW_TextureNative_Struct(RW_Section):
             texel_data_size += data_size
 
         write_u32(buf, (texel_data_size + 3) & ~3)  # pad to 4b aligned
+
+        # Metadata-only entries (texture folder dictionaries) declare a texel
+        # size but carry no palette or texels, and the body ends here.
+        if self.has_texel_data:
+            for entry in self.palette:
+                buf.write(struct.pack("<BBBB", entry.b, entry.g, entry.r, entry.a))
+
+            written = 0
+            for mip in self.mipmaps:
+                buf.write(mip.texels)
+                written += len(mip.texels)
+
+            buf.write(b"\x00" * (((written + 3) & ~3) - written))  # pad to 4b
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_STRUCT.value,
@@ -1385,10 +1416,20 @@ def create_texture(
         raise ValueError(f"Unsupported depth: {depth}")
 
     tex.struct.mipmap_count = len(tex.struct.mipmaps)
-    if not has_alpha and tex.struct.raster_format.format == RWTextureFormat.FORMAT_8888:
-        tex.struct.raster_format = RWTextureRasterFormat(
-            RWTextureFormat.FORMAT_888, False, False, False, True
-        )
+
+    # An opaque texture only needs RGB. Assign the format field rather than
+    # rebuilding the whole raster format: replacing it drops the pal4/pal8
+    # flags, and a reader that doesn't know a palette is present would take
+    # the palette bytes for texels. Palettized textures keep 8888 either way,
+    # which is what the game's own dictionaries do.
+    if (
+        not has_alpha
+        and not tex.struct.raster_format.pal4
+        and not tex.struct.raster_format.pal8
+        and tex.struct.raster_format.format == RWTextureFormat.FORMAT_8888
+    ):
+        tex.struct.raster_format.format = RWTextureFormat.FORMAT_888
+
     return tex
 
 

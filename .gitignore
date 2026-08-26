@@ -47,5 +47,5 @@ Thumbs.db
 Levels/*
 
 
-# .gig.* = Dont track this file
+# *.gig.* = Dont track this file
 **/*.gig.* 

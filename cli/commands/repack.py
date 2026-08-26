@@ -57,6 +57,8 @@ def repack(
         strm.contents.append(streamfunc_inst)
 
     buf = io.BytesIO()
+    strm.verify()
+    strm.updatePlacementNew()
     strm.write(buf, 0x1802FFFF)
 
     if gzipped:

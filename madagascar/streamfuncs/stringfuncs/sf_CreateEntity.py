@@ -47,13 +47,25 @@ class RW_sf_CreateEntity_AttributeClass:
         return [attr for attr in self.attributes if attr.command == command]
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        out: dict[str, Any] = {
             "class_name": self.class_name,
-            "attributes": [
-                {"command": attr.command, "data": attr.data.hex()}
-                for attr in self.attributes
-            ],
+            "attributes": [],
         }
+
+        for attr in self.attributes:
+            attr_dict = {
+                "command": attr.command,
+                "data": attr.data.hex(),
+            }
+
+            if self.class_name == "LevelHub" and attr.command == 1:
+                attr_dict["_READONLY_LevelHub_cmd1_VALUE"] = int.from_bytes(attr.data[:4], byteorder="little")
+                attr_dict["_READONLY_LevelHub_cmd1_TAG"] = "0x" + attr.data[4:8].hex()
+                attr_dict["_READONLY_LevelHub_cmd1_NAME"] = attr.data[8:].decode("latin1", errors="replace").replace("\00", "").replace("\xBF", "")
+
+            out["attributes"].append(attr_dict)
+
+        return out
 
 
 @dataclass

@@ -66,30 +66,53 @@ class RW_StreamFile:
             
     def verify(self):
         """Do some checks, like:
-        - Any Entity (TFB Object)Name or ID used twice
+        - Any Entity (TFB Object) ID used twice
+        - Any LoadEmbeddedAsset GUID used twice
+        - Any Entity (TFB Object) Name used twice (warning only)
         """
 
         # DUPE NAME AND ID
-        used_entity_ids: list[uuid.UUID] = []
-        used_entity_names: list[str] = []
+        used_entity_ids: set[uuid.UUID] = set()
+        used_entity_names: set[str] = set()
+        duplicate_names: list[str] = []
         for e in self.entities():
             # === ID ===
             entityID = e.entityID
             if entityID in used_entity_ids:
                 raise ValueError(f"[STREAM VERIFY] Duplicate entity ID: {entityID}")
 
-            used_entity_ids.append(
-                entityID
-            )
+            used_entity_ids.add(entityID)
 
             # === NAME ===
+            # Not fatal: every retail level ships repeated TFB object names
+            # (a level has several `PiggyBank`s). It still matters, because
+            # `entityByName()` returns the first match and name references
+            # inside other entities are just as ambiguous - so report it.
+            entityName = e.getAttribute("CTFBCommand", 0x00).data.decode("latin1")
+            entityName = entityName.replace("\x00", "").replace("\xbf", "")
+            if entityName in used_entity_names:
+                duplicate_names.append(entityName)
+            used_entity_names.add(entityName)
 
-            entityName = e.getAttribute("CTFBCommand",0x00).data.decode("latin1")
-            if entityID in used_entity_names:
-                raise ValueError(f"[STREAM VERIFY] Duplicate entity name: {entityName}")
-            used_entity_names.append(
-                entityName
-            )
+        if duplicate_names:
+            names = sorted(set(duplicate_names))
+            shown = ", ".join(names[:5])
+            if len(names) > 5:
+                shown += f", ... (+{len(names) - 5} more)"
+            print(f"[STREAM VERIFY] Warning: {len(names)} duplicate entity name(s): {shown}")
+
+        # DUPE EMBEDDED ASSET GUID
+        # Asset *names* repeat all over the retail levels (every character ships
+        # its own `gloria_face`, animations share `still.anm`), so only the GUID
+        # is required to be unique - that is what an entity references.
+        used_asset_guids: set[uuid.UUID] = set()
+        for asset in self.embeddedAssets():
+            assetGUID = asset.guid
+            if assetGUID in used_asset_guids:
+                raise ValueError(
+                    f"[STREAM VERIFY] Duplicate embedded asset GUID: {assetGUID} ({asset.name})"
+                )
+            used_asset_guids.add(assetGUID)
 
     def entityByNameSoft(self, name: str) -> RW_sf_CreateEntity | None:
         """Finds a RW_sf_CreateEntity by name
@@ -134,6 +157,13 @@ class RW_StreamFile:
                 entities.append(entity)
     
             return entities
+
+    def embeddedAssets(self) -> list[RW_sf_LoadEmbeddedAsset]:
+        """Finds all RW_sf_LoadEmbeddedAsset in stream"""
+
+        return [
+            sec for sec in self.contents if isinstance(sec, RW_sf_LoadEmbeddedAsset)
+        ]
 
     def entityByName(self, name: str) -> RW_sf_CreateEntity:
         found = self.entityByNameSoft(name)

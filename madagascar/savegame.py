@@ -541,7 +541,7 @@ class SaveFile:
         self.slots[slot].set("furthest_level_unlocked", 12)
         self.slots[slot].set("last_level_played", 7)
         self.slots[slot].set("Next Level Auto Load", 14)
-        self.slots[slot].set("zoovenir_item_bits", 2146385919)
+        self.slots[slot].set("zoovenir_item_bits", 0x7FF0007F)
         self.slots[slot].play_time_seconds = 0
         
 

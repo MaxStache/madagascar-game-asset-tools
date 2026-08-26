@@ -1,0 +1,1 @@
+"""Texture dictionary (.txd) viewer."""

@@ -12,7 +12,7 @@ class PositionViewer:
 
         self.root = tk.Tk()
         self.root.title("Player Position")
-        self.root.geometry("360x260")
+        self.root.geometry("360x345")
         self.root.resizable(False, False)
 
         main = ttk.Frame(self.root, padding=12)
@@ -67,6 +67,37 @@ class PositionViewer:
         pos_frame.columnconfigure(1, weight=1)
         pos_frame.columnconfigure(2, weight=1)
 
+        state_frame = ttk.LabelFrame(
+            main,
+            text="Game State",
+            padding=10,
+        )
+        state_frame.pack(fill="x", pady=(12, 0))
+
+        ttk.Label(
+            state_frame,
+            text="Paused",
+        ).grid(
+            row=0,
+            column=0,
+            sticky="w",
+            padx=(0, 10),
+        )
+
+        self.paused_label = ttk.Label(
+            state_frame,
+            text="-",
+            font=("Consolas", 11),
+            anchor="w",
+        )
+        self.paused_label.grid(
+            row=0,
+            column=1,
+            sticky="ew",
+        )
+
+        state_frame.columnconfigure(1, weight=1)
+
         ttk.Button(
             main,
             text="Set Position",
@@ -109,6 +140,16 @@ class PositionViewer:
         except Exception as e:  # noqa: BLE001
             for label in self.value_labels.values():
                 label.config(text="Error")
+
+            print(e)
+
+        try:
+            self.paused_label.config(
+                text="PAUSED" if self.player.paused else "Running",  # type: ignore
+            )
+
+        except Exception as e:  # noqa: BLE001
+            self.paused_label.config(text="Error")
 
             print(e)
 

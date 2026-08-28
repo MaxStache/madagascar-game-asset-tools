@@ -13,6 +13,9 @@ from PyMemoryEditor import OpenProcess
 class PlayerPosition:
     BASE_OFFSET = 0x0021818C
 
+    # Static "is the game paused?" flag, relative to the Game.exe image base.
+    PAUSED_OFFSET = 0x0022A520
+
     OFF_X = 0x150
     OFF_Y = 0x154
     OFF_Z = 0x158
@@ -91,6 +94,15 @@ class PlayerPosition:
     @property
     def address(self):
         return self._resolve_pointer()
+
+    @property
+    def paused_raw(self) -> int:
+        """Raw value of the pause flag (0 = running, non-zero = paused)."""
+        return self._read_pointer(self.base + self.PAUSED_OFFSET)
+
+    @property
+    def paused(self) -> bool:
+        return self.paused_raw != 0
 
     @property
     def x(self):

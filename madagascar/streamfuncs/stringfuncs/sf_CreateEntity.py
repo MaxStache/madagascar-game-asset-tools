@@ -1,11 +1,11 @@
 import copy
 import io
 from dataclasses import dataclass, field
-from typing import Any, override
+from typing import TYPE_CHECKING, Any, override
 import uuid
 
 from madagascar.lib.parser import Parser
-from madagascar.lib.writer import write_alignedString, write_u32, write_bool
+from madagascar.lib.writer import write_alignedString, write_u32, write_bool, write_s32
 from madagascar.lib.rwConstants import strfunc_func
 from madagascar.lib.rw_basics import (
     RW_Matrix4x4,
@@ -13,10 +13,38 @@ from madagascar.lib.rw_basics import (
     RWHeader,
     expect_chunk_type_or_raise,
 )
+from .sf_LoadEmbeddedAsset import RW_sf_LoadEmbeddedAsset
+
+if TYPE_CHECKING:
+    from madagascar.stream.query import StreamQueryMixin
 
 RWSPH_CLASSID = 0x80000000  # Class
 RWSPH_INSTANCEID = 0x40000000  # Entity ID
 RWSPH_CREATECLASSID = 0x20000000  # Behavior
+
+
+@dataclass
+class RW_sf_CreateEntity_Attribute_TFBReference:
+    index: int = field(default=-1)
+    guid: uuid.UUID = field(default=uuid.UUID(int=0))
+    name: str | None = field(default=None)
+
+    def resolveSoft(
+        self, stream: "StreamQueryMixin"
+    ) -> "RW_sf_CreateEntity | RW_sf_LoadEmbeddedAsset | None":
+        """Resolve the reference to an embedded asset or entity if possible, else returns None"""
+        return stream.assetByIDSoft(self.guid) or stream.entityByIDSoft(self.guid)
+
+    def resolve(
+        self, stream: "StreamQueryMixin"
+    ) -> "RW_sf_CreateEntity | RW_sf_LoadEmbeddedAsset":
+        """Resolves the reference to a RW_sf_LoadEmbeddedAsset or RW_sf_CreateEntity, raises if none matches"""
+        found = self.resolveSoft(stream)
+        if not found:
+            raise AssertionError(
+                f"No entity or asset in this stream with the id: {self.guid}"
+            )
+        return found
 
 
 @dataclass
@@ -31,6 +59,45 @@ class RW_sf_CreateEntity_Attribute:
 
     def asString(self) -> str:
         return self.data.split(b"\x00", 1)[0].decode("latin1")
+
+    def asTfbRef(self) -> RW_sf_CreateEntity_Attribute_TFBReference:
+        """Decode this attribute into a reference.
+
+        A snapshot, not a view -- editing the result does not touch the
+        attribute.  Pass one back to `setTfbRef` to store it, or go through
+        the `CProtoActor.setModelRef` / `setScriptRef` helpers.
+        """
+        parser = Parser(self.data)
+        index = parser.readInt32()  # -1 = None
+
+        guid_string = parser.readString(
+            38
+        )  # { + 32 bytes guid + 4 seperator bytes + } = 38 bytes
+        guid = uuid.UUID(guid_string)
+
+        parser.skip(2)  # Two spaces as seperators
+
+        name = None
+        if parser.remaining() > 0:
+            name = parser.readPaddedCString()
+
+        return RW_sf_CreateEntity_Attribute_TFBReference(index, guid, name)
+
+    def setTfbRef(self, ref: RW_sf_CreateEntity_Attribute_TFBReference) -> None:
+        buf = io.BytesIO()
+
+        write_s32(buf, ref.index)  # -1 = None
+
+        guid_string = "{" + str(ref.guid).upper() + "}"
+        buf.write(guid_string.encode("latin1"))
+
+        buf.write(b"  ")  # Two spaces as seperators
+
+        if ref.name is not None:
+            write_alignedString(buf, ref.name)
+
+        self.data = buf.getvalue()
+
 
 @dataclass
 class RW_sf_CreateEntity_AttributeClass:
@@ -59,9 +126,16 @@ class RW_sf_CreateEntity_AttributeClass:
             }
 
             if self.class_name == "LevelHub" and attr.command == 1:
-                attr_dict["_READONLY_LevelHub_cmd1_VALUE"] = int.from_bytes(attr.data[:4], byteorder="little")
+                attr_dict["_READONLY_LevelHub_cmd1_VALUE"] = int.from_bytes(
+                    attr.data[:4], byteorder="little"
+                )
                 attr_dict["_READONLY_LevelHub_cmd1_TAG"] = "0x" + attr.data[4:8].hex()
-                attr_dict["_READONLY_LevelHub_cmd1_NAME"] = attr.data[8:].decode("latin1", errors="replace").replace("\00", "").replace("\xBF", "")
+                attr_dict["_READONLY_LevelHub_cmd1_NAME"] = (
+                    attr.data[8:]
+                    .decode("latin1", errors="replace")
+                    .replace("\00", "")
+                    .replace("\xbf", "")
+                )
 
             out["attributes"].append(attr_dict)
 
@@ -247,10 +321,10 @@ class RW_sf_CreateEntity(RW_StreamFunc):
         attr = self.getAttribute(class_name, command)
         attr.data = data
 
-    def getAttribute(
+    def getAttributeSoft(
         self, class_name: str, command: int
-    ) -> RW_sf_CreateEntity_Attribute:
-        """Returns the first instace of a Classes command, for multiple attributes use getAttributes"""
+    ) -> RW_sf_CreateEntity_Attribute | None:
+        """Returns the first instace of a Classes command, for multiple attributes use getAttributes. Returns None if attribute isnt found"""
         for cls in self.classes:
             if cls.class_name != class_name:
                 continue
@@ -259,10 +333,29 @@ class RW_sf_CreateEntity(RW_StreamFunc):
                 if attr.command == command:
                     return attr
 
-        raise ValueError(
-            "No matching class/attribute in entity "
-            + f"with the name: {class_name}, and command: {command}"
-        )
+        return None
+
+    def getAttribute(
+        self, class_name: str, command: int
+    ) -> RW_sf_CreateEntity_Attribute:
+        """Returns the first instace of a Classes command, for multiple attributes use getAttributes. Raises if not found"""
+        attr = self.getAttributeSoft(class_name, command)
+        if attr is None:
+            raise ValueError(
+                "No matching class/attribute in entity "
+                + f"with the name: {class_name}, and command: {command}"
+            )
+        return attr
+
+    def getAttributeOrCreate(
+        self, class_name: str, command: int, default_data: bytes = b""
+    ) -> RW_sf_CreateEntity_Attribute:
+        """Returns the first instace of a Classes command, for multiple attributes use getAttributes. If no attribute was found it gets created with default data."""
+        attr = self.getAttributeSoft(class_name, command)
+        if attr is None:
+            attr = self.addAttribute(class_name, command, default_data)
+
+        return attr
 
     def getAttributes(
         self, class_name: str, command: int
@@ -275,6 +368,31 @@ class RW_sf_CreateEntity(RW_StreamFunc):
             return [attr for attr in cls.attributes if attr.command == command]
 
         raise ValueError(f"No matching class in entity with the name: {class_name}")
+
+    def addAttribute(
+        self, class_name: str, command: int, data: bytes
+    ) -> RW_sf_CreateEntity_Attribute:
+        """Adds an attribute to a specific class in the entity. Adds the class too if needed."""
+        # First make the attribute
+        attr = RW_sf_CreateEntity_Attribute(
+            command,
+            data,
+        )
+
+        # Next find the class to add the attribute to, or create it
+        target_cls = next(
+            (cls for cls in self.classes if cls.class_name == class_name), None
+        )
+        if (
+            target_cls is None
+        ):  # The class doesnt exist yet on the entity, so add it first
+            target_cls = RW_sf_CreateEntity_AttributeClass(class_name)
+            self.classes.append(target_cls)
+
+        # Add attribute to class
+        target_cls.attributes.append(attr)
+
+        return attr
 
     def hasAttribute(self, class_name: str, command: int) -> bool:
         for cls in self.classes:

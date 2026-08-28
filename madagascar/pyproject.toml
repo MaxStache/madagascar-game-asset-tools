@@ -5,4 +5,4 @@ version = "0.1.0"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["lib*", "sections*", "streamfuncs*"]
+include = ["lib*", "sections*", "streamfuncs*", "stream*"]

@@ -111,6 +111,7 @@ name = "madagascar-game-asset-tools"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "colorama" },
     { name = "cyclopts" },
     { name = "fonttools" },
     { name = "madagascar" },
@@ -133,6 +134,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "colorama", specifier = ">=0.4.6" },
     { name = "cyclopts", specifier = "==4.22.5" },
     { name = "fonttools", specifier = ">=4.63.0" },
     { name = "madagascar", editable = "madagascar" },

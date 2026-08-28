@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 
 dependencies = [
+    "colorama>=0.4.6",
     "cyclopts==4.22.5",
     "fonttools>=4.63.0",
     "madagascar",

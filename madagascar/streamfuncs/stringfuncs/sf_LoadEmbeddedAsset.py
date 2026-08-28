@@ -1,3 +1,4 @@
+import copy
 import io
 import uuid
 from dataclasses import dataclass, field
@@ -143,3 +144,6 @@ class RW_sf_LoadEmbeddedAsset(RW_StreamFunc):
             deps=content.get("deps", ""),
             data=bytes.fromhex(content.get("data", "")),
         )
+
+    def duplicate(self) -> "RW_sf_LoadEmbeddedAsset":
+        return copy.deepcopy(self)

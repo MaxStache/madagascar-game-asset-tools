@@ -454,14 +454,7 @@ def run(file_path):
             behaviour = ""
             guid = ""
             if sf.streamfunc == strfunc_func.sf_CreateEntity:
-                ctfbcommand = sf.find_first_class_with_command("CTFBCommand", 0)
-                name = (
-                    ctfbcommand.find_first_attribute(0)
-                    .data.split(b"\00")[0]
-                    .decode("latin-1")
-                    if ctfbcommand
-                    else "Unnamed"
-                )
+                name = sf.tfbGetName() or "Unnamed"
                 label = f" - {name}"
                 behaviour = sf.behaviour or ""
 

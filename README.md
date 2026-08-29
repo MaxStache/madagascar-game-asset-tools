@@ -2,7 +2,9 @@
 
 ![Python >= 3.12](https://img.shields.io/badge/python-%3E%3D3.12-blue)
 
-Loads `.stream .dff .txd .bsp .bsp .txl .rws .lpa`
+Loads `.stream .dff .txd .bsp .txl .rws .lpa`
+
+This repo is a collection of tools used for modding the game "Madagascar" (released in 2005).
 
 ## Contents
 
@@ -28,12 +30,12 @@ If you don't already have `uv`, install it from the official documentation:
 
 <https://docs.astral.sh/uv/getting-started/installation/>
 
-Restart your terminal after installation if necessary.
+Restart your terminal / vscode after installation if necessary.
 
 ### 2. Clone the repository
 
 ```powershell
-git clone <repository-url>
+git clone https://github.com/MaxStache/madagascar-game-asset-tools.git
 cd madagascar-game-asset-tools
 ```
 
@@ -47,14 +49,7 @@ uv sync
 
 This automatically creates a virtual environment and installs the dependencies specified by the project.
 
-### 4. Installing the folders as packages
-
-```bash
-uv add --editable ./madlysimple
-uv add --editable ./madagascar
-```
-
-### 5. Running scripts with UV
+### 4. Running scripts with UV
 
 You can run Python scripts through `uv` without manually activating the virtual environment:
 
@@ -66,7 +61,10 @@ uv run python -m <module>
 Alternatively, activate the virtual environment manually:
 
 ```powershell
+WINDOWS:
 .venv\Scripts\activate
+LINUX/MACOS:
+.venv/bin/activate
 ```
 
 ## Usage
@@ -76,7 +74,7 @@ Alternatively, activate the virtual environment manually:
 ```sh
 uv run cli unpack LEVEL.stream output/directory/
 
-uv run cli repack output/directory/ LEVEL.stream
+uv run cli repack input/directory/ LEVEL.stream
 ```
 
 For more information run

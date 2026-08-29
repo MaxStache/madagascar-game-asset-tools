@@ -82,3 +82,18 @@ For more information run
 ```sh
 uv run cli --help
 ```
+
+## Related
+
+- [madagascar-tfbtool](https://github.com/MaxStache/madagascar-tfbtool) —
+  parser and decompiler for the game's TFB script files (`.ai`).
+
+## License
+
+Apache-2.0. See [LICENSE](LICENSE).
+
+## Disclaimer
+
+Unofficial fan project, not affiliated with or endorsed by DreamWorks,
+Activision or Toys for Bob. No game assets are included — you need your own
+copy of the game.

@@ -1,5 +1,10 @@
-════════════════════ CameraData ════════════════════
+<!-- markdownlint-disable MD010 -->
 
+# TFB Entity Reference
+
+## CameraData
+
+```text
 Sector 2759
 Length: 328 Type: 1796 (sf_CreateEntity)
 Create Entity Call:
@@ -20,20 +25,25 @@ Create Entity Call:
 	Class:	CAttributeHandler
 		0x13c - Debug          : RWBool(0) (False)
 	isGlobal:	False
+```
 
-ATTRIBUTE 0  TYPE: cstring  │ name    
-ATTRIBUTE 1  TYPE: cstring  │ look from target — "(Current)" = none            
-ATTRIBUTE 2  TYPE: 3× f32   │ look from horizontal / vertical / heading offset 
-ATTRIBUTE 3  TYPE: s32 bool │ look from heading relative                       
-ATTRIBUTE 4  TYPE: cstring  │ look at target — "(Current)" = none              
-ATTRIBUTE 5  TYPE: 3× f32   │ look at horizontal / vertical / heading offset   
-ATTRIBUTE 6  TYPE: s32 bool │ look at heading relative                         
-ATTRIBUTE 7  TYPE: f32      │ field of view, degrees                           
-ATTRIBUTE 8  TYPE: s32 bool │ laziness (smoothed follow)                       
+| Attr | Type | Meaning |
+| --- | --- | --- |
+| 0 | cstring | Name |
+| 1 | cstring | Look from target — `(Current)` = none |
+| 2 | 3× f32 | Look from horizontal / vertical / heading offset |
+| 3 | s32 bool | Look from heading relative |
+| 4 | cstring | Look at target — `(Current)` = none |
+| 5 | 3× f32 | Look at horizontal / vertical / heading offset |
+| 6 | s32 bool | Look at heading relative |
+| 7 | f32 | Field of view, degrees |
+| 8 | s32 bool | Laziness (smoothed follow) |
 
+---
 
-════════════════════ CTFBSound ════════════════════
+## CTFBSound
 
+```text
 Sector 1879
 Length: 360 Type: 1796 (sf_CreateEntity)
 Create Entity Call:
@@ -60,27 +70,33 @@ Create Entity Call:
 	Class:	CAttributeHandler
 		0x15c - Debug          : RWBool(0) (False)
 	isGlobal:	False
+```
 
+| Attr | Type | Meaning |
+| --- | --- | --- |
+| 0 | cstring | Sound name (in wave dict) |
+| 1 | cstring | Sound file (not used by game) |
+| 2 | f32 | Volume % |
+| 3 | f32 | Pitch % |
+| 4 | f32 | Radius / max audible distance (in TFB feet) |
+| 5 | f32 | Stereo pan % |
+| 6 | RWBool | Stream from disk |
+| 7 | RWBool | Looping |
+| 8 | RWBool | Smooth distance falloff |
+| 9 | RWBool | Doppler velocity tracking |
+| 10 | RWBool | Attach to emitter |
+| 11 | f32 | Random volume variation % |
+| 12 | f32 | Random pitch variation % |
+| 13 | RWBool | Allow overlapping instances |
+| 14 | RWBool | Route to music bus (is music?) |
+| 15 | NONE | — |
+| 16 | RWInt32 | Localized string ID (subtitle) — Dutch console version only |
 
-ATTRIBUTE 0   TYPE: cstring   | Sound Name (In Wave Dict)
-ATTRIBUTE 1   TYPE: cstring   | Sound File (Not used by game)
-ATTRIBUTE 2   TYPE: f32       | volume%
-ATTRIBUTE 3   TYPE: f32       | pitch%
-ATTRIBUTE 4   TYPE: f32       | radius / max audible distance (in TFB feet)
-ATTRIBUTE 5   TYPE: f32       | Stereo pan%
-ATTRIBUTE 6   TYPE: RWBool    | stream from disk
-ATTRIBUTE 7   TYPE: RWBool    | looping
-ATTRIBUTE 8   TYPE: RWBool    | Smooth distance falloff
-ATTRIBUTE 9   TYPE: RWBool    | Doppler velocity tracking
-ATTRIBUTE 10  TYPE: RWBool    | Attach to emitter
-ATTRIBUTE 11  TYPE: f32       | random volume variation%
-ATTRIBUTE 12  TYPE: f32       | random pitch variation%
-ATTRIBUTE 13  TYPE: RWBool    | allow to be played multiple times at same time (allow overlapping instances)
-ATTRIBUTE 14  TYPE: RWBool    | Route to music bus (is music?)
-ATTRIBUTE 15  TYPE: NONE      | -
-ATTRIBUTE 16  TYPE: RWInt32   | localized string ID (subtitle) (dutch console version only)
+---
 
-════════════════════ GameCamera ════════════════════
+## GameCamera
+
+```text
 Length: 524 Type: 1796 (sf_CreateEntity)
 Create Entity Call:
 	Behaviour:	GameCamera
@@ -110,43 +126,53 @@ Create Entity Call:
 		0x1d8 - Invisible      : RWBool(1) (True)
 	Class:	CAttributeHandler
 		0x200 - Debug          : RWBool(0) (False)
-	isGlobal:	Falseit 
+	isGlobal:	False
+```
 
-ATTRIBUTE 0   TYPE: cstring   | "in render event" message
-ATTRIBUTE 1   TYPE:           |
-ATTRIBUTE 2   TYPE: cstring   | "out render event" message
-ATTRIBUTE 3   TYPE: cstring   | "look at" message
-ATTRIBUTE 4   TYPE: f32       | fov
-ATTRIBUTE 5   TYPE: f32       | 
-ATTRIBUTE 6   TYPE: cstring   | cam pitch event
-ATTRIBUTE 7   TYPE: cstring   | cam rotate event
-ATTRIBUTE 8   TYPE: RWBool    |
-ATTRIBUTE 9   TYPE: RWBool    |
+| Attr | Type | Meaning |
+| --- | --- | --- |
+| 0 | cstring | "In render event" message |
+| 1 | — | — |
+| 2 | cstring | "Out render event" message |
+| 3 | cstring | "Look at" message |
+| 4 | f32 | FOV |
+| 5 | f32 | — |
+| 6 | cstring | Cam pitch event |
+| 7 | cstring | Cam rotate event |
+| 8 | RWBool | — |
+| 9 | RWBool | — |
 
+---
 
+## LevelHub
 
-════════════════════ LevelHub ════════════════════
+| Attr | Type | Meaning |
+| --- | --- | --- |
+| 0 | u32 value, cstring | Implicit value global. Same as attr 1 with type forced to 0. Only 2 shipped, both Mutiny: `Have Red Key_3`, `Have Gun and ammo` |
+| 1 | u32 value, u32 tfbtypeTag, cstring | Global variable declaration |
+| 2 | u32 unused, cstring | Message name declaration |
+| 4 | cstring | Level audio stream path |
+| 5 | cstring | Music stream name |
 
-ATTRIBUTE 0   TYPE: u32 value, cstring                   | Implicit value global NOTED: same as attr 1 with type forced to 0. Only 2 shipped, both mutiny: Have Red Key_3, Have Gun and ammo
-ATTRIBUTE 1   TYPE: u32 value, u32 tfbtypeTag, cstring   | Global variable declaration
-ATTRIBUTE 2   TYPE: u32 unused, cstring                  | Message name declaration
-ATTRIBUTE 4   TYPE: cstring                              | Level audio stream path
-ATTRIBUTE 5   TYPE: cstring                              | Music stream name
+### tfbtypeTag
 
-tfbtypeTag  │ type     
+| Tag | Type |
+| --- | --- |
+| 0x00 | value |
+| 0x01 | behavior |
+| 0x02 | actor |
+| 0x03 | message |
+| 0x04 | sound |
+| 0x05 | camera |
+| 0x06 | — |
+| 0x07 | sprite |
+| 0x8X | set of X |
 
-0x00        │ value       
-0x01        │ behavior       
-0x02        │ actor       
-0x04        │ sound      
-0x03        | message 
-0x05        │ camera     
-0y06        | - - -      
-0x07        │ sprite      
-0x8X        │ set of X
+---
 
-════════════════════ SpriteObject ════════════════════
+## SpriteObject
 
+```text
 Length: 548 Type: 1796 (sf_CreateEntity)
 Create Entity Call:
 	Behaviour:	SpriteObject
@@ -154,75 +180,79 @@ Create Entity Call:
 	Class:	CTFBCommand
 		0x58 - Script Object Name: Ring_Green
 	Class:	SpriteObject
-		0x84 - Attribute   0: [Ring_Green  ][52 69 6E 67 5F 47 72 65 65 6E 00 BF] NAME
-		0x90 - Attribute   1: [    ][03 00 00 00]  Content kind 0=texture, 1=numeric text, 2=localized text, 3=linked world entity
-		0xa0 - Attribute   2: [ none   ][3C 6E 6F 6E 65 3E 00 BF] TEXTURE NAME (placeholder  <need a texture name...>)
-		0xb0 - Attribute   3: [ none   ][3C 6E 6F 6E 65 3E 00 BF] FONT NAME (placeholder <... or a font>)
+		0x84 - Attribute   0: [Ring_Green  ][52 69 6E 67 5F 47 72 65 65 6E 00 BF]                 NAME
+		0x90 - Attribute   1: [    ][03 00 00 00]                                                 Content kind 0=texture, 1=numeric text, 2=localized text, 3=linked world entity
+		0xa0 - Attribute   2: [ none   ][3C 6E 6F 6E 65 3E 00 BF]                                 TEXTURE NAME (placeholder <need a texture name...>)
+		0xb0 - Attribute   3: [ none   ][3C 6E 6F 6E 65 3E 00 BF]                                 FONT NAME (placeholder <... or a font>)
 		0xc0 - Attribute   4: [ none   ][3C 6E 6F 6E 65 3E 00 BF]
-		0xcc - Attribute   5: [    ][00 00 00 00] Visible
-		0xd8 - Attribute   6: [    ][00 00 00 00] 
-		0xe4 - Attribute   7: [    ][00 00 00 00] Justification
-		0xf0 - Attribute   8: [    ][00 00 00 00] Rotation (deg)
-		0x104 - Attribute   9: [   D   B    ][00 C0 0D 44 00 00 2C 42 00 00 00 00]  Location (x, y; z forced to FLT_MAX)
-		0x118 - Attribute  10: [   A   A    ][00 00 20 41 00 00 20 41 00 00 00 00]  Scale%
-		0x124 - Attribute  11: [    ][00 00 00 00]  z-order
-		0x130 - Attribute  12: [    ][01 00 00 00]  Auto-size from texture
-		0x13c - Attribute  13: [   B][00 00 00 42]  Explicit width
-		0x148 - Attribute  14: [   B][00 00 00 42]   Explicit height
+		0xcc - Attribute   5: [    ][00 00 00 00]                                                 Visible
+		0xd8 - Attribute   6: [    ][00 00 00 00]
+		0xe4 - Attribute   7: [    ][00 00 00 00]                                                 Justification
+		0xf0 - Attribute   8: [    ][00 00 00 00]                                                 Rotation (deg)
+		0x104 - Attribute   9: [   D   B    ][00 C0 0D 44 00 00 2C 42 00 00 00 00]                Location (x, y; z forced to FLT_MAX)
+		0x118 - Attribute  10: [   A   A    ][00 00 20 41 00 00 20 41 00 00 00 00]                Scale%
+		0x124 - Attribute  11: [    ][00 00 00 00]                                                z-order
+		0x130 - Attribute  12: [    ][01 00 00 00]                                                Auto-size from texture
+		0x13c - Attribute  13: [   B][00 00 00 42]                                                Explicit width
+		0x148 - Attribute  14: [   B][00 00 00 42]                                                Explicit height
 
 		BELOW - Linked World Entity
 		0x184 - Attribute  15: [    {6FFDCB62-02E4-47B4-AAC4-3FDBD85AE9B3}  NY_Ring ][FF FF FF FF 7B 36 46 46 44 43 42 36 32 2D 30 32 45 34 2D 34 37 42 34 2D 41 41 43 34 2D 33 46 44 42 44 38 35 41 45 39 42 33 7D 20 20 4E 59 5F 52 69 6E 67 00]
 
-		0x190 - Attribute  16: [    ][01 00 00 00] Scale with distance
+		0x190 - Attribute  16: [    ][01 00 00 00]                                                Scale with distance
 		0x19c - Attribute  17: [    ][00 00 00 00]
-		0x1a8 - Attribute  18: [    ][00 00 00 00] roll
-		0x1b4 - Attribute  19: [    ][00 00 00 00] tilt
-		0x1c0 - Attribute  20: [    ][00 00 00 00] facing
-		0x1cc - Attribute  21: [    ][00 BF BF BF] Parent / group sprite name
-		0x1d8 - Attribute  22: [    ][00 00 00 00] Attach anchor in parent (same 3×3 code as attr 7)
-		0x1e4 - Attribute  23: [    ][00 00 00 00] Localized string id; skipped when kind == 1
-		0x1f0 - Attribute  26: [    ][00 00 00 00] Text auto-fit axis (0 = scale X, 1 = scale Y)
+		0x1a8 - Attribute  18: [    ][00 00 00 00]                                                roll
+		0x1b4 - Attribute  19: [    ][00 00 00 00]                                                tilt
+		0x1c0 - Attribute  20: [    ][00 00 00 00]                                                facing
+		0x1cc - Attribute  21: [    ][00 BF BF BF]                                                Parent / group sprite name
+		0x1d8 - Attribute  22: [    ][00 00 00 00]                                                Attach anchor in parent (same 3×3 code as attr 7)
+		0x1e4 - Attribute  23: [    ][00 00 00 00]                                                Localized string id; skipped when kind == 1
+		0x1f0 - Attribute  26: [    ][00 00 00 00]                                                Text auto-fit axis (0 = scale X, 1 = scale Y)
 	Class:	CAttributeHandler
 		0x218 - Debug          : RWBool(0) (False)
 	isGlobal:	False
+```
 
-ATTRIBUTE 0    TYPE: cstring                        | Sprite object name (rebinds the entity)
-ATTRIBUTE 1    TYPE: s32                            | Content kind 0=texture, 1=numeric text, 2=localized text, 3=linked world entity
-ATTRIBUTE 2    TYPE: cstring                        | Texture name
-ATTRIBUTE 3    TYPE: cstring                        | Font name (.met, extension stripped)
-ATTRIBUTE 4    TYPE: cstring                        | -
-ATTRIBUTE 5    TYPE: s32bool                        | Visible
-ATTRIBUTE 6    TYPE: s32bool                        | -
-ATTRIBUTE 7    TYPE: s32                            | Justification, 3×3 anchor code 0–8
-ATTRIBUTE 8    TYPE: f32                            | Rotation (deg)
-ATTRIBUTE 9    TYPE: 3×f32                          | Location (x, y; z forced to FLT_MAX)
-ATTRIBUTE 10   TYPE: 2×f32                          | Scale%
-ATTRIBUTE 11   TYPE: s32 (low byte)                 | Priority / z-order
-ATTRIBUTE 12   TYPE: s32bool                        | Auto-size from texture
-ATTRIBUTE 13   TYPE: f32                            | Explicit width
-ATTRIBUTE 14   TYPE: f32                            | Explicit height
-ATTRIBUTE 15   TYPE: u32(−1) + ASCII {GUID}  Name   | Linked world entity
-ATTRIBUTE 16   TYPE: s32bool                        | shrink this sprite out as its anchor gets far away
-ATTRIBUTE 17   TYPE: s32bool                        | -
-ATTRIBUTE 18   TYPE: f32                            | roll
-ATTRIBUTE 19   TYPE: f32                            | tilt
-ATTRIBUTE 20   TYPE: f32                            | facing
-ATTRIBUTE 21   TYPE: cstring                        | Parent / group sprite name 
-ATTRIBUTE 22   TYPE: u32                            | Parent inheritance bitmask 
-ATTRIBUTE 23   TYPE: s32                            | Attach anchor in parent (same 3×3 code as attr 7)
-ATTRIBUTE 24   TYPE: u32                            | Tint RGBA
-ATTRIBUTE 25   TYPE: s32                            | Localized string id; skipped when kind == 1
-ATTRIBUTE 26   TYPE: s32bool                        | Text auto-fit axis (0 = scale X, 1 = scale Y)
+| Attr | Type | Meaning |
+| --- | --- | --- |
+| 0 | cstring | Sprite object name (rebinds the entity) |
+| 1 | s32 | Content kind — 0 = texture, 1 = numeric text, 2 = localized text, 3 = linked world entity |
+| 2 | cstring | Texture name |
+| 3 | cstring | Font name (`.met`, extension stripped) |
+| 4 | cstring | — |
+| 5 | s32 bool | Visible |
+| 6 | s32 bool | — |
+| 7 | s32 | Justification, 3×3 anchor code 0–8 |
+| 8 | f32 | Rotation (deg) |
+| 9 | 3× f32 | Location (x, y; z forced to `FLT_MAX`) |
+| 10 | 2× f32 | Scale % |
+| 11 | s32 (low byte) | Priority / z-order |
+| 12 | s32 bool | Auto-size from texture |
+| 13 | f32 | Explicit width |
+| 14 | f32 | Explicit height |
+| 15 | u32(−1) + ASCII `{GUID}  Name` | Linked world entity |
+| 16 | s32 bool | Shrink this sprite out as its anchor gets far away |
+| 17 | s32 bool | — |
+| 18 | f32 | Roll |
+| 19 | f32 | Tilt |
+| 20 | f32 | Facing |
+| 21 | cstring | Parent / group sprite name |
+| 22 | u32 | Parent inheritance bitmask |
+| 23 | s32 | Attach anchor in parent (same 3×3 code as attr 7) |
+| 24 | u32 | Tint RGBA |
+| 25 | s32 | Localized string id; skipped when kind == 1 |
+| 26 | s32 bool | Text auto-fit axis (0 = scale X, 1 = scale Y) |
 
-Parent inheritance bitmask:
+### Parent inheritance bitmask
 
-0x01 │ position   │ +0xAC/+0xB0 = parent's, plus an anchor delta: FUN_004509F0(parent justification) − FUN_004509F0(attr 23)
-0x02 │ scale      │ +0xB4/+0xB8 = parent's                                                                                  
-0x04 │ tint       │ +0xCC/+0xCD/+0xCE = parent's RGB — RGB only, alpha is bit 6                                             
-0x08 │ visibility │ if (own +0xA8 != 0) +0xA8 = parent's — AND, not copy: visible only if both are                          
-0x10 │ rotation   │ +0xBC = parent's                                                                                        
-0x20 │ priority   │ +0xD0 += parent's +0xD0 — additive, not copy                                                            
-0x40 │ alpha      │ +0xC0 = parent's                                                                                        
+| Bit | Field | Effect |
+| --- | --- | --- |
+| 0x01 | Position | `+0xAC/+0xB0` = parent's, plus an anchor delta: `FUN_004509F0(parent justification) − FUN_004509F0(attr 23)` |
+| 0x02 | Scale | `+0xB4/+0xB8` = parent's |
+| 0x04 | Tint | `+0xCC/+0xCD/+0xCE` = parent's RGB — RGB only, alpha is bit 6 |
+| 0x08 | Visibility | if (own `+0xA8` != 0) `+0xA8` = parent's — AND, not copy: visible only if both are |
+| 0x10 | Rotation | `+0xBC` = parent's |
+| 0x20 | Priority | `+0xD0` += parent's `+0xD0` — additive, not copy |
+| 0x40 | Alpha | `+0xC0` = parent's |
 
-DEFAULT
-27 = 0x1B (2905) │ 0,1,3,4 │ position + scale + visibility + rotation
+**Default:** `27 = 0x1B` (bits 0, 1, 3, 4) → position + scale + visibility + rotation

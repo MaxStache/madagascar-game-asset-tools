@@ -1,8 +1,10 @@
 """Human readable text dump of a stream file."""
 
+from __future__ import annotations
+
 import io
 from pathlib import Path
-from typing import Any, TextIO
+from typing import TYPE_CHECKING, Any, TextIO, cast
 from collections.abc import Callable
 
 from madagascar.lib.parser import Parser
@@ -17,6 +19,9 @@ from madagascar.streamfuncs.stringfuncs.sf_LoadEmbeddedAsset import (
 )
 from madagascar.streamfuncs.stringfuncs.sf_PlacementNew import RW_sf_PlacementNew
 
+if TYPE_CHECKING:
+    from madagascar.stream.file import RW_StreamFile
+
 # Bytes rendered as-is in the text view of an attribute, everything else
 # becomes a space.
 _TEXTVIEW_EXTRA_CHARS = frozenset(rb"_-!?.\/:()={}[]&$+*#")
@@ -29,6 +34,8 @@ class StreamLogMixin:
 
     def write_log(self, output_path: str | Path) -> None:
         """Write a human readable dump of the stream to a text file."""
+        stream = cast("RW_StreamFile", self)
+
         with open(output_path, "w", encoding="utf-8") as f:
             f.write("Read a file stream\n\n")
 
@@ -48,10 +55,10 @@ class StreamLogMixin:
 
                 for section_type, writer in _SECTION_WRITERS:
                     if isinstance(sf, section_type):
-                        writer(f, sf)
+                        writer(f, sf, stream)
                         break
                 else:
-                    _write_unknown(f, sf)
+                    _write_unknown(f, sf, stream)
 
 
 def _format_matrix4x4(matrix: RW_Matrix4x4, indent: int) -> str:
@@ -77,7 +84,10 @@ def _format_matrix4x4(matrix: RW_Matrix4x4, indent: int) -> str:
 
 
 def _write_attribute(
-    f: TextIO, attr: RW_sf_CreateEntity_Attribute, class_name: str = ""
+    f: TextIO,
+    attr: RW_sf_CreateEntity_Attribute,
+    stream: RW_StreamFile,
+    class_name: str = "",
 ) -> None:
     output = f"\t\tAttribute {attr.command:>3}"
 
@@ -86,6 +96,17 @@ def _write_attribute(
         matrix = RW_Matrix4x4.read(Parser(attr.data, endian="little"))
         indent = len(output.replace("\t", "    ") + ": Matrix4x4(")
         f.write(output + ": " + _format_matrix4x4(matrix, indent) + "\n")
+        return
+
+    if class_name == "CSystemCommands" and attr.command == 0x00:
+        guid = Parser(attr.data, endian="little").readGUID()
+        resolved = stream.assetByIDSoft(guid)
+
+        if resolved is None:
+            ref_string = "MISSING"
+        else:
+            ref_string = f"{resolved.type} - {resolved.name}"
+        f.write("\t\tCMD 0: Attach Asset {" + str(guid) + f"}} ( {ref_string} ) \n")
         return
 
     # Text view: alphanumerics and a few symbols kept, others replaced with space
@@ -105,7 +126,7 @@ def _write_attribute(
     f.write(f"{output}: [{textView}][{hexView}]\n")
 
 
-def _write_createEntity(f: TextIO, sf: RW_sf_CreateEntity) -> None:
+def _write_createEntity(f: TextIO, sf: RW_sf_CreateEntity, stream: RW_StreamFile) -> None:
     f.write("Create Entity Call:\n")
 
     f.write(f"\tBehaviour:\t{sf.behaviour}\n")
@@ -115,13 +136,13 @@ def _write_createEntity(f: TextIO, sf: RW_sf_CreateEntity) -> None:
         f.write(f"\tClass:\t{atr_class.class_name}\n")
 
         for attr in atr_class.attributes:
-            _write_attribute(f, attr, atr_class.class_name)
+            _write_attribute(f, attr, stream, atr_class.class_name)
 
     f.write(f"\tisGlobal:\t{sf.isGlobal}\n")
     f.write("\n")
 
 
-def _write_placementNew(f: TextIO, sf: RW_sf_PlacementNew) -> None:
+def _write_placementNew(f: TextIO, sf: RW_sf_PlacementNew, stream: RW_StreamFile) -> None:
     f.write("Data:\n")
 
     f.writelines(
@@ -131,7 +152,7 @@ def _write_placementNew(f: TextIO, sf: RW_sf_PlacementNew) -> None:
     f.write("\n")
 
 
-def _write_loadEmbeddedAsset(f: TextIO, sf: RW_sf_LoadEmbeddedAsset) -> None:
+def _write_loadEmbeddedAsset(f: TextIO, sf: RW_sf_LoadEmbeddedAsset, stream: RW_StreamFile) -> None:
     f.write("Asset Header:\n")
 
     f.write(f"\t- Header Size: {sf.headerSize}\n")
@@ -145,7 +166,7 @@ def _write_loadEmbeddedAsset(f: TextIO, sf: RW_sf_LoadEmbeddedAsset) -> None:
     f.write("\n")
 
 
-def _write_unknown(f: TextIO, sf: RW_StreamFunc) -> None:
+def _write_unknown(f: TextIO, sf: RW_StreamFunc, stream: RW_StreamFile) -> None:
     f.write("\t[No view defined]\n")
 
     raw_data = getattr(sf, "raw_data", None)
@@ -156,7 +177,7 @@ def _write_unknown(f: TextIO, sf: RW_StreamFunc) -> None:
 
 # Add an entry here to give a stream function its own view in the dump.
 # Anything not listed falls back to a raw hex dump.
-_SECTION_WRITERS: list[tuple[type, Callable[[TextIO, Any], None]]] = [
+_SECTION_WRITERS: list[tuple[type, Callable[[TextIO, Any, RW_StreamFile], None]]] = [
     (RW_sf_CreateEntity, _write_createEntity),
     (RW_sf_PlacementNew, _write_placementNew),
     (RW_sf_LoadEmbeddedAsset, _write_loadEmbeddedAsset),

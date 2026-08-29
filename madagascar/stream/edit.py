@@ -8,6 +8,7 @@ from colorama import Fore, init
 
 init(autoreset=True)
 
+
 class StreamEditMixin(StreamQueryMixin):
     """Chunk list editing mixed into `RW_StreamFile`."""
 
@@ -77,7 +78,8 @@ class StreamEditMixin(StreamQueryMixin):
         if duplicate_names:
             shown = ", ".join(sorted(duplicate_names))
             print(
-                Fore.YELLOW + f"[STREAM VERIFY, SVE002] Warning: {len(duplicate_names)} "
+                Fore.YELLOW
+                + f"[STREAM VERIFY, SVE002] Warning: {len(duplicate_names)} "
                 + f"duplicate entity name(s): {shown}. \nThis is usually fine and doesnt cause a crash but is very bad practice. It is fine if the name only repeats on one CTFBModel and a CProtoActor. \n"
             )
         # endregion
@@ -95,26 +97,45 @@ class StreamEditMixin(StreamQueryMixin):
 
         # region === Missing SCRIPT and CTFBModel references by CProtoActors ===
         for actor in self.entitiesByBehavior("CProtoActor"):
-            if not actor.hasAttribute("CProtoActor", 3) or not actor.hasAttribute(
-                "CProtoActor", 2
-            ):
-                continue
+            # == MODEL ==
+            if actor.hasAttribute("CProtoActor", 2):
+                model_ref = actor.getAttribute("CProtoActor", 2).asTfbRef()
+                if model_ref.resolveSoft(self) is None:
+                    raise ValueError(
+                        "[STREAM VERIFY, SVEREF01] Missing model entity with GUID: "
+                        + f"{model_ref.guid} ( referenced by {actor.tfbGetName()} ) While this may not cause a crash it is undefined behavior and should be fixed!"
+                    )
 
             # == SCRIPT ==
-            script_ref = actor.getAttribute("CProtoActor", 3).asTfbRef()
-            if script_ref.resolveSoft(self) is None:
-                print(
-                    Fore.YELLOW + "[STREAM VERIFY, SVEREF01] WARNING: Missing script asset with GUID: "
-                    + f"{script_ref.guid} ( referenced by {actor.tfbGetName()} ) While this may not cause a crash it is bad practice and should be fixed!"
-                )
-            
-            # == MODEL ==
-            model_ref = actor.getAttribute("CProtoActor", 2).asTfbRef()
-            if model_ref.resolveSoft(self) is None:
-                raise ValueError(
-                    "[STREAM VERIFY, SVEREF02] Missing model entity with GUID: "
-                    + f"{script_ref.guid} ( referenced by {actor.tfbGetName()} ) While this may not cause a crash it is undefined behavior and should be fixed!"
-                )
+            if actor.hasAttribute("CProtoActor", 3):
+                script_ref = actor.getAttribute("CProtoActor", 3).asTfbRef()
+                if script_ref.resolveSoft(self) is None:
+                    print(
+                        Fore.YELLOW
+                        + "[STREAM VERIFY, SVEREF02] WARNING: Missing script asset with GUID: "
+                        + f"{script_ref.guid} ( referenced by {actor.tfbGetName()} ) While this may not cause a crash it is bad practice and should be fixed!"
+                    )
+        # endregion
+
+        # region === Missing  references by CTFBModels ===
+        for model in self.entitiesByBehavior(behavior="CTFBModel"):
+            # == ANIMATION SLOTS ==
+            for attr in model.getAttributes("CTFBModel", 3):
+                anim_ref = attr.asTfbRef()
+                if anim_ref.resolveSoft(self) is None:
+                    raise ValueError(
+                        "[STREAM VERIFY, SVEREF03] CTFBModel - Missing animation asset with GUID: "
+                        + f"{anim_ref.guid} ( referenced by CTFBModel: {model.tfbGetName()} )"
+                    )
+            # == VISME ANIMATION SLOTS ==
+            for attr in model.getAttributes("CTFBModel", 6):
+                anim_ref = attr.asTfbRef()
+                if anim_ref.resolveSoft(self) is None:
+                    raise ValueError(
+                        "[STREAM VERIFY, SVEREF03] CTFBModel - Missing visme animation asset with GUID: "
+                        + f"{anim_ref.guid} ( referenced by CTFBModel: {model.tfbGetName()} )"
+                    )
+                
         # endregion
 
         print("[STREAM VERIFY] Check finished")

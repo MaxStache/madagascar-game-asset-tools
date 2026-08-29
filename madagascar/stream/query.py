@@ -14,7 +14,7 @@ from madagascar.streamfuncs.stringfuncs.sf_PlacementNew import RW_sf_PlacementNe
 T = TypeVar("T", bound=RW_StreamFunc)
 
 
-def _require(found: T | None, missing: str) -> T:
+def _require[T: RW_StreamFunc](found: T | None, missing: str) -> T:
     """Unwrap the result of a `...Soft` lookup, or raise `missing`."""
     if found is None:
         raise AssertionError(missing)
@@ -114,11 +114,13 @@ class StreamQueryMixin:
             f"No entity in this stream is named: {name} with behavior {behavior}",
         )
 
-    def entityByIDSoft(self, entity_id: uuid.UUID) -> RW_sf_CreateEntity | None:
+    def entityByIDSoft(self, entity_id: uuid.UUID | str) -> RW_sf_CreateEntity | None:
         """Find an entity by ID, or None when nothing matches."""
+        if isinstance(entity_id, str):
+            entity_id = uuid.UUID(entity_id)
         return next(self._entitiesWhere(entity_id=entity_id), None)
 
-    def entityByID(self, entity_id: uuid.UUID) -> RW_sf_CreateEntity:
+    def entityByID(self, entity_id: uuid.UUID | str) -> RW_sf_CreateEntity:
         """Like `entityByIDSoft`, but raises when nothing matches."""
         return _require(
             self.entityByIDSoft(entity_id),
@@ -151,11 +153,14 @@ class StreamQueryMixin:
             f"No asset in this stream is named: {name}",
         )
 
-    def assetByIDSoft(self, asset_id: uuid.UUID) -> RW_sf_LoadEmbeddedAsset | None:
+    def assetByIDSoft(self, asset_id: uuid.UUID | str) -> RW_sf_LoadEmbeddedAsset | None:
         """Find an asset by ID, or None when nothing matches."""
+        if isinstance(asset_id, str):
+            asset_id = uuid.UUID(asset_id)
+
         return next(self._assetsWhere(guid=asset_id), None)
 
-    def assetByID(self, asset_id: uuid.UUID) -> RW_sf_LoadEmbeddedAsset:
+    def assetByID(self, asset_id: uuid.UUID | str) -> RW_sf_LoadEmbeddedAsset:
         """Like `assetByIDSoft`, but raises when nothing matches."""
         return _require(
             self.assetByIDSoft(asset_id),

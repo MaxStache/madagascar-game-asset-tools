@@ -282,13 +282,7 @@ class RW_TextureNative_Struct(RW_Section):
             RWSectionType.rwID_STRUCT.value,
             "RW_TextureNative_Struct chunk type",
         )
-        print(texnative_s.header)
 
-        # The chunk's declared size is authoritative for where this section
-        # ends. Every raster in a well formed dictionary carries its palette
-        # and texels, but a file written back by a tool that dropped them
-        # stops right after the fixed fields, and reading on would consume the
-        # following chunks.
         struct_end = parser.tell() + texnative_s.header.size
 
         texnative_s.platform_id = RW_TextureNative_PlatformId(parser.readUint32())

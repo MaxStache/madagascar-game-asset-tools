@@ -14,8 +14,11 @@ class StreamEditMixin(StreamQueryMixin):
 
     contents: list[RW_StreamFunc]
 
-    def append(self, sf: RW_StreamFunc) -> None:
-        self.contents.append(sf)
+    def append(self, content: RW_StreamFunc | list[RW_StreamFunc]) -> None:
+        if isinstance(content, list):
+            self.contents.extend(content)
+        else:
+            self.contents.append(content)
 
     def insertAfter(self, reference: RW_StreamFunc, sf: RW_StreamFunc) -> int:
         """Insert `sf` directly after `reference` in the chunk list."""

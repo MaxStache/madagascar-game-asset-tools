@@ -49,3 +49,7 @@ Levels/*
 
 # *.gig.* = Dont track this file
 **/*.gig.* 
+
+
+# Symlink to tfbscript
+tfbscript

@@ -2,8 +2,8 @@ import io
 from dataclasses import dataclass, field
 from typing import BinaryIO, override
 
-from formats.lib.parser import Parser
-from formats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from madagascar.lib.parser import Parser
+from madagascar.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
 
 @dataclass
 class RpTFBUVAnimation:

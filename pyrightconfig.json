@@ -11,7 +11,6 @@
     ".venv",
     "other/**",
     "tools/**",
-    "formats/old_stream.py",
     "blender_mad_import_bsp/**",
     "stream_unpack.py",
     "stream_repack.py"

@@ -1,61 +1,8 @@
 import math
 import struct
-
-# ═══════════════════════════════════════════════════════
-#  CProtoActor attribute 1 ("actor stats block")
-# ═══════════════════════════════════════════════════════
-#
-# Unlike most attribute commands (one command number = one scalar value),
-# CProtoActor's command 1 is a single blind blob copy of ~0x114 bytes
-# (0x45 DWORDs) straight into the live actor object at object-offset
-# 0x1AC..0x2C0 (see Game.exe FUN_0042e810, case 1). Field offsets below
-# were reverse engineered from the object's field-getter stubs (each a
-# tiny `MOV EAX,[ESP+4]; {MOV|FLD} eax/st0,[EAX+disp32]; RET` function) --
-# `disp32` is the object-relative byte offset used here.
-#
-# `HEADER_SKIP` is 0: FUN_0054fe30 (the same generic RWSPH packet walker
-# old_stream.py's Python loop mirrors) proves the packet payload starts
-# exactly 8 bytes after packetStart (the size+command u32 pair) with no
-# further sub-header -- and old_stream.py's packet loop already strips
-# those 8 bytes before storing `attr.data`. The "+8" inside FUN_0042e810's
-# case 1 (`FUN_0054fec0()+8`) is that *same* skip, not an additional one --
-# `attr.data` already starts at byte 0 of the stats block. An earlier
-# version of this file double-skipped and used HEADER_SKIP=8; don't
-# reintroduce that.
-#
-# All quantity fields -- including ones whose live-object getter reads
-# them with a plain MOV (conceptually int/enum at runtime, e.g. health,
-# move_type, jump_delay, jump_coast_frames, activation_range_fade_percent)
-# -- are stored as float32 in this serialized block; only the flags
-# bitmask and the two packed RGBA colors are raw integers. Confirmed by
-# cross-checking two independent real samples: with HEADER_SKIP=0 +
-# float32 decoding, the flags dword's bits line up exactly with named
-# boolean fields (e.g. bit2/wall_collision and bit5/cut_scene_ignore both
-# set in one sample), and activation_range/deactivation_range decoded to
-# clean round numbers in the other -- neither happens under HEADER_SKIP=8
-# or int32 decoding.
-#
-# See memory: ghidra_cprotoactor_command_reader, ghidra_cprotoactor_field_offsets.
-
 BASE_OFFSET = 0x1AC  # object-relative offset of byte 0 of the copied block
 HEADER_SKIP = 0
 
-# name -> (object offset, kind, [bit, for kind="flag"])
-# kind "roundfloat": stored as float32 but conceptually an int/enum at
-# runtime -- decoded as float then rounded to the nearest int.
-#
-# The three collision fields (solid_collision, mesh_collider,
-# triangles_collide) were originally missed: their *getters* dispatch
-# through the actor's own vtable (some concrete actor subclasses hardcode
-# `return 0`), which looked like an opaque virtual call into another
-# object. Tracing the two concrete vtable variants (0x005cd5e8 /
-# 0x005cd728, both sharing the same getFieldArray at 0x00436f80) showed
-# the "real" implementation just tests bits of this same +0x1B0 flags
-# dword -- FUN_0042d8e0/d8f0/d910. mesh_collider and triangles_collide
-# ALSO require the +0x2C8 override pointer (see
-# CPROTOACTOR_FIELDS_NOT_IN_ATTR1) to be non-null to take effect -- that
-# pointer lives outside command 1's block, so what's decoded here is only
-# the flag bit, not the fully-resolved runtime value.
 CPROTOACTOR_ATTR1_FIELDS: dict[str, tuple[int, str] | tuple[int, str, int]] = {
     "solid_collision": (0x1B0, "flag", 0),
     "wall_climber": (0x1B0, "flag", 1),

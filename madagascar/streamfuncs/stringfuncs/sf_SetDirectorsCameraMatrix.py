@@ -5,7 +5,7 @@ from typing import Any, override
 from madagascar.lib.parser import Parser
 from madagascar.lib.rwConstants import strfunc_func
 from madagascar.lib.rw_basics import RW_Matrix4x4, RW_StreamFunc, RWHeader, expect_chunk_type_or_raise
-from madagascar.old_stream import write_f32
+from madagascar.lib.writer import write_f32
 
 
 

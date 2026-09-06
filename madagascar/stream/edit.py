@@ -15,22 +15,22 @@ class StreamEditMixin(StreamQueryMixin):
     contents: list[RW_StreamFunc]
 
     def append(self, content: RW_StreamFunc | list[RW_StreamFunc]) -> None:
-        if isinstance(content, list):
-            self.contents.extend(content)
-        else:
-            self.contents.append(content)
+        items = content if isinstance(content, list) else [content]
 
+        self.contents.extend(items)
         self._INTERNAL_CHECKING_PLACEMENTDIRTY = True
 
-    def insertAfter(self, reference: RW_StreamFunc, sf: RW_StreamFunc) -> int:
-        """Insert `sf` directly after `reference` in the chunk list."""
-        for i, sec in enumerate(self.contents):
-            if sec is reference:
-                self.contents.insert(i + 1, sf)
-                self._INTERNAL_CHECKING_PLACEMENTDIRTY = True
-                return i + 1
+    def insertAfter(self, reference: RW_StreamFunc, content: RW_StreamFunc) -> int:
+        """Insert `content` directly after `reference` in the chunk list."""
+        try:
+            index = self.contents.index(reference)
+        except ValueError:
+            raise ValueError("reference section is not part of this stream") from None
 
-        raise ValueError("reference section is not part of this stream")
+        self.contents.insert(index + 1, content)
+        self._INTERNAL_CHECKING_PLACEMENTDIRTY = True
+
+        return index + 1
 
     def remove(self, sf: RW_StreamFunc) -> int:
         """Remove `sf` from the chunk list. Returns the index it occupied."""

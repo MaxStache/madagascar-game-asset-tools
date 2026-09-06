@@ -1,6 +1,7 @@
+import copy
 import uuid
 from dataclasses import dataclass
-from typing import cast
+from typing import cast, override
 
 from madagascar.streamfuncs import RW_sf_CreateEntity
 from madagascar.streamfuncs.stringfuncs.sf_CreateEntity import (
@@ -157,3 +158,10 @@ class CProtoActor(RW_sf_CreateEntity):
         if len(value) != 4:
             raise ValueError(f"Expected 4 bytes, got {len(value)}")
         self.getAttributeOrCreate(CLASS_NAME, 6, default_data=b"\xFF\xFF\xFF\xFF").data = bytes(value)
+
+
+
+
+    @override
+    def duplicate(self) -> "CProtoActor":
+        return copy.deepcopy(self)

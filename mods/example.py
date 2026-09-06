@@ -12,6 +12,8 @@ level = load_stream("levels/kingofny.stream") # replace kingofny.stream with the
 
 level.updatePlacementNew()
 
+level.verify()
+
 # replace this with the path where the .stream should be saved 
 
 # == TIP ==

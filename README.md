@@ -34,7 +34,7 @@ Restart your terminal / vscode after installation if necessary.
 
 ### 2. Clone the repository
 
-```powershell
+```bash
 git clone https://github.com/MaxStache/madagascar-game-asset-tools.git
 cd madagascar-game-asset-tools
 ```
@@ -43,7 +43,7 @@ cd madagascar-game-asset-tools
 
 Run:
 
-```powershell
+```bash
 uv sync
 ```
 
@@ -53,14 +53,14 @@ This automatically creates a virtual environment and installs the dependencies s
 
 You can run Python scripts through `uv` without manually activating the virtual environment:
 
-```powershell
+```bash
 uv run python <script>.py
 uv run python -m <module>
 ```
 
 Alternatively, activate the virtual environment manually:
 
-```powershell
+```bash
 WINDOWS:
 .venv\Scripts\activate
 LINUX/MACOS:
@@ -71,7 +71,7 @@ LINUX/MACOS:
 
 ### CLI
 
-```sh
+```bash
 uv run cli unpack LEVEL.stream output/directory/
 
 uv run cli repack input/directory/ LEVEL.stream
@@ -79,7 +79,7 @@ uv run cli repack input/directory/ LEVEL.stream
 
 For more information run
 
-```sh
+```bash
 uv run cli --help
 ```
 

@@ -24,6 +24,10 @@ This repo is a collection of tools used for modding the game "Madagascar" (relea
 
 ## Installation
 
+> [!NOTE]
+> ## 🎥 Video Tutorials
+> **[▶️ Madagascar Modding Tutorials – YouTube Playlist](https://www.youtube.com/playlist?list=PLbBnMoHCtodg)**
+
 ### 1. Install uv
 
 If you don't already have `uv`, install it from the official documentation:
@@ -83,6 +87,12 @@ For more information run
 uv run cli --help
 ```
 
+or
+
+```bash
+uv run cli COMMAND --help
+```
+
 ## Related
 
 - [madagascar-tfbtool](https://github.com/MaxStache/madagascar-tfbtool) —
@@ -95,5 +105,5 @@ Apache-2.0. See [LICENSE](LICENSE).
 ## Disclaimer
 
 Unofficial fan project, not affiliated with or endorsed by DreamWorks,
-Activision or Toys for Bob. No game assets are included — you need your own
+Activision or Toys for Bob. No game assets are included, you need your own
 copy of the game.

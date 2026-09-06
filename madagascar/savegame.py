@@ -540,9 +540,40 @@ class SaveFile:
         self.slots[slot].percent_complete = pack_percent_complete(1100,12)
         self.slots[slot].set("furthest_level_unlocked", 12)
         self.slots[slot].set("last_level_played", 7)
+        self.slots[slot].set("Current_Checkpoint_Index", 0)
         self.slots[slot].set("Next Level Auto Load", 14)
-        self.slots[slot].set("zoovenir_item_bits", 0x7FF0007F)
+        self.slots[slot].set("zoovenir_item_bits", 0x7FFF7FFF) # 01111111111111110111111111111111
+        self.slots[slot].set("zoovenir_disable_bits", 0x00000000) # 00000000000000000000000000000000
         self.slots[slot].play_time_seconds = 0
+        self.slots[slot].stream_name = "map.stream"
+
+        self.slots[slot].set("total_money_collected", 0)
+        self.slots[slot].set("ZoosterMoney", 0)
+        self.slots[slot].set("coins_escape", 0)
+        self.slots[slot].set("coins_street", 0)
+        self.slots[slot].set("coins_mutiny", 0)
+        self.slots[slot].set("coins_jungle", 0)
+        self.slots[slot].set("coins_lemurs", 0)
+        self.slots[slot].set("coins_kingofny", 0)
+        self.slots[slot].set("coins_coming", 0)
+        self.slots[slot].set("coins_beach", 0)
+        self.slots[slot].set("coins_rescue", 0)
+        self.slots[slot].set("coins_battle", 0)
+
+        self.slots[slot].set("rings_street", 0)
+        self.slots[slot].set("rings_lemurs", 0)
+        self.slots[slot].set("rings_banquet", 0)
+        self.slots[slot].set("rings_jungle", 0)
+
+        self.slots[slot].set("high_score_armor", 0)
+        self.slots[slot].set("high_score_wobble", 0)
+        self.slots[slot].set("high_score_space", 0)
+        self.slots[slot].set("high_score_fruit", 0)
+        self.slots[slot].set("high_score_moles", 0)
+        self.slots[slot].set("high_score_simon", 0)
+
+        self.slots[slot].set("coins_banquet", 0)
+        self.slots[slot].set("destruction_street", 0)
         
 
 def _split_slots(data: bytes) -> tuple[int, list[bytes]]:

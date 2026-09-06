@@ -1,3 +1,4 @@
+# noqa: N999
 from enum import Enum
 import io
 import os
@@ -47,7 +48,6 @@ class RW_TextureDictionary_Struct(RW_Section):
         if texdict_s.header.version > 0x3600:
             texdict_s.textureCount = parser.readUint16()
             texdict_s.deviceId = RW_TextureDictionary_DeviceId(parser.readUint16())
-            print(f"Read RW_TextureDictionary_Struct: textureCount={texdict_s.textureCount}, deviceId={texdict_s.deviceId}")
         else:
             texdict_s.textureCount = parser.readUint32()
 

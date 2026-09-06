@@ -12,6 +12,8 @@ from madagascar.sections.BINMESHPLUGIN_050E import RW_BinMeshPlugin
 from madagascar.sections.MATERIALEFFECTSPLUGIN_0120 import RW_MaterialEffectsPlugin
 from madagascar.sections.MATERIAL_0007 import RW_Material
 from madagascar.sections.RIGHTTORENDER_001F import RW_RightToRender
+from madagascar.sections.TFB.TFBMATERIAL_800000F6 import RW_TFB_TFBMaterial
+from madagascar.sections.TFB.TFBTEXTURE1_800000DD import RW_TFB_TFBTextureExt1
 from madagascar.sections.USERDATAPLUGIN_011F import RW_UserDataPlugin
 from madagascar.sections.HANIMPLUGIN_011E import RW_HAnimPlugin
 from madagascar.sections.ATOMIC_0014 import RW_Atomic
@@ -225,11 +227,11 @@ SECTION_REGISTRY: dict[int, type[RW_Section]] = {
     0x800000D4: RW_Section_NotImplemented, # found on atomic world sector    NO READER IN PC VERSION
     0x800000FE: RW_Section_NotImplemented, # found on atomic world sector    
     0x800000B0: RW_Section_NotImplemented, # found on world                    
-    0x800000F6: RW_Section_NotImplemented, # found on material (in world)      
+    0x800000F6: RW_TFB_TFBMaterial, # found on material (in world)      
     0x800000ED: RW_Section_NotImplemented, # found on atomic                 NO READER IN PC VERSION
     0x800000FD: RW_Section_NotImplemented, # found on atomic
     0x800000B1: RW_Section_NotImplemented, # found on clump
-    0x800000DD: RW_Section_NotImplemented, # found on Raster / Texture       NO READER IN PC VERSION
+    0x800000DD: RW_TFB_TFBTextureExt1, # found on Raster / Texture       NO READER IN PC VERSION
 }
 # fmt: on
 

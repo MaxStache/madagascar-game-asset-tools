@@ -20,12 +20,16 @@ class StreamEditMixin(StreamQueryMixin):
         else:
             self.contents.append(content)
 
+        self._INTERNAL_CHECKING_PLACEMENTDIRTY = True
+
     def insertAfter(self, reference: RW_StreamFunc, sf: RW_StreamFunc) -> int:
         """Insert `sf` directly after `reference` in the chunk list."""
         for i, sec in enumerate(self.contents):
             if sec is reference:
                 self.contents.insert(i + 1, sf)
+                self._INTERNAL_CHECKING_PLACEMENTDIRTY = True
                 return i + 1
+
         raise ValueError("reference section is not part of this stream")
 
     def remove(self, sf: RW_StreamFunc) -> int:
@@ -33,6 +37,7 @@ class StreamEditMixin(StreamQueryMixin):
         for i, sec in enumerate(self.contents):
             if sec is sf:
                 del self.contents[i]
+                self._INTERNAL_CHECKING_PLACEMENTDIRTY = True
                 return i
         raise ValueError("section is not part of this stream")
 
@@ -54,9 +59,15 @@ class StreamEditMixin(StreamQueryMixin):
 
         placement_new.entry_count = len(placement_new.entries)
 
+        self._INTERNAL_CHECKING_PLACEMENTUPDATED = True
+        self._INTERNAL_CHECKING_PLACEMENTDIRTY = False
+
     def verify(self) -> None:
         """Some simple checks to catch errors before the game crashes (;"""
         print("[STREAM VERIFY] Check started")
+
+        if not self._INTERNAL_CHECKING_PLACEMENTUPDATED and self._INTERNAL_CHECKING_PLACEMENTDIRTY:
+            raise ValueError("[STREAM VERIFY, SPE001] Stream was modified in length but never updated with 'stream.updatePlacementNew()' before verifying and saving, add 'stream.updatePlacementNew()' to resolve this error ")
 
         # region === Duplicate Entity IDs and Names ===
         used_entity_ids: set[uuid.UUID] = set()
@@ -142,3 +153,5 @@ class StreamEditMixin(StreamQueryMixin):
         # endregion
 
         print("[STREAM VERIFY] Check finished")
+
+        self._INTERNAL_CHECKING_VERIFIED = True

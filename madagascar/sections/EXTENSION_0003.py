@@ -1,3 +1,4 @@
+# noqa: N999
 import io
 from dataclasses import dataclass, field
 from typing import BinaryIO, override

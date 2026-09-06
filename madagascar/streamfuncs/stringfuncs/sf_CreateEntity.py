@@ -1,5 +1,6 @@
 import copy
 import io
+import math
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, override
 import uuid
@@ -446,6 +447,87 @@ class RW_sf_CreateEntity(RW_StreamFunc):
         matrix.row4.y = y
         matrix.row4.z = z
         self.setMatrix(matrix)
+
+    def setRotation(self, x: float, y: float, z: float):
+        """Replace the rotation basis (rows 1-3) from Euler angles in degrees,
+        applied in X, then Y, then Z order. Preserves position (row4)."""
+        rx, ry, rz = math.radians(x), math.radians(y), math.radians(z)
+
+        def matmul3(a, b):
+            return tuple(
+                tuple(sum(a[i][k] * b[k][j] for k in range(3)) for j in range(3))
+                for i in range(3)
+            )
+
+        mx = (
+            (1.0, 0.0, 0.0),
+            (0.0, math.cos(rx), math.sin(rx)),
+            (0.0, -math.sin(rx), math.cos(rx)),
+        )
+        my = (
+            (math.cos(ry), 0.0, -math.sin(ry)),
+            (0.0, 1.0, 0.0),
+            (math.sin(ry), 0.0, math.cos(ry)),
+        )
+        mz = (
+            (math.cos(rz), math.sin(rz), 0.0),
+            (-math.sin(rz), math.cos(rz), 0.0),
+            (0.0, 0.0, 1.0),
+        )
+
+        right, up, forward = matmul3(matmul3(mx, my), mz)
+
+        matrix = self.getMatrix()
+        matrix.row1.x, matrix.row1.y, matrix.row1.z = right
+        matrix.row2.x, matrix.row2.y, matrix.row2.z = up
+        matrix.row3.x, matrix.row3.y, matrix.row3.z = forward
+
+        self.setMatrix(matrix)
+
+    def getRotation(self) -> tuple[float, float, float]:
+        """Decompose the rotation basis (rows 1-3) back into Euler degrees --
+        the inverse of `setRotation` (X, then Y, then Z order)."""
+        matrix = self.getMatrix()
+        m00, m01, m02 = matrix.row1.x, matrix.row1.y, matrix.row1.z
+        m12, m22 = matrix.row2.z, matrix.row3.z
+
+        ry = math.asin(max(-1.0, min(1.0, -m02)))
+        rx = math.atan2(m12, m22)
+        rz = math.atan2(m01, m00)
+
+        return math.degrees(rx), math.degrees(ry), math.degrees(rz)
+
+    def lookAt(
+        self,
+        x: float,
+        y: float,
+        z: float,
+        lock_yaw: bool = False,
+        lock_pitch: bool = False,
+        lock_roll: bool = False,
+    ) -> None:
+        """Face this entity toward a world-space point.
+
+        Yaw (turn left/right) and pitch (tilt up/down) come from the
+        direction to the target. Roll can't be derived from a single point,
+        so it defaults to 0 (level). Pass lock_yaw / lock_pitch / lock_roll
+        to leave that axis at whatever rotation the entity already had
+        instead of overwriting it -- e.g. lock_pitch=True keeps an actor
+        level while it still turns to face the target horizontally.
+        """
+        ex, ey, ez = self.getTranslation()
+        dx, dy, dz = x - ex, y - ey, z - ez
+        if dx == 0.0 and dy == 0.0 and dz == 0.0:
+            return
+
+        cur_x, cur_y, cur_z = self.getRotation()
+        horizontal = math.hypot(dx, dz)
+
+        pitch_deg = cur_x if lock_pitch else math.degrees(math.atan2(dy, horizontal))
+        yaw_deg = cur_y if lock_yaw else math.degrees(math.atan2(dx, dz))
+        roll_deg = cur_z if lock_roll else 0.0
+
+        self.setRotation(pitch_deg, yaw_deg, roll_deg)
 
     def setScale(self, x: float, y: float, z: float):
         matrix = self.getMatrix()

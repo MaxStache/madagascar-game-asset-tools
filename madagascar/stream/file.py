@@ -14,11 +14,17 @@ from madagascar.streamfuncs import STRFUNC_REGISTRY
 
 from madagascar.stream.edit import StreamEditMixin
 from madagascar.stream.log import StreamLogMixin
+from colorama import Fore, init
 
+init(autoreset=True)
 
 @dataclass
 class RW_StreamFile(StreamEditMixin, StreamLogMixin):
     contents: list[RW_StreamFunc] = field(default_factory=list)
+
+    _INTERNAL_CHECKING_VERIFIED = False
+    _INTERNAL_CHECKING_PLACEMENTDIRTY = False
+    _INTERNAL_CHECKING_PLACEMENTUPDATED = False
 
     @staticmethod
     def read(parser: Parser) -> "RW_StreamFile":
@@ -48,6 +54,8 @@ class RW_StreamFile(StreamEditMixin, StreamLogMixin):
 
     def save(self, filepath: str | Path) -> None:
         """WRITE WITH DEFAULT VERSION STAMP"""
+        if not self._INTERNAL_CHECKING_VERIFIED:
+            print(Fore.LIGHTRED_EX + "WARN: STREAM WAS NEVER VERIFIES, we recomment running a few quick checks by running 'level_stream.verify()' before save")
         with open(filepath, "wb") as f:
             self.write(f, DEFAULT_VERSION_STAMP)
             f.flush()

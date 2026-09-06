@@ -117,6 +117,8 @@ def versionHex_to_string(value: int) -> str:
 
 @dataclass
 class RWHeader:
+    """if library_id_stamp is None DEFAULT_VERSION_STAMP is used"""
+
     type: int = 0
     size: int = 0
     library_id_stamp: int = DEFAULT_VERSION_STAMP
@@ -175,6 +177,18 @@ class RWHeader:
 
     def print(self):
         print(self.__repr__())
+
+    def __init__(
+        self,
+        type: int = 0,
+        size: int = 0,
+        library_id_stamp: int | None = None,
+    ) -> None:
+        self.type = type
+        self.size = size
+        self.library_id_stamp = (
+            DEFAULT_VERSION_STAMP if library_id_stamp is None else library_id_stamp
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -364,7 +378,7 @@ class RW_Matrix4x4:
         """Get the translation component of the matrix (row4, x,y,z)."""
         return Vector3(x=self.row4.x, y=self.row4.y, z=self.row4.z)
 
-    def translate(self, x:float, y:float, z:float) -> None:
+    def translate(self, x: float, y: float, z: float) -> None:
         self.row4.x += x
         self.row4.y += y
         self.row4.z += z
@@ -475,7 +489,6 @@ class RW_Matrix4x4:
         buf = io.BytesIO()
         self.write(buf)
         return buf.getvalue()
-        
 
 
 def expect_chunk_type_or_raise(

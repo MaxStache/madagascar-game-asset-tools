@@ -53,3 +53,7 @@ Levels/*
 
 # Symlink to tfbscript
 tfbscript
+
+
+tools/printhook
+tools/mods

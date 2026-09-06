@@ -1,3 +1,4 @@
+# noqa: N999
 from typing import BinaryIO, override
 
 from madagascar.lib.utils import bytes_pad4

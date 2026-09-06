@@ -153,7 +153,9 @@ class StreamQueryMixin:
             f"No asset in this stream is named: {name}",
         )
 
-    def assetByIDSoft(self, asset_id: uuid.UUID | str) -> RW_sf_LoadEmbeddedAsset | None:
+    def assetByIDSoft(
+        self, asset_id: uuid.UUID | str
+    ) -> RW_sf_LoadEmbeddedAsset | None:
         """Find an asset by ID, or None when nothing matches."""
         if isinstance(asset_id, str):
             asset_id = uuid.UUID(asset_id)
@@ -174,5 +176,9 @@ class StreamQueryMixin:
     def placementNew(self) -> RW_sf_PlacementNew | None:
         """The sf_PlacementNew record, or None when the stream has none."""
         return next(self._records(RW_sf_PlacementNew), None)
+
+    def levelHub(self) -> RW_sf_CreateEntity | None:
+        """The LevelHub entity, or None when the stream has none."""
+        return next(iter(self.entitiesByBehavior("LevelHub")), None)
 
     # endregion

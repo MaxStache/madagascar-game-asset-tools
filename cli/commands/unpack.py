@@ -54,7 +54,7 @@ def unpack(
     enumerated_contents = enumerate(strm.contents)
     for i, sec in progress(
         enumerate(strm.contents),
-        description="Processing...",
+        description=f"Processing {stream_file.name}...",
         total=len(list(enumerated_contents)),
     ):
         extra: dict[str, Any] = {}

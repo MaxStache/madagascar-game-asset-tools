@@ -52,11 +52,11 @@ def patch_savefile():
     confirmed = messagebox.askyesno(
         "WARNING - Irreversible",
         f"This will modify Slot {slot_index + 1} in:\n\n"
-        f"{filepath}\n\n"
-        "The existing save slot will be overwritten.\n"
-        "This operation is IRREVERSIBLE.\n\n"
-        "Make sure you have a backup of your save file before continuing.\n\n"
-        "Do you want to continue?",
+        + f"{filepath}\n\n"
+        + "The existing save slot will be overwritten.\n"
+        + "This operation is IRREVERSIBLE.\n\n"
+        + "Make sure you have a backup of your save file before continuing.\n\n"
+        + "Do you want to continue?",
         icon="warning",
     )
 
@@ -71,6 +71,51 @@ def patch_savefile():
         messagebox.showinfo(
             "Success",
             f"Slot {slot_index + 1} was successfully patched.",
+        )
+
+    except Exception as e:
+        messagebox.showerror(
+            "Patch failed",
+            f"An error occurred:\n\n{e}",
+        )
+
+
+def patch_all_slots():
+    filepath = savefile_var.get()
+
+    if not filepath:
+        messagebox.showwarning(
+            "No save file",
+            "Please select a save file first.",
+        )
+        return
+
+
+    confirmed = messagebox.askyesno(
+        "WARNING - Irreversible",
+        "This will modify All Slots in:\n\n"
+        + f"{filepath}\n\n"
+        + "All existing progress will be overwritten.\n"
+        + "This operation is IRREVERSIBLE.\n\n"
+        + "Make sure you have a backup of your save file before continuing.\n\n"
+        + "Do you want to continue?",
+        icon="warning",
+    )
+
+    if not confirmed:
+        return
+
+    try:
+        savegame = read_save(filepath)
+        savegame.createDevSlot(0)
+        savegame.createDevSlot(1)
+        savegame.createDevSlot(2)
+        savegame.createDevSlot(3)
+        write_save(savegame, filepath)
+
+        messagebox.showinfo(
+            "Success",
+            "All slots were successfully patched.",
         )
 
     except Exception as e:
@@ -151,12 +196,23 @@ combo = ttk.Combobox(
 combo.pack(side="left")
 combo.current(0)
 
+button_frame = ttk.Frame(root)
+button_frame.pack(pady=10)
+
 # Patch button
 button = ttk.Button(
-    root,
+    button_frame,
     text="Patch Slot",
     command=patch_savefile,
 )
-button.pack(pady=10)
+button.pack(side="left", padx=5)
+
+# Patch All button
+button = ttk.Button(
+    button_frame,
+    text="Patch All Slots",
+    command=patch_all_slots,
+)
+button.pack(side="left", padx=5)
 
 root.mainloop()

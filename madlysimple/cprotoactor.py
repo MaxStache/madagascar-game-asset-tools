@@ -71,14 +71,17 @@ class CProtoActor(RW_sf_CreateEntity):
         self.getAttributeOrCreate(CLASS_NAME, command).setTfbRef(ref)
 
     @property
-    def modelRef(self) -> RW_sf_CreateEntity_Attribute_TFBReference:
+    def modelRef(self) -> RW_sf_CreateEntity_Attribute_TFBReference | None:
         """The CTFBModel this actor draws as, as ``"{GUID}  name"``.
 
         A snapshot: editing the returned object changes nothing on the entity.
         Assign a whole reference back, or use `setModelRef` / `modelGuid` /
         `modelName`.
         """
-        return self.getAttribute(CLASS_NAME, MODEL_COMMAND).asTfbRef()
+        if self.hasAttribute(CLASS_NAME, MODEL_COMMAND):
+            return self.getAttribute(CLASS_NAME, MODEL_COMMAND).asTfbRef()
+        else:
+            return None
 
     @modelRef.setter
     def modelRef(self, value: RW_sf_CreateEntity_Attribute_TFBReference) -> None:
@@ -91,8 +94,9 @@ class CProtoActor(RW_sf_CreateEntity):
         )
 
     @property
-    def modelGuid(self) -> uuid.UUID:
-        return self.modelRef.guid
+    def modelGuid(self) -> uuid.UUID | None:
+        ref = self.modelRef
+        return None if ref is None else ref.guid
 
     @modelGuid.setter
     def modelGuid(self, value: uuid.UUID) -> None:
@@ -102,8 +106,9 @@ class CProtoActor(RW_sf_CreateEntity):
 
     @property
     def modelName(self) -> str | None:
-        """Only a label -- the engine matches on the GUID, not on this."""
-        return self.modelRef.name
+        """Only a label the engine matches on the GUID, not on this."""
+        ref = self.modelRef
+        return None if ref is None else ref.name
 
     @modelName.setter
     def modelName(self, value: str | None) -> None:

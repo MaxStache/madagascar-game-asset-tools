@@ -129,7 +129,6 @@ class LevelHub(RW_sf_CreateEntity):
     
         return None
 
-
     def setGlobalVariable(
         self,
         value: int | float,  # noqa: PYI041

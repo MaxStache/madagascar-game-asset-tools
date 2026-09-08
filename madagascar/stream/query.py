@@ -173,6 +173,10 @@ class StreamQueryMixin:
 
     # region === Other records ===
 
+    def cameras(self) -> list[RW_sf_CreateEntity]:
+        """Every sf_CreateEntity record with CameraData behavior, in stream order."""
+        return list(self._entitiesWhere(behavior="CameraData"))
+    
     def placementNew(self) -> RW_sf_PlacementNew | None:
         """The sf_PlacementNew record, or None when the stream has none."""
         return next(self._records(RW_sf_PlacementNew), None)

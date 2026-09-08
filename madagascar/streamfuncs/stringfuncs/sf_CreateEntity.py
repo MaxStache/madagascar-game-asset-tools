@@ -61,6 +61,23 @@ class RW_sf_CreateEntity_Attribute:
     def asString(self) -> str:
         return self.data.split(b"\x00", 1)[0].decode("latin1")
 
+    def asTfbVariableCommand(self) -> tuple[bytes, int, str]:
+        """Return the command as tfb variable
+
+        Tuple format:
+            - value bytes (bytes)
+            - tag (int)
+            - name (str)
+        """
+
+        parser = Parser(self.data, endian="little")
+
+        value_bytes = parser.readBytes(4)
+        tag = parser.readUint32()
+        name = parser.readPaddedCString()
+
+        return (value_bytes, tag, name)
+
     def asTfbRef(self) -> RW_sf_CreateEntity_Attribute_TFBReference:
         """Decode this attribute into a reference.
 
@@ -448,12 +465,16 @@ class RW_sf_CreateEntity(RW_StreamFunc):
         matrix.row4.z = z
         self.setMatrix(matrix)
 
+    def setPosition(self, x: float, y: float, z: float):
+        """Rename of setTranslation ;) """
+        self.setTranslation(x, y, z)
+
     def setRotation(self, x: float, y: float, z: float):
         """Replace the rotation basis (rows 1-3) from Euler angles in degrees,
         applied in X, then Y, then Z order. Preserves position (row4)."""
         rx, ry, rz = math.radians(x), math.radians(y), math.radians(z)
 
-        def matmul3(a, b):
+        def matmul3(a: list[list[float | int]] | tuple[tuple[float | int, ...], ...], b: list[list[float | int]] | tuple[tuple[float | int, ...], ...]):
             return tuple(
                 tuple(sum(a[i][k] * b[k][j] for k in range(3)) for j in range(3))
                 for i in range(3)

@@ -6,6 +6,8 @@ from madagascar.lib.rw_basics import RW_StreamFunc
 from madagascar.stream.query import StreamQueryMixin, entityName
 from colorama import Fore, init
 
+from madagascar.streamfuncs.stringfuncs.sf_CreateEntity import RW_sf_CreateEntity
+
 init(autoreset=True)
 
 
@@ -18,6 +20,7 @@ class StreamEditMixin(StreamQueryMixin):
         items = content if isinstance(content, list) else [content]
 
         self.contents.extend(items)
+
         self._INTERNAL_CHECKING_PLACEMENTDIRTY = True
 
     def insertAfter(self, reference: RW_StreamFunc, content: RW_StreamFunc) -> int:
@@ -153,5 +156,6 @@ class StreamEditMixin(StreamQueryMixin):
         # endregion
 
         print("[STREAM VERIFY] Check finished")
+        print("[STREAM VERIFY] Check suceeded!")
 
         self._INTERNAL_CHECKING_VERIFIED = True

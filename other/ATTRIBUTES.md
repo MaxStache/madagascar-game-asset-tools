@@ -151,8 +151,8 @@ Create Entity Call:
 | 0 | u32 value, cstring | Implicit value global. Same as attr 1 with type forced to 0. Only 2 shipped, both Mutiny: `Have Red Key_3`, `Have Gun and ammo` |
 | 1 | u32 value, u32 tfbtypeTag, cstring | Global variable declaration |
 | 2 | u32 unused, cstring | Message name declaration |
-| 4 | cstring | Level audio stream path |
-| 5 | cstring | Music stream name |
+| 4 | cstring | Level Music stream path |
+| 5 | cstring | Level Music stream name (in tfbscript) |
 
 ### tfbtypeTag
 

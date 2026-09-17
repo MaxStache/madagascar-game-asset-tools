@@ -7,6 +7,7 @@ members = [
     "madagascar",
     "madagascar-game-asset-tools",
     "madlysimple",
+    "tfbpseudo",
 ]
 
 [[package]]
@@ -123,6 +124,7 @@ dependencies = [
     { name = "pyside6" },
     { name = "pyyaml" },
     { name = "rich" },
+    { name = "tfbpseudo" },
     { name = "tqdm" },
     { name = "watchdog" },
 ]
@@ -146,12 +148,27 @@ requires-dist = [
     { name = "pyside6", specifier = ">=6.11.2" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "rich", specifier = "==14.3.0" },
+    { name = "tfbpseudo", editable = "tfbpseudo" },
     { name = "tqdm", specifier = "==4.68.4" },
     { name = "watchdog", specifier = "==6.0.0" },
 ]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest", specifier = ">=9.1.1" }]
+
+[[package]]
+name = "madagascar-tfbtool"
+version = "0.1.0"
+source = { git = "https://github.com/MaxStache/madagascar-tfbtool.git?branch=main#78233693b29f8e5edb6c24232c8c36a33a707aba" }
+dependencies = [
+    { name = "colorama" },
+    { name = "fonttools" },
+    { name = "nodeenv" },
+    { name = "pillow" },
+    { name = "pyside6" },
+    { name = "pytest" },
+    { name = "pyyaml" },
+]
 
 [[package]]
 name = "madlysimple"
@@ -177,6 +194,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d6/54/cfe61301667036ec958cb99bd3efefba235e65cdeb9c84d24a8293ba1d90/mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba", size = 8729, upload-time = "2022-08-14T12:40:10.846Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8", size = 9979, upload-time = "2022-08-14T12:40:09.779Z" },
+]
+
+[[package]]
+name = "nodeenv"
+version = "1.10.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/24/bf/d1bda4f6168e0b2e9e5958945e01910052158313224ada5ce1fb2e1113b8/nodeenv-1.10.0.tar.gz", hash = "sha256:996c191ad80897d076bdfba80a41994c2b47c68e224c542b48feba42ba00f8bb", size = 55611, upload-time = "2025-12-20T14:08:54.006Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/88/b2/d0896bdcdc8d28a7fc5717c305f1a861c26e18c05047949fb371034d98bd/nodeenv-1.10.0-py2.py3-none-any.whl", hash = "sha256:5bb13e3eed2923615535339b3c620e76779af4cb4c6a90deccc9e36b274d3827", size = 23438, upload-time = "2025-12-20T14:08:52.782Z" },
 ]
 
 [[package]]
@@ -493,6 +519,26 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ce/6b/fee1b4814317e4664e318644c9c007676c65a71e5b2b9d3ac4121a94dc0a/shiboken6-6.11.2-cp310-abi3-win_amd64.whl", hash = "sha256:6ab0eba1c904455df621f9a6df3ca2bb896bab8670572d2bc4e37804ae91f19a", size = 1226578, upload-time = "2026-08-18T06:37:18.002Z" },
     { url = "https://files.pythonhosted.org/packages/4d/b5/80c4e5aafeb8ac777cf5a1becfe87ac7197c35051df00b5f7819787e09d5/shiboken6-6.11.2-cp310-abi3-win_arm64.whl", hash = "sha256:97c49432488df958f0308736f3d15b6915d8826fc380af17bb4b9ec5c4a5e81b", size = 1784669, upload-time = "2026-08-18T06:37:21.046Z" },
 ]
+
+[[package]]
+name = "tfbpseudo"
+version = "0.1.0"
+source = { editable = "tfbpseudo" }
+dependencies = [
+    { name = "madagascar-tfbtool" },
+]
+
+[package.optional-dependencies]
+editor = [
+    { name = "pyside6" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "madagascar-tfbtool", git = "https://github.com/MaxStache/madagascar-tfbtool.git?branch=main" },
+    { name = "pyside6", marker = "extra == 'editor'", specifier = ">=6.11.2" },
+]
+provides-extras = ["editor"]
 
 [[package]]
 name = "tqdm"

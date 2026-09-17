@@ -1,4 +1,5 @@
 import io
+import os
 from dataclasses import dataclass, field
 from typing import override
 
@@ -33,14 +34,25 @@ class RW_WaveDict(RW_Section):
 
     @override
     def write(self, f, stamp, parent: RW_Section | None = None):
+        if isinstance(f, (str, os.PathLike)):
+            with open(f, "wb") as out:
+                self.write(out, stamp, parent=parent)
+            return
+
         buf = io.BytesIO()
 
-        # Writing here
+        self.dict.write(buf, stamp, parent=self)
+        self.wave.write(buf, stamp, parent=self)
 
+        payload = buf.getvalue()
         rw_header = RWHeader(
             type=RWSectionType.rwaID_WAVEDICT.value,
-            size=len(buf.getvalue()),
+            size=len(payload),
             library_id_stamp=stamp,
         )
         f.write(rw_header.pack())
-        f.write(buf.getvalue())
+        f.write(payload)
+
+    @override
+    def __repr__(self):
+        return f"RW_WaveDict({self.dict!r}, {self.wave!r})"

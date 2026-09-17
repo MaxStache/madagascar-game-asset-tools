@@ -12,7 +12,7 @@ from madagascar.lib.rw_basics import (
     write_u32,
     write_bytes,
 )
-from madagascar.sections.RWA.WAVESTRUCT_0803 import read_rwguid, rwguid_bytes
+from madagascar.sections.RWA.WAVESTRUCT_0803 import null_guid, read_rwguid, rwguid_bytes
 
 # ---------------------------------------------------------------------------
 # rwaID_WAVEDICT_DICT (0x80A) -- the wave dictionary's own struct chunk.
@@ -68,7 +68,7 @@ class RW_WaveDict_Dict(RW_Section):
     _registry_prev: int = 0   # +0x20  global dict-registry link .prev (recomputed on load)
 
     # -- persisted data --
-    guid: uuid.UUID = field(default_factory=uuid.UUID)    # +0x24  dictionary GUID
+    guid: uuid.UUID = field(default_factory=null_guid)    # +0x24  dictionary GUID
     name: str = ""            # +0x34  null-terminated dictionary name
 
     _trailing: bytes = b""    # leftover bytes after the name (padding / buffer garbage)

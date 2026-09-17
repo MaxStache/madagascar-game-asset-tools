@@ -219,14 +219,17 @@ Export to `.wav` is therefore: `nchannels = channels`, `sampwidth = bit_depth //
 | [madagascar/sections/RWA/WAVE_0802.py](../madagascar/sections/RWA/WAVE_0802.py) | `0x802` wave pair |
 | [madagascar/sections/RWA/WAVESTRUCT_0803.py](../madagascar/sections/RWA/WAVESTRUCT_0803.py) | `0x803` + `RWA_WaveFormat` + codec enum |
 | [madagascar/sections/RWA/WAVEDATA_0804.py](../madagascar/sections/RWA/WAVEDATA_0804.py) | `0x804` sample bytes |
-| [other/legacy/rwaRWS.py](legacy/rwaRWS.py) | older standalone reader **plus a working writer**, `import_wav()` / `export_wav()` / Tk stream browser |
+| [madagascar/rws.py](../madagascar/rws.py) | `load_rws()` / `loads_rws()` / `save_rws()` entry points |
+| [other/legacy/rwaRWS.py](legacy/rwaRWS.py) | older standalone reader/writer; still the only place with `import_wav()` / `export_wav()` / the Tk stream browser |
 
 Gotchas:
 
-1. **Only `0x80A` and `0x803` have real `write()` implementations** in `madagascar/sections/RWA/`. `WAVEDICT_0809`, `WAVEDICT_WAVE_080C`, `WAVE_0802` and `WAVEDATA_0804` have stub writers that emit an empty payload — they will silently produce a truncated file. Use [other/legacy/rwaRWS.py](legacy/rwaRWS.py) (`load_2057` / `AudioStream_2057.save`) for round-tripping until those are filled in.
+1. All six chunk types now have real `write()` implementations, and the tree round-trips byte-for-byte: all 16 shipped `*_WavDictXBOX.rws` dictionaries (1,391 subsongs) reload sha256-identical. Load and save via `madagascar.rws.load_rws(path)` / `save_rws(dict, path)`. `save_rws` defaults to the stamp the file was read with — pass `stamp=` only if you mean to change it.
+
+   When you replace a subsong's samples, `RWA_Wave.write()` calls `sync_sizes()` first, which rewrites `source_format.data_size` from `len(wave_data.data)`. `dest_format.data_size` (the *decoded* size) is only updated when it already matched the source size, i.e. when the wave is uncompressed; for a genuinely compressed codec you must set it yourself. `RW_WaveDict_Wave.write()` likewise re-derives `total_subsongs` from the list, so appending or removing a stream needs no bookkeeping.
 2. The legacy module describes the same bytes with less precision: its `_unk1` is `flags`, `_unk2` is `_format_ref`, `_pad1` is `_pad0`, `_unk_misc_offset` is `_aux_ref`, and its 0x40-byte `format_info` block is really the tail of `dest_format` plus the identifier GUID. Prefer the `sections/RWA` naming.
 3. GUIDs are `bytes_le` (see section 1).
-4. `RW_WaveDict.read()` currently raises `TypeError` on Python 3.14, because several of these dataclasses use `field(default_factory=uuid.UUID)` and `uuid.UUID()` with no arguments is an error. `default_factory=lambda: uuid.UUID(int=0)` fixes it.
+4. GUID fields default to `null_guid()` (an all-zero UUID) rather than `uuid.UUID`, which raises `TypeError` when called with no arguments — do not reintroduce `field(default_factory=uuid.UUID)`.
 
 ---
 

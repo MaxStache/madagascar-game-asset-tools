@@ -1,4 +1,3 @@
-import io
 from dataclasses import dataclass, field
 from typing import override
 
@@ -30,14 +29,15 @@ class RWA_WaveData(RW_Section):
 
     @override
     def write(self, f, stamp, parent: RW_Section | None = None):
-        buf = io.BytesIO()
-
-        # Writing here
-
+        # The chunk body is the sample data verbatim -- no struct, no padding.
         rw_header = RWHeader(
             type=RWSectionType.rwaID_WAVEDATA.value,
-            size=len(buf.getvalue()),
+            size=len(self.data),
             library_id_stamp=stamp,
         )
         f.write(rw_header.pack())
-        f.write(buf.getvalue())
+        f.write(self.data)
+
+    @override
+    def __repr__(self):
+        return f"RWA_WaveData({len(self.data)} bytes)"

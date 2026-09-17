@@ -33,16 +33,41 @@ class RWA_Wave(RW_Section):
 
         return wave
 
+    def sync_sizes(self) -> None:
+        """Make the wave struct's declared sizes agree with the actual sample data.
+
+        `source_format.data_size` is what the loader uses to size its read of the
+        0x804 body, so a replaced sample buffer that leaves it stale produces a
+        file the game reads past the end of (or truncates). `dest_format` holds
+        the *decoded* size, which only equals the stored size when the data is
+        uncompressed -- so it is updated only when it already tracked the source,
+        leaving genuinely compressed waves alone.
+        """
+        actual = len(self.wave_data.data)
+        tracked = self.wave_struct.dest_format.data_size == self.wave_struct.source_format.data_size
+
+        self.wave_struct.source_format.data_size = actual
+        if tracked:
+            self.wave_struct.dest_format.data_size = actual
+
     @override
     def write(self, f, stamp, parent: RW_Section | None = None):
+        self.sync_sizes()
+
         buf = io.BytesIO()
 
-        # Writing here
+        self.wave_struct.write(buf, stamp, parent=self)
+        self.wave_data.write(buf, stamp, parent=self)
 
+        payload = buf.getvalue()
         rw_header = RWHeader(
             type=RWSectionType.rwaID_WAVE.value,
-            size=len(buf.getvalue()),
+            size=len(payload),
             library_id_stamp=stamp,
         )
         f.write(rw_header.pack())
-        f.write(buf.getvalue())
+        f.write(payload)
+
+    @override
+    def __repr__(self):
+        return f"RWA_Wave({self.wave_struct!r}, {self.wave_data!r})"

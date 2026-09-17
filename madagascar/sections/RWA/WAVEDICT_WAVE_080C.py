@@ -4,7 +4,12 @@ from typing import override
 
 from madagascar.lib.parser import Parser
 from madagascar.lib.rwConstants import RWSectionType
-from madagascar.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from madagascar.lib.rw_basics import (
+    RW_Section,
+    RWHeader,
+    expect_chunk_type_or_raise,
+    write_u32,
+)
 
 from madagascar.sections.RWA.WAVE_0802 import RWA_Wave
 
@@ -42,12 +47,23 @@ class RW_WaveDict_Wave(RW_Section):
     def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        # Writing here
+        # The count prefix drives the reader's loop, so derive it from the list
+        # rather than trusting a `total_subsongs` left stale by an add/remove.
+        self.total_subsongs = len(self.streams)
+        write_u32(buf, self.total_subsongs)
 
+        for subsong in self.streams:
+            subsong.write(buf, stamp, parent=self)
+
+        payload = buf.getvalue()
         rw_header = RWHeader(
             type=RWSectionType.rwaID_WAVEDICT_WAVE.value,
-            size=len(buf.getvalue()),
+            size=len(payload),
             library_id_stamp=stamp,
         )
         f.write(rw_header.pack())
-        f.write(buf.getvalue())
+        f.write(payload)
+
+    @override
+    def __repr__(self):
+        return f"RW_WaveDict_Wave(total_subsongs={self.total_subsongs})"

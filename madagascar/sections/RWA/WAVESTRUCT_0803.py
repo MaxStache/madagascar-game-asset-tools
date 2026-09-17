@@ -64,6 +64,18 @@ class CodecUUID(Enum):
 # fmt: on
 
 
+NULL_GUID = uuid.UUID(int=0)
+
+
+def null_guid() -> uuid.UUID:
+    """All-zero GUID, used as the default for absent/unset GUID fields.
+
+    `uuid.UUID()` raises TypeError (it demands one of hex/bytes/int), so it
+    cannot be used as a dataclass default_factory.
+    """
+    return NULL_GUID
+
+
 def read_rwguid(parser: Parser) -> uuid.UUID:
     """Read a 16-byte RenderWare GUID (Data1/2/3 little-endian on disk)."""
     return uuid.UUID(bytes_le=parser.readBytes(16))
@@ -99,7 +111,7 @@ class RWA_WaveFormat:
     _aux_ref: int = 0           # u32  +0x10  runtime ptr on disk; nonzero => aux data present
     aux_size: int = 0           # u32  +0x14  size of aux/codec data
     _tail: bytes = b"\x00\x00\x00\x00"  # +0x18  (u8 flags, u8, u16 pad) kept verbatim
-    codec_uuid: uuid.UUID = field(default_factory=uuid.UUID)        # +0x1C  16-byte GUID (present when _format_ref != 0)
+    codec_uuid: uuid.UUID = field(default_factory=null_guid)        # +0x1C  16-byte GUID (present when _format_ref != 0)
     aux_data: bytes = b""               # aux_size bytes (present when _aux_ref != 0)
 
     @property
@@ -166,11 +178,11 @@ class RWA_WaveStruct(RW_Section):
 
     loop_stream_flag: int = 0  # u32
 
-    identifier_uuid: uuid.UUID = field(default_factory=uuid.UUID)  # flags & FLAG_HAS_IDENTIFIER (wave-instance GUID)
+    identifier_uuid: uuid.UUID = field(default_factory=null_guid)  # flags & FLAG_HAS_IDENTIFIER (wave-instance GUID)
     stream_name: str = ""              # flags & FLAG_HAS_NAME
     _name_padding: bytes = b""         # padding after the name (kept for exact round-trip)
-    decoder_uuid: uuid.UUID = field(default_factory=uuid.UUID)     # flags & FLAG_HAS_CODEC (codec/decoder class GUID)
-    aux_uuid: uuid.UUID = field(default_factory=uuid.UUID)         # flags & FLAG_HAS_AUX (auxiliary class GUID)
+    decoder_uuid: uuid.UUID = field(default_factory=null_guid)     # flags & FLAG_HAS_CODEC (codec/decoder class GUID)
+    aux_uuid: uuid.UUID = field(default_factory=null_guid)         # flags & FLAG_HAS_AUX (auxiliary class GUID)
 
     _trailing: bytes = b""  # any bytes after the parsed fields (normally empty)
 

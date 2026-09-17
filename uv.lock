@@ -7,6 +7,7 @@ members = [
     "madagascar",
     "madagascar-game-asset-tools",
     "madlysimple",
+    "tfbpseudo",
 ]
 
 [[package]]
@@ -124,6 +125,7 @@ dependencies = [
     { name = "pyside6" },
     { name = "pyyaml" },
     { name = "rich" },
+    { name = "tfbpseudo" },
     { name = "tqdm" },
     { name = "watchdog" },
 ]
@@ -148,6 +150,7 @@ requires-dist = [
     { name = "pyside6", specifier = ">=6.11.2" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "rich", specifier = "==14.3.0" },
+    { name = "tfbpseudo", editable = "tfbpseudo" },
     { name = "tqdm", specifier = "==4.68.4" },
     { name = "watchdog", specifier = "==6.0.0" },
 ]
@@ -158,7 +161,11 @@ dev = [{ name = "pytest", specifier = ">=9.1.1" }]
 [[package]]
 name = "madagascar-tfbtool"
 version = "0.1.0"
+<<<<<<< HEAD
 source = { git = "https://github.com/MaxStache/madagascar-tfbtool.git#7ab9f625f33b16a30f9fd56a78088ad0a0fcd379" }
+=======
+source = { git = "https://github.com/MaxStache/madagascar-tfbtool.git?branch=main#78233693b29f8e5edb6c24232c8c36a33a707aba" }
+>>>>>>> 2d08ad1e214a92ad31a90df7da75166ffdb4658c
 dependencies = [
     { name = "colorama" },
     { name = "fonttools" },
@@ -518,6 +525,26 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ce/6b/fee1b4814317e4664e318644c9c007676c65a71e5b2b9d3ac4121a94dc0a/shiboken6-6.11.2-cp310-abi3-win_amd64.whl", hash = "sha256:6ab0eba1c904455df621f9a6df3ca2bb896bab8670572d2bc4e37804ae91f19a", size = 1226578, upload-time = "2026-08-18T06:37:18.002Z" },
     { url = "https://files.pythonhosted.org/packages/4d/b5/80c4e5aafeb8ac777cf5a1becfe87ac7197c35051df00b5f7819787e09d5/shiboken6-6.11.2-cp310-abi3-win_arm64.whl", hash = "sha256:97c49432488df958f0308736f3d15b6915d8826fc380af17bb4b9ec5c4a5e81b", size = 1784669, upload-time = "2026-08-18T06:37:21.046Z" },
 ]
+
+[[package]]
+name = "tfbpseudo"
+version = "0.1.0"
+source = { editable = "tfbpseudo" }
+dependencies = [
+    { name = "madagascar-tfbtool" },
+]
+
+[package.optional-dependencies]
+editor = [
+    { name = "pyside6" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "madagascar-tfbtool", git = "https://github.com/MaxStache/madagascar-tfbtool.git?branch=main" },
+    { name = "pyside6", marker = "extra == 'editor'", specifier = ">=6.11.2" },
+]
+provides-extras = ["editor"]
 
 [[package]]
 name = "tqdm"

@@ -19,6 +19,7 @@ dependencies = [
     "pyside6>=6.11.2",
     "pyyaml>=6.0.3",
     "rich==14.3.0",
+    "tfbpseudo",
     "tqdm==4.68.4",
     "watchdog==6.0.0",
 ]
@@ -42,9 +43,10 @@ packages = ["cli"]
 members = [
     "madlysimple",
     "madagascar",
+    "tfbpseudo",
 ]
 
 [tool.uv.sources]
 madlysimple = { workspace = true, editable = true }
 madagascar = { workspace = true, editable = true }
-madagascar-tfbtool = { git = "https://github.com/MaxStache/madagascar-tfbtool.git" }
+tfbpseudo = { workspace = true, editable = true }

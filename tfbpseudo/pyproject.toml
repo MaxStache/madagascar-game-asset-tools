@@ -1,0 +1,21 @@
+[project]
+name = "tfbpseudo"
+description = "Compiler and decompiler for TfbPseudo, a text version of Madagascar AI scripts"
+version = "0.1.0"
+
+dependencies = [
+    "madagascar-tfbtool",
+]
+
+[project.optional-dependencies]
+# Only tfbpseudo.editor needs Qt; the compiler and decompiler do not.
+editor = [
+    "pyside6>=6.11.2",
+]
+
+[tool.setuptools]
+package-dir = { tfbpseudo = "." }
+packages = ["tfbpseudo"]
+
+[tool.uv.sources]
+madagascar-tfbtool = { git = "https://github.com/MaxStache/madagascar-tfbtool.git", branch = "main" }

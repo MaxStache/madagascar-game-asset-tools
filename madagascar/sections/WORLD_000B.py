@@ -12,6 +12,7 @@ from madagascar.lib.rw_basics import (
 )
 from madagascar.lib.writer import write_u32
 from madagascar.sections.ATOMICSECT_0009 import RW_AtomicSector
+from madagascar.sections.COLLISIONPLG_011D import RW_CollisionPlugin
 from madagascar.sections.EXTENSION_0003 import RW_Extension
 from madagascar.sections.MATLIST_0008 import RW_MaterialList
 from madagascar.sections.PLANESECT_000A import RW_PlaneSector
@@ -199,3 +200,21 @@ class RW_World(RW_Section):
             sectors.extend(self.root_sector.collect_atomic_sectors())
 
         return sectors
+
+    def build_collision(self) -> None:
+        """Make collision on atomic sectors from their geometry."""
+        atomic_sectors = self.collect_atomic_sectors()
+    
+        for sec in atomic_sectors:
+            sec.extension.children[:] = [
+                child
+                for child in sec.extension.children
+                if not isinstance(child, RW_CollisionPlugin)
+            ]
+    
+            sec.extension.children.append(
+                RW_CollisionPlugin.build_from_geo(
+                    sec.struct.vertices,
+                    sec.struct.triangles,
+                )
+            )

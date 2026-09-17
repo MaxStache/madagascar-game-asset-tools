@@ -1,0 +1,143 @@
+// ONLY AN EXAMPLE; WONT WORK IN GAME
+
+// A guard that patrols a route, spots a player, raises the alarm and gives
+// chase. Written to show what TfbPseudo can say, not to be shipped.
+//
+//   uv run python tfbcompiler.py     compiles this to compiled.out.ai
+
+globals {
+    "Script Time::value";
+    "players::set::actor";
+    "Alarm::message";
+    "Alert Sound::sound";
+    "Ambient Loop::sound";
+    "Guard Cam::camera";
+    "Spark::actor";
+}
+
+locals {
+    "Patrol Timer::user::value";
+    "Alert Level::user::value";
+    "my target::user::actor";
+}
+
+prescript {
+    startup {
+        // An actor's fields are just references with a member on them, so
+        // setValue writes them like any other variable. A member whose name
+        // is not plain words has to be quoted.
+        setValue(@myself.ground top speed, 4.5);
+        setValue(@myself.visible on radar, 1);
+        setValue(@myself.blip color, color(255, 200, 0, 255));
+        setValue(@myself."destination (point)", @myself.origin);
+
+        createVariable(Patrol Timer);
+        createVariable(Alert Level);
+        createVariable(my target);
+
+        setValue(Patrol Timer, Script Time + 2);
+        setValue(Alert Level, 0);
+
+        playSound(Ambient Loop);
+        setBehavior(Patrol);
+    }
+
+    shutdown {
+        stopSound(Ambient Loop);
+    }
+
+    update {
+        // The update block runs every frame whatever the current behavior is.
+        checkValue(Alert Level >= 3) {
+            sendMessage(Alarm, @null, Alert Level);
+            setValue(Alert Level, 0);
+        };
+    }
+}
+
+behavior Patrol {
+    // `#` picks one element out of a set: first, last or random.
+    moveTo(@myself.waypoints#random, forward, slow_move, 1.5) {
+        // A body on a move runs once the move is done.
+        playAnimation(idle_cycle_1_A);
+        setValue(Patrol Timer, Script Time + random(4));
+    };
+
+    // Anyone in front of me, inside 20 units, with a clear line of sight?
+    // What it finds is left in @subset.
+    checkFOV(0, 90, players, <=, 20, consider_obstructions) {
+        incValue(Alert Level);
+        setReference(my target, @subset#first);
+        setBehavior(Alert);
+
+        // Nothing after this runs this frame.
+        flow end
+    } else {
+        setValue(Alert Level, 0);
+    };
+}
+
+behavior Alert {
+    playSound(Alert Sound);
+    useCamera(Guard Cam, fade_in, 0.5, fade_out, 0.5);
+    cutScene(Begin);
+
+    // Ease the ambience down over two seconds instead of cutting it.
+    slideValue(Ambient Loop.volume, 0.2, 2.0, 0, 1);
+
+    turnTo(my target, fast_move) {
+        print(@myself, "spotted the player");
+        setBehavior(Chase);
+    };
+
+    flow end
+}
+
+behavior Chase {
+    // Take the player's controls away while the guard closes in.
+    control(my target, Suspend) {
+        setValue(@controlled.current speed, 0);
+    };
+
+    moveTo(my target, forward, fast_move, 2) {
+        spawnActor(Spark, @myself, @myself);
+        displace(@myself, relative, 0.5, 0, 0);
+        cutScene(End);
+        setBehavior(Patrol);
+        flow end
+    };
+
+    // Give up if they get above me, and stop walking this behavior's body.
+    checkValue(my target.altitude > 50) {
+        setValue(Alert Level, 0);
+        setBehavior(Patrol);
+        flow break 1
+    };
+}
+
+behavior Answer the alarm {
+    // Only the players still standing: `:` names the field to filter on.
+    findSubset(players:health > 0) {
+        forEach(@subset, forward) {
+            sendMessage(Alarm, @each, 1);
+
+            checkValue(@each.health <= 25) {
+                playAnimation(youch);
+            } else {
+                playAnimation(attack_1);
+            };
+        };
+
+        // Everyone left is now a friend of mine.
+        changeMembership(@myself.clones, add, @subset);
+    };
+}
+
+behavior Wait for the alarm {
+    checkMessage(Alarm) {
+        checkMembership(players, includes, my target) {
+            setBehavior(Alert);
+            flow end
+        };
+    };
+}

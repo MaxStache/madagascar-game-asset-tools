@@ -8,14 +8,13 @@ Read and write the game's ``*_WavDictXBOX.rws`` wave dictionaries
 
 """
 from pathlib import Path
-from typing import Union
 
 from madagascar.lib.parser import Parser
 from madagascar.lib.rwConstants import DEFAULT_VERSION_STAMP
 from madagascar.sections import RW_WaveDict
 
 
-def load_rws(filepath: Union[str, Path]) -> RW_WaveDict:
+def load_rws(filepath: str | Path) -> RW_WaveDict:
     """Load a wave dictionary from disk.
 
     Args:
@@ -48,7 +47,7 @@ def loads_rws(data: bytes) -> RW_WaveDict:
 
 def save_rws(
     wavedict: RW_WaveDict,
-    filepath: Union[str, Path],
+    filepath: str | Path,
     stamp: int | None = None,
 ) -> None:
     """Write a wave dictionary back out to disk.

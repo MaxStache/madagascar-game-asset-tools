@@ -227,9 +227,41 @@ Gotchas:
 1. All six chunk types now have real `write()` implementations, and the tree round-trips byte-for-byte: all 16 shipped `*_WavDictXBOX.rws` dictionaries (1,391 subsongs) reload sha256-identical. Load and save via `madagascar.rws.load_rws(path)` / `save_rws(dict, path)`. `save_rws` defaults to the stamp the file was read with — pass `stamp=` only if you mean to change it.
 
    When you replace a subsong's samples, `RWA_Wave.write()` calls `sync_sizes()` first, which rewrites `source_format.data_size` from `len(wave_data.data)`. `dest_format.data_size` (the *decoded* size) is only updated when it already matched the source size, i.e. when the wave is uncompressed; for a genuinely compressed codec you must set it yourself. `RW_WaveDict_Wave.write()` likewise re-derives `total_subsongs` from the list, so appending or removing a stream needs no bookkeeping.
-2. The legacy module describes the same bytes with less precision: its `_unk1` is `flags`, `_unk2` is `_format_ref`, `_pad1` is `_pad0`, `_unk_misc_offset` is `_aux_ref`, and its 0x40-byte `format_info` block is really the tail of `dest_format` plus the identifier GUID. Prefer the `sections/RWA` naming.
-3. GUIDs are `bytes_le` (see section 1).
-4. GUID fields default to `null_guid()` (an all-zero UUID) rather than `uuid.UUID`, which raises `TypeError` when called with no arguments — do not reintroduce `field(default_factory=uuid.UUID)`.
+2. Working with a dictionary:
+
+   ```python
+   from madagascar.rws import load_rws, save_rws
+   from madagascar.sections import RWA_Wave
+
+   d = load_rws("Levels/title/6_WavDictXBOX.rws")
+
+   d.find_wave("crickets")      # by name (exact, then case-insensitive); None if absent
+   d.find_wave(0)               # by index; negative indexes count from the end
+   d.get_wave("crickets")       # same, but raises KeyError / IndexError
+   d["crickets"]                # == get_wave; len(d), iter(d) and `in` also work
+   d.wave_names()               # every stream name, in order
+
+   d.export_wav("crickets", "out.wav")     # one wave
+   d.export_all("wavs/")                   # all of them, as <index>_<name>.wav
+   d.import_wav("crickets", "new.wav")     # replace audio, keep name + identifier
+   d.add_wave(RWA_Wave.from_wav("new.wav", name="my_sfx"))   # add a new one
+
+   save_rws(d, "out.rws")
+   ```
+
+   The dictionary-level `export_wav` / `import_wav` forward `dict.is_big_endian`
+   for you; the equivalents on `RWA_Wave` take an explicit `big_endian=` flag.
+   Exports are always 16-bit PCM — compressed waves are decoded first (PCM16
+   passthrough and Xbox IMA ADPCM via `lib.ima_adpcm`; other codecs raise
+   `NotImplementedError`). Imports must be 16-bit PCM and are stored
+   uncompressed: there is **no encoder** here, so re-importing into a wave that
+   was compressed converts it to PCM16. `from_wav` fills every remaining field
+   from the retail template (`flags=0xF`, the constant decoder/aux class GUIDs,
+   the observed `_tail` / `_pad0` values) and mints a fresh identifier GUID.
+
+3. The legacy module describes the same bytes with less precision: its `_unk1` is `flags`, `_unk2` is `_format_ref`, `_pad1` is `_pad0`, `_unk_misc_offset` is `_aux_ref`, and its 0x40-byte `format_info` block is really the tail of `dest_format` plus the identifier GUID. Prefer the `sections/RWA` naming.
+4. GUIDs are `bytes_le` (see section 1).
+5. GUID fields default to `null_guid()` (an all-zero UUID) rather than `uuid.UUID`, which raises `TypeError` when called with no arguments — do not reintroduce `field(default_factory=uuid.UUID)`.
 
 ---
 

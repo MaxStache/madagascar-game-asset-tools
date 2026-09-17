@@ -10,6 +10,7 @@ dependencies = [
     "cyclopts==4.22.5",
     "fonttools>=4.63.0",
     "madagascar",
+    "madagascar-tfbtool",
     "madlysimple",
     "numpy==2.5.1",
     "pillow==12.3.0",
@@ -35,7 +36,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["cli", "formats"]
+packages = ["cli"]
 
 [tool.uv.workspace]
 members = [
@@ -46,3 +47,4 @@ members = [
 [tool.uv.sources]
 madlysimple = { workspace = true, editable = true }
 madagascar = { workspace = true, editable = true }
+madagascar-tfbtool = { git = "https://github.com/MaxStache/madagascar-tfbtool.git" }

@@ -22,7 +22,23 @@ KNOWN_TFBSCRIPT_BUILTIN_GLOBALS = [
     " ALL ::sound",
     "controller 1::controller",
     "no controller::controller",
-    "Script Time::value"
+    "Script Time::value",
+    "Next Level Auto Load::value",
+
+    "hit actor::message",
+    "hit wall::message",
+    "hit ground::message",
+
+    "Current Level::value",
+    "Cut-scene Active::value",
+    "Design Build::value",
+
+    "inactive::set::actor",
+    "active::set::sprite",
+
+    "Hardware Metrics::value",
+
+    "message senders::set::actor",
 ]
 
 _PLACEMENT_COUNT = 0 # keeps track of how many things were addded in the current place()
@@ -112,6 +128,14 @@ def add_actor_from_level_to_level(
     if any(actor.entityID == e.entityID for e in level.entities()):
         return None
 
+    # The actor goes in BEFORE its script is walked. Scripts reference actors that
+    # reference back (banquet's WhackAMole_Mole <-> WhackAMole_Director), and the
+    # recursion below guards against cycles by asking whether an entity is already
+    # in the level. Appending after the walk would make that guard always false for
+    # the actor we are currently walking, and mutual references recurse forever.
+    _PLACEMENT_COUNT += 1
+    level.append(actor)
+
     if actor.scriptRef:
         resolved = actor.scriptRef.resolveSoft(context)
         if resolved and isinstance(resolved, RW_sf_LoadEmbeddedAsset):
@@ -126,7 +150,7 @@ def add_actor_from_level_to_level(
                     continue
 
                 # ===== Things on LevelHub =====
-                if entry.type == "message":  # noqa: SIM114
+                if entry.type == "message":
                     print(Fore.RED + f"[PREFAB SYSTEM ERROR] UNHANDLED {entry.name} ({entry.type}), this might be missing from the target level now")
 
                 elif entry.type == "value":
@@ -256,9 +280,6 @@ def add_actor_from_level_to_level(
                     else:
                         _PLACEMENT_COUNT += 1
                         level.append(resolved_sprite.duplicate())
-
-    _PLACEMENT_COUNT += 1
-    level.append(actor)
 
     return actor
 

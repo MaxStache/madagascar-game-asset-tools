@@ -2,6 +2,9 @@
   "pythonVersion": "3.14",
   "typeCheckingMode": "standard",
 
+  "venvPath": ".",
+  "venv": ".venv",
+
   "exclude": [
     "generated",
     "**/node_modules",

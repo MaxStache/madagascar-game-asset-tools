@@ -51,8 +51,6 @@ Levels/*
 **/*.gig.* 
 
 
-# Symlink to tfbscript
-tfbscript
 
 
 tools/printhook

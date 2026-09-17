@@ -44,7 +44,7 @@ Thumbs.db
 *.bsp
 *.dff
 
-Levels/*
+Levels/
 
 
 # *.gig.* = Dont track this file
@@ -55,3 +55,9 @@ Levels/*
 
 tools/printhook
 tools/mods
+
+# Local scratch drivers / experiments
+scratch/
+
+# Compiler output from examples/
+*.out.ai

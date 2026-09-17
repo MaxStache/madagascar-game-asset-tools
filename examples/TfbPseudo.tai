@@ -3,7 +3,7 @@
 // A guard that patrols a route, spots a player, raises the alarm and gives
 // chase. Written to show what TfbPseudo can say, not to be shipped.
 //
-//   uv run python tfbcompiler.py     compiles this to compiled.out.ai
+//   uv run python examples/tfbcompiler.py   compiles this to compiled.out.ai
 
 globals {
     "Script Time::value";

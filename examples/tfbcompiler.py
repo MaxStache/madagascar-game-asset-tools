@@ -1,7 +1,7 @@
 """Scratch driver for the tfbpseudo library.
 
 Compiles `TfbPseudo.tai` into a script file and prints the decompilation of a
-game script. Run it from the repo root: `uv run python tfbcompiler.py`.
+game script: `uv run python examples/tfbcompiler.py`.
 """
 
 from pathlib import Path
@@ -9,9 +9,12 @@ from pathlib import Path
 from tfbpseudo import compile_source, decompile_script
 from tfbscript.script import ScriptFile
 
-SOURCE_PATH = Path("TfbPseudo.tai")
-COMPILED_PATH = Path("compiled.out.ai")
-DECOMPILE_PATH = Path("Levels/mutiny/553_ME_Toiletguys.ai")
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parent
+
+SOURCE_PATH = HERE / "TfbPseudo.tai"
+COMPILED_PATH = HERE / "compiled.out.ai"
+DECOMPILE_PATH = ROOT / "Levels/mutiny/553_ME_Toiletguys.ai"
 
 
 def compile_file(source: Path, output: Path) -> ScriptFile:
@@ -34,7 +37,7 @@ def main() -> None:
     compiled.print_tree()
 
     decompiled = decompile_file(DECOMPILE_PATH)
-    Path("decompiled.gig.txt").write_text(decompiled)
+    (HERE / "decompiled.gig.txt").write_text(decompiled)
     #open_editor(ScriptFile.from_path(DECOMPILE_PATH))
 
 

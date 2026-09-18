@@ -42,6 +42,7 @@ except ModuleNotFoundError:  # pragma: no cover - the editor just cannot run
 from tfbscript.editor.fonts import register_bold_variant
 
 from .highlighter import TfbPseudoHighlighter
+from .search import SearchBox
 from .theme import DEFAULT, THEMES, Theme, qt_palette
 from .widgets import CodeEditor
 
@@ -75,6 +76,7 @@ class EditorWindow(QMainWindow):
 
         self.editor = CodeEditor(theme=self.theme)
         self.highlighter = TfbPseudoHighlighter(self.editor.document(), self.theme)
+        self.search = SearchBox(self.editor, self.theme)
         self.setCentralWidget(self.editor)
 
         self.editor.document().modificationChanged.connect(self.update_title)
@@ -114,6 +116,26 @@ class EditorWindow(QMainWindow):
             file_menu, "Quit", QKeySequence.StandardKey.Quit, self.close
         )
 
+        edit_menu = self.menuBar().addMenu("Edit")
+        self.add_action(
+            edit_menu,
+            "Find...",
+            QKeySequence.StandardKey.Find,
+            self.search.activate,
+        )
+        self.add_action(
+            edit_menu,
+            "Find Next",
+            QKeySequence.StandardKey.FindNext,
+            self.search.next_match,
+        )
+        self.add_action(
+            edit_menu,
+            "Find Previous",
+            QKeySequence.StandardKey.FindPrevious,
+            self.search.previous_match,
+        )
+
         script_menu = self.menuBar().addMenu("Script")
         self.add_action(
             script_menu, "Check", QKeySequence("Ctrl+K"), self.check_source
@@ -142,6 +164,7 @@ class EditorWindow(QMainWindow):
 
         self.editor.set_theme(theme)
         self.highlighter.set_theme(theme)
+        self.search.set_theme(theme)
 
     def add_action(self, menu, title: str, shortcut, handler) -> None:
         action = QAction(title, menu)

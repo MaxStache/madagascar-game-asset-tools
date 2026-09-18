@@ -28,6 +28,12 @@ class Theme:
     selection: str
     selected_text: str
     disabled: str
+    overlay: str  # a panel floating over the text, i.e. the find box
+    border: str
+
+    # ----- find -----
+    match: str  # every hit for the current query
+    current_match: str  # the one the find box is sitting on
 
     # ----- syntax -----
     comment: str
@@ -59,6 +65,10 @@ DARK = Theme(
     selection="#3E4451",
     selected_text="#FFFFFF",
     disabled="#5C6370",
+    overlay="#2C313A",
+    border="#4B5263",
+    match="#4A3A22",
+    current_match="#9E6A2E",
     comment="#7F848E",
     string="#98C379",
     number="#D19A66",
@@ -88,6 +98,10 @@ LIGHT = Theme(
     selection="#2A82DA",
     selected_text="#FFFFFF",
     disabled="#707070",
+    overlay="#E8E8E8",
+    border="#A8A8A8",
+    match="#FFF2A8",
+    current_match="#FFC63F",
     comment="#4F7A4F",
     string="#A31515",
     number="#0A7C55",

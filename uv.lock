@@ -192,6 +192,18 @@ dependencies = [
 name = "madlysimple"
 version = "0.1.0"
 source = { editable = "madlysimple" }
+dependencies = [
+    { name = "madagascar" },
+    { name = "madagascar-tfbtool" },
+    { name = "tfbpseudo" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "madagascar", editable = "madagascar" },
+    { name = "madagascar-tfbtool", git = "https://github.com/MaxStache/madagascar-tfbtool.git?branch=main" },
+    { name = "tfbpseudo", editable = "tfbpseudo" },
+]
 
 [[package]]
 name = "markdown-it-py"

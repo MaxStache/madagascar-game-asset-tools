@@ -47,6 +47,10 @@ class CodeEditor(QPlainTextEdit):
         self.gutter = LineNumbers(self)
         self.error_line: int | None = None  # 1-based, from a failed compile
 
+        # Owned by the find box, kept here because every repaint of the
+        # extra selections has to put them back.
+        self.search_selections: list[QTextEdit.ExtraSelection] = []
+
         self.blockCountChanged.connect(self.update_gutter_width)
         self.updateRequest.connect(self.update_gutter)
         self.cursorPositionChanged.connect(self.highlight_lines)
@@ -137,6 +141,10 @@ class CodeEditor(QPlainTextEdit):
         if self.error_line is not None:
             selections.append(self.line_selection(self.error_line, QColor(self.theme.error_line)))
 
+        # Later still: a match has to stay visible on the line the cursor is
+        # on, which is exactly where find has just put it.
+        selections.extend(self.search_selections)
+
         self.setExtraSelections(selections)
         self.gutter.update()
 
@@ -147,6 +155,13 @@ class CodeEditor(QPlainTextEdit):
         selection.cursor = QTextCursor(self.document().findBlockByNumber(line - 1))
         selection.cursor.clearSelection()
         return selection
+
+    def set_search_selections(
+        self, selections: list[QTextEdit.ExtraSelection]
+    ) -> None:
+        """Replace the find box's highlights. Pass an empty list to drop them."""
+        self.search_selections = list(selections)
+        self.highlight_lines()
 
     def show_error_at(self, line: int, col: int) -> None:
         """Mark the line an error points at and put the cursor on it."""

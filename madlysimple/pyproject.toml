@@ -3,5 +3,16 @@ name = "madlysimple"
 description = "Tools to make modding with the madagascar package easier"
 version = "0.1.0"
 
+dependencies = [
+    "madagascar",
+    "madagascar-tfbtool",
+    "tfbpseudo",
+]
+
 [tool.setuptools]
 py-modules = ["classes", "actorparams", "cprotoactor", "cameradata"]
+
+[tool.uv.sources]
+madagascar = { workspace = true, editable = true }
+tfbpseudo = { workspace = true, editable = true }
+madagascar-tfbtool = { git = "https://github.com/MaxStache/madagascar-tfbtool.git", branch = "main" }

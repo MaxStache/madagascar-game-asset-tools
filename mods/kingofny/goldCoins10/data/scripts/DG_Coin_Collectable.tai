@@ -1,0 +1,441 @@
+// THIS IS A DECOMPILATION AND MIGHT NOT BE 100% ACCURATE 
+
+globals {
+    "PiggyBank::sprite";
+    "PiggyBankCounter::sprite";
+    "Coin1Sprite::sprite";
+    "Coin2Sprite::sprite";
+    "Coin_Sparkle::particle";
+    "Design Build::value";
+    "Global Placement Removed::user::value";
+    "player_has_coin_magnet?::user::value";
+    "players::set::actor";
+    "Script Time::value";
+    "Coin_Magnetism::particle";
+    "hit actor::message";
+    "ZoosterMoney::user::value";
+    "total_money_collected::user::value";
+    "Current Level::value";
+    "coins_kingofny::user::value";
+    "coins_escape::user::value";
+    "coins_street::user::value";
+    "coins_mutiny::user::value";
+    "coins_jungle::user::value";
+    "coins_lemurs::user::value";
+    "coins_banquet::user::value";
+    "coins_coming::user::value";
+    "coins_beach::user::value";
+    "coins_rescue::user::value";
+    "coins_battle::user::value";
+    "Got_Coin::sound";
+    "Coin_Splode::particle";
+    "camera::user::camera";
+    "update money counter data (money dropped into bank)::user::value";
+    "health_master::actor";
+    "Got_CoinPiggy::sound";
+    "Cut-scene Active::value";
+}
+
+locals {
+    "COIN1_VALUE::user::value";
+    "COIN2_VALUE::user::value";
+    "temp coin sprite counter::user::value";
+    "my flying coin sprite::user::sprite";
+    "timer::user::value";
+    "sound played?::user::value";
+    "sound timer::user::value";
+    "my coin::user::sprite";
+    "my sparklies::user::particle";
+    "my splode::user::particle";
+    "random number::user::value";
+    "slide time::user::value";
+    "one shot::user::value";
+    "magnet_power::user::value";
+    "COIN_MAGNET_RANGE::user::value";
+    "INIT_MAGNET_POWER::user::value";
+    "MAX_MAGNET_POWER::user::value";
+    "current_player::user::actor";
+    "MAX_MAGNET_FAILSAFE_TIME::user::value";
+    "timer_max_magnet_time::user::value";
+    "my magnetism effect::user::particle";
+    "my_coin_value::user::value";
+}
+
+prescript {
+    startup {
+        setValue(@myself.activation range fade percent, 40);
+        setValue(PiggyBank.visible, 1);
+        setValue(PiggyBankCounter.visible, 1);
+        createVariable(COIN1_VALUE);
+        createVariable(COIN2_VALUE);
+        setValue(COIN1_VALUE, 1);
+        setValue(COIN2_VALUE, 10);
+        // Coin 3 no longer used
+        createVariable(temp coin sprite counter);
+        createVariable(my flying coin sprite);
+        checkValue(@myself.health == 1) {
+            setReference(my flying coin sprite, Coin1Sprite);
+        };
+        checkValue(@myself.health == 2) {
+            setReference(my flying coin sprite, Coin2Sprite);
+        };
+        checkValue(@myself.health == 3) {
+            setReference(my flying coin sprite, Coin2Sprite);
+        };
+        createVariable(timer);
+        createVariable("sound played?");
+        createVariable(sound timer);
+        createVariable(my coin);
+        createVariable(my sparklies);
+        createVariable(my splode);
+        createVariable(random number);
+        createVariable(slide time);
+        createVariable(one shot);
+        setValue(slide time, 0.175);
+        setValue(@myself.no shadow, 1);
+        setValue(@myself.ignore ground color, 1);
+        setValue(@myself.wall collision, 0);
+        checkValue(@myself.health == 3) {
+            setValue(@myself.X offset, 0);
+            setValue(@myself.Y offset, 0);
+            setValue(@myself.Z offset, 4);
+            setValue(@myself.W extend, 6);
+            setValue(@myself.L extend, 6);
+            setValue(@myself.H extend, 8);
+        } else {
+            setValue(@myself.X offset, 0);
+            setValue(@myself.Y offset, 0);
+            setValue(@myself.Z offset, 3);
+            setValue(@myself.W extend, 6);
+            setValue(@myself.L extend, 6);
+            setValue(@myself.H extend, 6);
+        };
+        setReference(my sparklies, Coin_Sparkle);
+        // Coin Magnet stuff ---------------
+        createVariable(magnet_power);
+        createVariable(COIN_MAGNET_RANGE);
+        setValue(COIN_MAGNET_RANGE, 50.0);
+        createVariable(INIT_MAGNET_POWER);
+        setValue(INIT_MAGNET_POWER, 5.0);
+        createVariable(MAX_MAGNET_POWER);
+        setValue(MAX_MAGNET_POWER, 200.0);
+        createVariable(current_player);
+        createVariable(MAX_MAGNET_FAILSAFE_TIME);
+        setValue(MAX_MAGNET_FAILSAFE_TIME, 4.0);
+        createVariable(timer_max_magnet_time);
+        // TEST FAILSAFE TIME
+        checkValue(Design Build == 1) {
+            setValue(MAX_MAGNET_POWER, 5.0);
+        };
+    }
+    
+    shutdown {
+        checkValue(Global Placement Removed == 1) {
+            remove(@myself);
+            print(@myself, "I am removing myself!");
+        };
+        remove(my magnetism effect);
+        checkReference(my sparklies, Coin_Sparkle) {
+            flow end
+        };
+        remove(my sparklies);
+    }
+    
+    update {
+    }
+}
+
+behavior wait for player to collect me {
+    // Am I affected by the 'Coin Magnet' player ability?
+    checkValue("player_has_coin_magnet?" == 1) {
+        checkValue(players#first <= COIN_MAGNET_RANGE + 0) {
+            setBehavior("Coin magnet has got me!");
+            setValue(magnet_power, INIT_MAGNET_POWER + 0);
+            slideValue(magnet_power, MAX_MAGNET_POWER + 0, 4.0, 0, 0);
+            setValue(@myself.down acceleration, 0);
+            setValue(@myself.ground deceleration, 0);
+            setValue(@myself.air deceleration, 0);
+            setValue(@myself.up top speed, 10.0);
+            setValue(@myself.down top speed, MAX_MAGNET_POWER + 0);
+            setValue(timer_max_magnet_time, Script Time + MAX_MAGNET_FAILSAFE_TIME);
+            // Only make my magnetism effect if there aren't too many clones around!
+            checkValue(Coin_Magnetism."clones (list)" <= 6) {
+                createVariable(my magnetism effect);
+                spawnActor(Coin_Magnetism, players#first, 0) {
+                    setReference(my magnetism effect, @myself);
+                    setValue(@myself.health, 0);
+                    setValue(@myself.ground top speed, 5.0);
+                    slideValue(@myself.ground top speed, 20.0, 0.4, 0, 0);
+                    setValue(@myself:origin, 0);
+                };
+            };
+            setValue(random number, 0);
+            setValue(@myself."cut-scene ignore", 1);
+            flow end
+        };
+    };
+    // Spin, just to look cool.
+    setValue(@myself:health, @myself:health + 3);
+    // Is the player close enough to notice my particle prettiness.
+    checkValue(players#first <= 50) {
+        // Generate particle prettiness?
+        checkValue(random number == 0) {
+            checkReference(my sparklies, Coin_Sparkle) {
+                spawnActor(Coin_Sparkle, @myself, @myself:health + 0) {
+                    setReference(my sparklies, @myself);
+                    displace(@myself, relative, 0, 90, 3);
+                };
+            };
+            setValue(my sparklies.output rate, 1);
+            setValue(random number, random(4));
+        } else {
+            setValue(my sparklies.output rate, 0);
+            decValue(random number);
+        };
+        // Did the player  touch me?
+        checkMessage(hit actor, players#first <= 10) {
+            setBehavior(Player touched coin);
+            flow end
+        };
+    } else {
+        // Manage my particle prettiness.
+        checkReference(my sparklies, Coin_Sparkle) {
+            flow end
+        };
+        remove(my sparklies);
+        setReference(my sparklies, Coin_Sparkle);
+        setValue(random number, 0);
+    };
+}
+
+behavior Player touched coin {
+    setBehavior(shoot coin up);
+    createVariable(
+my_coin_value);
+    // 
+    setValue(Global Placement Removed, 1);
+    // -------------------------- Update coin values --------------------------
+    // First, establish how much the collected coin is worth.
+    checkValue(@myself.health == 2) {
+        setValue(
+my_coin_value, COIN2_VALUE + 0);
+    } else {
+        // anything that's not 2 hit points (high value coin) gets set to low coin value by default
+        setValue(
+my_coin_value, COIN1_VALUE + 0);
+    };
+    // Add to ZoosterMoney -- this is the amount you spend.
+    setValue(ZoosterMoney, ZoosterMoney + 
+my_coin_value);
+    // Add to total_money_collected -- the total number of coins collected over the course of the game.
+    setValue(total_money_collected, total_money_collected + 
+my_coin_value);
+    // Add to level-specific money_collected values.
+    checkValue(Current Level == 0) {
+        setValue(coins_kingofny, coins_kingofny + 
+my_coin_value);
+    } else {
+        checkValue(Current Level == 1) {
+            setValue(coins_escape, coins_escape + 
+my_coin_value);
+        } else {
+            checkValue(Current Level == 2) {
+                setValue(coins_street, coins_street + 
+my_coin_value);
+            } else {
+                checkValue(Current Level == 3) {
+                    setValue(coins_mutiny, coins_mutiny + 
+my_coin_value);
+                } else {
+                    checkValue(Current Level == 4) {
+                        setValue(coins_jungle, coins_jungle + 
+my_coin_value);
+                    } else {
+                        checkValue(Current Level == 6) {
+                            setValue(coins_lemurs, coins_lemurs + 
+my_coin_value);
+                        } else {
+                            checkValue(Current Level == 7) {
+                                setValue(coins_banquet, coins_banquet + 
+my_coin_value);
+                            } else {
+                                checkValue(Current Level == 8) {
+                                    setValue(coins_coming, coins_coming + 
+my_coin_value);
+                                } else {
+                                    checkValue(Current Level == 9) {
+                                        setValue(coins_beach, coins_beach + 
+my_coin_value);
+                                    } else {
+                                        checkValue(Current Level == 10) {
+                                            setValue(coins_rescue, coins_rescue + 
+my_coin_value);
+                                        } else {
+                                            checkValue(Current Level == 11) {
+                                                setValue(coins_battle, coins_battle + 
+my_coin_value);
+                                            };
+                                        };
+                                    };
+                                };
+                            };
+                        };
+                    };
+                };
+            };
+        };
+    };
+    // 
+    setValue(@myself.activation range, 0);
+    setValue(@myself.deactivation range, 0);
+    setValue(@myself.tint color:a, 0);
+    remove(my sparklies);
+    remove(my magnetism effect);
+    spawnActor(my flying coin sprite, @myself, 0) {
+        setValue(random number, random(5));
+        setValue(random number, random number + 1);
+        setReference(my coin, @myself);
+        setValue(@myself."heading (OBSOLETE)":sub[0x04], 0);
+        setValue(@myself.current speed, 1);
+        slideValue(@myself."heading (OBSOLETE)":sub[0x04], 255, 0.025, 0, 0);
+        slideValue(@myself.origin, pair(150, 150), slide time + 0, 0, 15);
+    };
+    playSound(Got_Coin);
+    setValue(timer, Script Time + 0.5);
+}
+
+behavior shoot coin up {
+    checkValue(one shot == 1) {
+        setValue(my splode.output rate, 0);
+        incValue(one shot);
+    };
+    checkValue(one shot == 0) {
+        spawnActor(Coin_Splode, @myself, 0) {
+            setValue(@myself.origin, 0.5);
+            setValue(@myself.health, 50);
+            displace(@myself, relative, 0, 90, 3);
+            setReference(my splode, @myself);
+        };
+        incValue(one shot);
+    };
+    control(my coin) {
+        // old x value 550
+        slideValue(@myself.waypoints:sub[0x01], 525, 0.4, 0, 0);
+        // old y value 320
+        slideValue(@myself.waypoints:sub[0x02], 285, 0.4, 0, 0);
+        setValue(@myself:health, @myself:health - 15);
+        checkValue(Script Time >= sound timer + 0) {
+            checkValue(@controlled.content == 1) {
+                slideValue(@myself.origin, pair(70, 70), 0.3, 0, 0);
+            };
+            checkValue(@controlled.content == 2) {
+                slideValue(@myself.origin, pair(70, 70), 0.3, 0, 0);
+            };
+            checkValue(@controlled.content == 3) {
+                slideValue(@myself.origin, pair(70, 70), 0.3, 0, 0);
+            };
+        };
+    };
+    checkValue(Script Time >= timer + 0) {
+        setValue(timer, Script Time + 0.8);
+        setValue(sound timer, Script Time + 0.3);
+        setBehavior(slide coin into the bank);
+        flow end
+    };
+}
+
+behavior slide coin into the bank {
+    control(my coin) {
+        // old x value 560
+        slideValue(@myself.waypoints:sub[0x01], 530, 0.3, 0, 0);
+        // old y value 410
+        slideValue(@myself.waypoints:sub[0x02], 375, 0.3, 0, 0);
+        checkValue(@myself.waypoints:sub[0x02] >= 318) {
+            setValue(@myself."heading (OBSOLETE)":sub[0x04], 0);
+        };
+        setValue(@myself:health, 0);
+        setValue(@myself:health, camera.Current Facing + 0);
+        checkValue("sound played?" == 0) {
+            checkValue(Script Time >= sound timer + 0) {
+                setValue(PiggyBankCounter.content, ZoosterMoney + 0);
+                findVariable("update money counter data (money dropped into bank)", health_master) {
+                    setValue(@found, 1);
+                };
+                setValue("sound played?", 1);
+                playSound(Got_CoinPiggy);
+            };
+        };
+    };
+    checkValue(Script Time >= timer + 0) {
+        setValue(temp coin sprite counter, Coin1Sprite.clones + Coin2Sprite.clones);
+        checkValue(temp coin sprite counter <= 1) {
+            slideValue(PiggyBank.location:x, 750, 0.4, 0, 0);
+        };
+        remove(my coin);
+        remove(my splode);
+        remove(@myself);
+    };
+}
+
+behavior "Coin magnet has got me!" {
+    checkValue("Cut-scene Active" == 1) {
+        setBehavior(Cutscene while magnetized mode);
+        remove(my sparklies);
+        remove(my magnetism effect);
+        setValue(@myself.tint color:a, 0);
+        setValue(@myself.deactivation range, 0);
+        setValue(@myself.activation range, 0);
+        print(@myself, "Magnet is on, but a cutscene started!");
+        flow end
+    };
+    checkValue(Script Time > timer_max_magnet_time + 0) {
+        teleportTo(players#first, forward, 0, 0);
+        setBehavior(Player touched coin);
+        print(@myself, "Coin magnet Failsafe");
+        flow end
+    };
+    checkMessage(hit actor, players#first >= 0) {
+        setBehavior(Player touched coin);
+        flow end
+    };
+    // It is possible that the player can switch to another Zooster before coin is grabbed, so keep setting this.
+    setReference(current_player, players#first);
+    displace(@myself.current speed, absolute, current_player:"destination (point)" + 0, current_player:"heading (OBSOLETE)" + 0, magnet_power * 2.0);
+    // Coin magnet effect
+    control(my magnetism effect) {
+        displace(current_player#scope[2], relative, 0, 90, 5);
+        checkValue(current_player.current speed:sub[0x03] >= 20) {
+            displace(current_player#scope[2], relative, current_player.current speed:sub[0x01] + 0, 0, current_player.current speed:sub[0x03] * 0.425);
+        };
+        teleportTo(current_player#scope[2], forward, 0, 0);
+        checkValue(@controlled <= 10) {
+            setValue(@myself.health, 0);
+            print(@myself, "TOO CLOSE");
+            flow end
+        } else {
+            checkValue(random number == 0) {
+                setValue(@myself.health, 1);
+                setValue(random number, random(4));
+            } else {
+                setValue(@myself.health, 0);
+                decValue(random number);
+            };
+        };
+        setValue(@myself:health, @controlled:lifetime spread + 0);
+        setValue(@myself:waypoints, @controlled:"clones (list)" + 270);
+        setValue(@myself:origin, 0);
+    };
+}
+
+behavior Cutscene while magnetized mode {
+    checkValue("Cut-scene Active" == 0) {
+        checkValue(players > 0) {
+            print(@myself, "cutscene ended and there's a player around");
+            teleportTo(players#first, forward, 0, 0);
+            displace(@myself, relative, 0, 90, 4);
+            setBehavior(Player touched coin);
+            flow end
+        };
+    };
+}
+

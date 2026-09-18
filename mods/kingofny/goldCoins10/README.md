@@ -1,0 +1,1 @@
+makes gold coins worth 10 instead of 5

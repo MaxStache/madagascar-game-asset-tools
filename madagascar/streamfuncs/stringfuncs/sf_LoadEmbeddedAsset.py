@@ -1,5 +1,6 @@
 import copy
 import io
+from pathlib import Path
 import uuid
 from dataclasses import dataclass, field
 from typing import Any, BinaryIO, override
@@ -147,3 +148,16 @@ class RW_sf_LoadEmbeddedAsset(RW_StreamFunc):
 
     def duplicate(self) -> "RW_sf_LoadEmbeddedAsset":
         return copy.deepcopy(self)
+
+    def importFrom(self, path: Path | str):
+        pass
+        # TODO: Implement
+
+    def exportTo(self, path: Path | str):
+        Path(path).write_bytes(self.data)
+
+    def exportToFolder(self, directory: Path | str):
+        if not Path(directory).exists():
+            raise ValueError(f"Path does not exist: {Path(directory)}")
+
+        self.exportTo(Path(directory, self.name))

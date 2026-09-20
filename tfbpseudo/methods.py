@@ -65,6 +65,7 @@ def declare(
         op_name=op_name,
         arg_count=optional_from,
         max_args=len(spec),
+        arguments=tuple(spec),
     )
     def compile_method(
         opcode_index: int, statement: Statement, compiler: Compiler
@@ -125,7 +126,7 @@ declare(
     opcodes.OpCheckMembership,
     op_name="check membership",
     arguments=[
-        Ref("ref1"),
+        Ref("ref1", expects="set"),
         Choice("membershipTest", enum=MembershipTest),
         Ref("ref2"),
     ],
@@ -144,7 +145,7 @@ declare(
     opcodes.OpCheckMessage,
     op_name="check message",
     arguments=[
-        Ref("message_ref"),
+        Ref("message_ref", expects="message"),
         Condition(
             "sender_ref",
             rel_op_name="rel_op",
@@ -214,7 +215,10 @@ declare(
     "forEach",
     opcodes.OpForEach,
     op_name="for each",
-    arguments=[Ref("set_ref"), Choice("set_direction", enum=SetDirection)],
+    arguments=[
+        Ref("set_ref", expects="set"),
+        Choice("set_direction", enum=SetDirection),
+    ],
 )
 
 declare(
@@ -230,15 +234,21 @@ declare(
     "setValue",
     opcodes.OpSetValue,
     op_name="set value",
-    arguments=[Ref("lhs"), Value("rhs")],
+    arguments=[Ref("lhs", expects="value"), Value("rhs")],
 )
 
 declare(
-    "incValue", opcodes.OpIncValue, op_name="inc value", arguments=[Ref("lhs")]
+    "incValue",
+    opcodes.OpIncValue,
+    op_name="inc value",
+    arguments=[Ref("lhs", expects="value")],
 )
 
 declare(
-    "decValue", opcodes.OpDecValue, op_name="dec value", arguments=[Ref("lhs")]
+    "decValue",
+    opcodes.OpDecValue,
+    op_name="dec value",
+    arguments=[Ref("lhs", expects="value")],
 )
 
 
@@ -255,7 +265,7 @@ declare(
     opcodes.OpSlideValue,
     op_name="slide value",
     arguments=[
-        Ref("lhs"),
+        Ref("lhs", expects="value"),
         Value("target_value"),
         Value("interpolation_time"),
         Number("ease_out"),
@@ -285,7 +295,7 @@ declare(
     opcodes.OpChangeMembership,
     op_name="change membership",
     arguments=[
-        Ref("ref"),
+        Ref("ref", expects="set"),
         Choice("membershipCombiner", enum=MembershipCombiner),
         Ref("ref2"),
     ],
@@ -297,7 +307,7 @@ declare(
     "setBehavior",
     opcodes.OpSetBehavior,
     op_name="set behavior",
-    arguments=[Ref("behavior")],
+    arguments=[Ref("behavior", expects="behavior")],
 )
 
 declare(
@@ -321,7 +331,7 @@ declare(
     "runAsPlayer",
     opcodes.OpRunAsPlayer,
     op_name="run as player",
-    arguments=[Ref("actor_ref")],
+    arguments=[Ref("actor_ref", expects="actor")],
 )
 
 # ----- movement -----
@@ -391,11 +401,14 @@ declare(
 )
 
 declare(
-    "playSound", opcodes.OpPlaySound, op_name="play sound", arguments=[Ref("sound")]
+    "playSound", opcodes.OpPlaySound, op_name="play sound", arguments=[Ref("sound", expects="sound")]
 )
 
 declare(
-    "stopSound", opcodes.OpStopSound, op_name="stop sound", arguments=[Ref("sound")]
+    "stopSound",
+    opcodes.OpStopSound,
+    op_name="stop sound",
+    arguments=[Ref("sound", expects="sound")],
 )
 
 declare(
@@ -403,7 +416,7 @@ declare(
     opcodes.OpUseCamera,
     op_name="use camera",
     arguments=[
-        Ref("camera_ref"),
+        Ref("camera_ref", expects="camera"),
         Choice("trans_in_mode", enum=CamTransitionInMode),
         Number("trans_in_duration", is_float=True),
         Choice("trans_out_mode", enum=CamTransitionOutMode),
@@ -426,7 +439,7 @@ declare(
     opcodes.OpSendMessage,
     op_name="send message",
     arguments=[
-        Ref("message_ref"),
+        Ref("message_ref", expects="message"),
         Ref("reciver_Ref"),
         Value("value"),
         # A byte send's execute never reads, but it is not always the same on

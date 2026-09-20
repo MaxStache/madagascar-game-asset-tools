@@ -72,7 +72,16 @@ class Argument:
 
 @dataclass(frozen=True)
 class Ref(Argument):
-    """A reference: `Zoo Loop`, `@myself.health`, `players#first`."""
+    """A reference: `Zoo Loop`, `@myself.health`, `players#first`.
+
+    `expects` is the kind of variable the opcode wants named here -- "sound"
+    for `playSound`, "set" for the membership ops -- where that is the same in
+    every script. It is what the editor completes, not a rule: a reference can
+    reach the right kind through a field of something else, so nothing here
+    refuses one that does not say so up front.
+    """
+
+    expects: str | None = None
 
     def read(self, tokens: list[Token], compiler: "Compiler") -> dict[str, object]:
         return {self.name: compiler.get_ref_by_tokens(tokens)}

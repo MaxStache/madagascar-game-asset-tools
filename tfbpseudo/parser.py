@@ -148,7 +148,9 @@ class Parser:
 
         method: list[Token] = [self.parse_name()]
 
-        self.expect("OP", "(")
+        # Kept because it is what an unclosed call has to be reported at: the
+        # end of the file is where reading stops, not where the mistake is.
+        opening = self.expect("OP", "(")
 
         arguments: list[list[Token]] = []
         current: list[Token] = []
@@ -190,8 +192,11 @@ class Parser:
             current.append(self.next())
 
         else:
-            t = self.peek()
-            raise ParseError("unexpected end of file", t.line, t.col)
+            raise ParseError(
+                f"unterminated `{method[0].value}(`",
+                opening.line,
+                opening.col,
+            )
 
         block = None
         if self.check("OP", "{"):
@@ -271,7 +276,7 @@ class Parser:
         return Flow(value=value, line=keyword.line, col=keyword.col)
 
     def parse_block(self):
-        self.expect("OP", "{")
+        opening = self.expect("OP", "{")
 
         body: list[Statement | Token] = []
         flow: Flow | None = None
@@ -283,8 +288,9 @@ class Parser:
 
         while not self.check("OP", "}"):
             if self.check("EOF"):
-                t = self.peek()
-                raise ParseError("unterminated block", t.line, t.col)
+                raise ParseError(
+                    "unterminated block", opening.line, opening.col
+                )
 
             # Comments and empty statements carry no code, but comments are kept
             if self.check("COMMENT"):

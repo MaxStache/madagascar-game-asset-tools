@@ -3,17 +3,23 @@
 The word lists are taken from the registries themselves -- the methods from
 METHOD_OPCODE_TABLE, the enum members from tfbscript's own enums, the builtins
 and scope names from `references` -- so adding an opcode lights it up without
-anyone having to remember this file.
+anyone having to remember this file. The words that are TfbPseudo's own, and
+the shape of a name, are shared with `completions`: what is highlighted as a
+section or a flow word is what is completed as one.
 """
 
 # pyright: basic
-
-from enum import IntEnum
 
 from PySide6.QtCore import QRegularExpression
 from PySide6.QtGui import QColor, QFont, QSyntaxHighlighter, QTextCharFormat
 
 from tfbpseudo.compiler import METHOD_OPCODE_TABLE
+from tfbpseudo.editor.completions import (
+    FLOW_WORDS,
+    NAME,
+    SECTIONS,
+    enum_members,
+)
 from tfbpseudo.editor.theme import DEFAULT, Theme
 from tfbpseudo.references import (
     BUILTIN_TOKENS,
@@ -25,25 +31,8 @@ from tfbpseudo.references import (
     TABLE_TOKENS,
 )
 from tfbpseudo.rhs import CALLS
-from tfbscript.opcodes import enums
 
-# The shape of a name the lexer reads as one: words joined by single spaces.
-NAME = r"[A-Za-z_][A-Za-z0-9_]*(?: [A-Za-z0-9_]+)*"
-
-SECTIONS = ("globals", "locals", "prescript", "startup", "shutdown", "update")
-FLOW_WORDS = ("flow", "end", "continue", "break", "else")
 INDEX_WORDS = (MEMBER_INDEX_WORD, SUB_INDEX_WORD, SCOPE_INDEX_WORD)
-
-
-def enum_members() -> list[str]:
-    """Every name an enum argument accepts, e.g. `slow_move`, `randomly`."""
-    names: set[str] = set()
-
-    for value in vars(enums).values():
-        if isinstance(value, type) and issubclass(value, IntEnum) and value is not IntEnum:
-            names.update(member.name for member in value)
-
-    return sorted(names, key=len, reverse=True)
 
 
 def word_pattern(words) -> str:

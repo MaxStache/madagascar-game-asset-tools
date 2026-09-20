@@ -1,0 +1,16 @@
+globals {
+}
+
+locals {
+}
+
+prescript {
+    startup {
+    }
+
+    shutdown {
+    }
+
+    update {
+    }
+}

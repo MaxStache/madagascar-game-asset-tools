@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from tfbpseudo.errors import CompileError
 from tfbpseudo.lexer import Token, tokenize
@@ -38,6 +39,9 @@ from tfbscript.rhs import Rhs
 from tfbscript.script import ScriptFile
 from tfbscript.string_table import StringTableEntry
 
+if TYPE_CHECKING:
+    from tfbpseudo.arguments import Argument
+
 CONTROL_BLOCK_INDEX = 0xFF
 
 # The wrapper an `else` compiles to, as the opcode table names it.
@@ -52,6 +56,9 @@ class MethodSpec:
     op_name: str  # name in the script's opcode table, e.g. "check reference"
     arg_count: int  # the fewest arguments it takes
     max_args: int | None = None  # the most, when trailing ones are optional
+    # What it takes, in order, for whoever wants to name the arguments:
+    # errors count them, the editor completes them.
+    arguments: tuple["Argument", ...] = ()
 
     def accepts(self, count: int) -> bool:
         return self.arg_count <= count <= (
@@ -71,14 +78,22 @@ METHOD_OPCODE_TABLE: dict[str, MethodSpec] = {}
 
 
 def opcode_handler(
-    name: str, op_name: str, arg_count: int, max_args: int | None = None
+    name: str,
+    op_name: str,
+    arg_count: int,
+    max_args: int | None = None,
+    arguments: tuple["Argument", ...] = (),
 ):
     """Register a handler for a TfbPseudo method under `name`, emitting the
     opcode that the opcode table calls `op_name`."""
 
     def register(fn: HandlerFn) -> HandlerFn:
         METHOD_OPCODE_TABLE[name] = MethodSpec(
-            handler=fn, op_name=op_name, arg_count=arg_count, max_args=max_args
+            handler=fn,
+            op_name=op_name,
+            arg_count=arg_count,
+            max_args=max_args,
+            arguments=arguments,
         )
         return fn
 

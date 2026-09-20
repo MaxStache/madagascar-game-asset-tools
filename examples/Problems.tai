@@ -1,0 +1,67 @@
+// ONLY AN EXAMPLE; EVERY LINE BELOW MARKED "wrong" IS WRONG ON PURPOSE
+//
+// A script for looking at the editor's Problems tab: the layout is sound and
+// the declarations are real, so everything the checker reports is the line it
+// names and nothing else.
+//
+// The compiler stops at the first thing it cannot read, so the checker blanks
+// that line and compiles again to find the next -- which is why every mistake
+// here sits on a statement of its own, with no brace on it. A brace would end
+// the search, since taking the line out would unbalance the blocks.
+//
+// There are ten, which is also as many as the panel looks for in one pass.
+
+globals {
+    "players::set::actor";
+    "Alert Sound::sound";
+    "Ambient Loop::sound";
+    "Script Time::value";
+}
+
+locals {
+    "Alert Level::user::value";
+    "my target::user::actor";
+}
+
+prescript {
+    startup {
+        createVariable(Alert Level);
+        createVariable(my target);
+
+        // wrong: no method is registered under that name
+        pounceOnPlayer(@myself, 1);
+
+        // wrong: nothing declares a variable by this name
+        setValue(Not Declared Anywhere, 2);
+
+        // wrong: playSound takes the sound to play
+        playSound();
+
+        // wrong: stopSound takes one argument, not two
+        stopSound(Ambient Loop, 1);
+    }
+
+    shutdown {
+        // wrong: "no such field" is not a field an actor has
+        setValue(@myself."no such field", 0);
+    }
+
+    update {
+        // wrong: the ease is a whole number of frames, not a fraction
+        slideValue(Alert Level, 10, 2, 1.5, 0);
+
+        // wrong: `sideways` is not one of the directions to move in
+        moveTo(my target, sideways, slow_move, 2);
+    }
+}
+
+behavior Patrol {
+    // wrong: print writes a quoted string, not a number
+    print(@myself, 5);
+
+    // wrong: no behavior and no variable is called this
+    setBehavior(Somewhere Else);
+
+    // wrong: a flow is end, continue or break
+    flow sideways;
+}

@@ -6,11 +6,10 @@ Read and write Renderware ANM files.
 
 """
 from pathlib import Path
-from typing import Union
 from madagascar.lib.parser import Parser
 from madagascar.sections import RW_AnimAnimation
 
-def load_anm(filepath: Union[str, Path]) -> RW_AnimAnimation:
+def load_anm(filepath: str | Path) -> RW_AnimAnimation:
     """Load a ANM file from disk
 
     Args:
@@ -25,7 +24,7 @@ def load_anm(filepath: Union[str, Path]) -> RW_AnimAnimation:
 
     return RW_AnimAnimation.read(parser, parent=None)
 
-def loads_bsp(data: bytes) -> RW_AnimAnimation:
+def loads_anm(data: bytes) -> RW_AnimAnimation:
     """Load a ANM from stream
 
     Args:

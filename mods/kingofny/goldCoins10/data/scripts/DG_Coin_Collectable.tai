@@ -110,7 +110,8 @@ prescript {
             setValue(@myself.L extend, 6);
             setValue(@myself.H extend, 6);
         };
-        setReference(my sparklies, Coin_Sparkle);
+        setReference(
+my sparklies, Coin_Sparkle);
         // Coin Magnet stuff ---------------
         createVariable(magnet_power);
         createVariable(COIN_MAGNET_RANGE);

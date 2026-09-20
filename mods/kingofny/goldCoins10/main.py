@@ -15,21 +15,10 @@ level.write_log(
 level.assetByName("DG_Coin_Collectable.AI").importFrom(Path(MOD_DIRECTORY, "data/scripts/DG_Coin_Collectable.AI"))
 
 
-# =================================
 
-# YOUR MODDING CODE HERE ;)
-
-# =================================
 
 level.updatePlacementNew()
 
 level.verify()
 
-# replace this with the path where the .stream should be saved
-
-# == TIP ==
-# You can also replace this with the correct path to the correct .stream file in your game folder,
-# after that you can just start the game and load the level and your changes will be there!
-# ========
-
-level.save("modded_kingofny.stream")
+level.save("../../Desktop/Madagascar/Game/Levels/kingofny.stream")

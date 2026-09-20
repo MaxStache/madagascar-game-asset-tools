@@ -25,11 +25,17 @@ class Theme:
     gutter_current: str  # the line number the cursor is on
     current_line: str  # the line the cursor is on
     error_line: str  # the line a failed compile points at
+    warning: str  # a problem worth saying, that still compiles
     selection: str
     selected_text: str
     disabled: str
     overlay: str  # a panel floating over the text, i.e. the find box
     border: str
+    indent_guide: str  # the vertical rule down each level of indentation
+    brace: str  # the pair of braces the cursor is sitting on
+    scroll_track: str  # the channel a scrollbar runs in
+    scroll_handle: str  # the bar itself, which has to read against the text
+    scroll_handle_hover: str
 
     # ----- find -----
     match: str  # every hit for the current query
@@ -62,11 +68,17 @@ DARK = Theme(
     gutter_current="#ABB2BF",
     current_line="#2C313A",
     error_line="#4A2B2F",
+    warning="#D19A66",
     selection="#3E4451",
     selected_text="#FFFFFF",
     disabled="#5C6370",
     overlay="#2C313A",
     border="#4B5263",
+    indent_guide="#3B4048",
+    brace="#455063",
+    scroll_track="#21252B",
+    scroll_handle="#7C8494",
+    scroll_handle_hover="#99A1B1",
     match="#4A3A22",
     current_match="#9E6A2E",
     comment="#7F848E",
@@ -95,11 +107,17 @@ LIGHT = Theme(
     gutter_current="#101010",
     current_line="#E8E8E8",
     error_line="#F3BFBF",
+    warning="#8A6D00",
     selection="#2A82DA",
     selected_text="#FFFFFF",
     disabled="#707070",
     overlay="#E8E8E8",
     border="#A8A8A8",
+    indent_guide="#BFBFBF",
+    brace="#C3CBD6",
+    scroll_track="#D0D0D0",
+    scroll_handle="#9B9B9B",
+    scroll_handle_hover="#7E7E7E",
     match="#FFF2A8",
     current_match="#FFC63F",
     comment="#4F7A4F",
@@ -120,6 +138,52 @@ LIGHT = Theme(
 
 THEMES = {theme.name: theme for theme in (DARK, LIGHT)}
 DEFAULT = DARK
+
+
+def scrollbar_style(theme: Theme) -> str:
+    """The scrollbars, for the whole application.
+
+    Fusion draws them out of the palette, which on a dark theme puts a bar
+    nearly the colour of the text area next to it -- so they are styled by
+    hand instead. A stylesheet has to say everything: the arrow buttons and
+    the pages either side of the handle are turned off here rather than left
+    for the default style to draw around what is styled.
+    """
+    return f"""
+    QScrollBar:vertical {{
+        background: {theme.scroll_track};
+        width: 13px;
+        margin: 0;
+        border: none;
+    }}
+    QScrollBar:horizontal {{
+        background: {theme.scroll_track};
+        height: 13px;
+        margin: 0;
+        border: none;
+    }}
+    QScrollBar::handle:vertical {{
+        background: {theme.scroll_handle};
+        min-height: 28px;
+        border-radius: 4px;
+        margin: 2px;
+    }}
+    QScrollBar::handle:horizontal {{
+        background: {theme.scroll_handle};
+        min-width: 28px;
+        border-radius: 4px;
+        margin: 2px;
+    }}
+    QScrollBar::handle:hover {{ background: {theme.scroll_handle_hover}; }}
+    QScrollBar::add-line, QScrollBar::sub-line {{
+        width: 0;
+        height: 0;
+        border: none;
+        background: none;
+    }}
+    QScrollBar::add-page, QScrollBar::sub-page {{ background: none; }}
+    QAbstractScrollArea::corner {{ background: {theme.scroll_track}; }}
+    """
 
 
 def qt_palette(theme: Theme) -> QPalette:

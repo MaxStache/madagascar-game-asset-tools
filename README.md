@@ -65,9 +65,9 @@ uv run python -m <module>
 Alternatively, activate the virtual environment manually:
 
 ```bash
-WINDOWS:
+# WINDOWS:
 .venv\Scripts\activate
-LINUX/MACOS:
+# LINUX/MACOS:
 .venv/bin/activate
 ```
 

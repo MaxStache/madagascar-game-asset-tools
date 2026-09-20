@@ -211,8 +211,10 @@ class RWSectionType(Enum):
     rwaID_WAVEDICT_DICT          = MAKECHUNKID(RwVendor.CRITERIONRWA, 0x0A)
     rwaID_WAVEDICT_WAVE_HDR      = MAKECHUNKID(RwVendor.CRITERIONRWA, 0x0B)
     rwaID_WAVEDICT_WAVE          = MAKECHUNKID(RwVendor.CRITERIONRWA, 0x0C)
-    rwaID_WAVEDICT_WAVEDATA_HDR  = MAKECHUNKID(RwVendor.CRITERIONRWA, 0x0D)
-    rwaID_WAVEDICT_WAVEDATA      = MAKECHUNKID(RwVendor.CRITERIONRWA, 0x0E)
+       # audio stream file (*AudioStream*.rws) -- segments/layers, not a wave dict
+    rwaID_STREAM                 = MAKECHUNKID(RwVendor.CRITERIONRWA, 0x0D)
+    rwaID_STREAM_HDR             = MAKECHUNKID(RwVendor.CRITERIONRWA, 0x0E)
+    rwaID_STREAM_DATA            = MAKECHUNKID(RwVendor.CRITERIONRWA, 0x0F)
 
     # TFB
     rwID_tfb_AtomicSec1 = MAKECHUNKID(RwVendor.TFB, 0xD4)  # found on atomic world sector - 12B

@@ -49,6 +49,9 @@ from madagascar.sections.RWA.WAVEDICT_WAVE_080C import RW_WaveDict_Wave
 from madagascar.sections.RWA.WAVE_0802 import RWA_Wave
 from madagascar.sections.RWA.WAVESTRUCT_0803 import RWA_WaveStruct
 from madagascar.sections.RWA.WAVEDATA_0804 import RWA_WaveData
+from madagascar.sections.RWA.STREAM_080D import RWA_Stream, RWA_StreamSegment
+from madagascar.sections.RWA.STREAM_HDR_080E import RWA_Stream_Header
+from madagascar.sections.RWA.STREAM_DATA_080F import RWA_Stream_Data
 # ----
 
 # fmt: off
@@ -212,6 +215,9 @@ SECTION_REGISTRY: dict[int, type[RW_Section]] = {
     RWSectionType.rwaID_WAVE.value: RWA_Wave,
     RWSectionType.rwaID_WAVESTRUCT.value: RWA_WaveStruct,
     RWSectionType.rwaID_WAVEDATA.value: RWA_WaveData,
+    RWSectionType.rwaID_STREAM.value: RWA_Stream,
+    RWSectionType.rwaID_STREAM_HDR.value: RWA_Stream_Header,
+    RWSectionType.rwaID_STREAM_DATA.value: RWA_Stream_Data,
     # ---
 
     # ZModeler
@@ -260,4 +266,16 @@ __all__ = [
     "RW_AnimAnimation",
     "RW_TextureNative",
     "RW_TextureDictionary",
+
+    # RWA - RenderWare Audio
+    "RW_WaveDict",
+    "RW_WaveDict_Dict",
+    "RW_WaveDict_Wave",
+    "RWA_Wave",
+    "RWA_WaveStruct",
+    "RWA_WaveData",
+    "RWA_Stream",
+    "RWA_StreamSegment",
+    "RWA_Stream_Header",
+    "RWA_Stream_Data",
 ]

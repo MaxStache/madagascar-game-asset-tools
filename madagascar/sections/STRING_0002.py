@@ -37,6 +37,9 @@ class RW_String(RW_Section):
     def write(self, f: BinaryIO, stamp: int, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
+        if not self.content.isascii():
+            raise ValueError("Content can only contain ascii charactes (latin-1)")
+
         enc_string = bytes_pad4(
             self.content.encode("latin-1", errors="replace")
         )

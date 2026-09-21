@@ -31,13 +31,19 @@ def write_f16(f: BinaryIO, v: float):
 def write_fixedString(f: BinaryIO, content="", size=32):
     if len(content) > size:
         raise ValueError(f"Content length {len(content)} exceeds fixed size {size}")
-    
+
+    if not content.isascii():
+        raise ValueError("Content can only contain ascii charactes (latin-1)")
+
     encoded = content.encode("latin-1", errors="replace")
     padded = encoded + b"\x00" * (size - len(encoded))
 
     f.write(padded)
 
 def write_lengthPrefixedString(f: BinaryIO, content="", addNullTerminator=True, alignTo4=False):
+    if not content.isascii():
+        raise ValueError("Content can only contain ascii charactes (latin-1)")
+    
     encoded = content.encode("latin-1", errors="replace") + (b"\x00" if addNullTerminator else b"")
 
     length = len(encoded)
@@ -51,6 +57,9 @@ def write_lengthPrefixedString(f: BinaryIO, content="", addNullTerminator=True, 
     f.write(encoded)
 
 def write_alignedString(f: BinaryIO, content="", alignment=4, padding_byte=b"\xBF"):
+    if not content.isascii():
+        raise ValueError("Content can only contain ascii charactes (latin-1)")
+    
     encoded = content.encode("latin-1", errors="replace") + b"\x00"  # Null-terminated
     padding_length = (alignment - (len(encoded) % alignment)) % alignment
     padded = encoded + padding_byte * padding_length

@@ -22,12 +22,18 @@ from tfbpseudo.references import (
     SCOPE_MAX,
     SCOPE_MIN,
     SCOPE_OP,
+    SET_CLOSE,
+    SET_OPEN,
     SUB_INDEX_WORD,
     SUB_OP,
     TABLE_TOKENS,
+    BuiltinScope,
+    builtin_out_of_scope,
     field_names,
     find_entry,
     member_index,
+    member_is_set,
+    names_a_set,
 )
 from tfbpseudo.rhs import parse_condition, parse_rhs
 from tfbscript import opcodes
@@ -194,6 +200,22 @@ class Compiler:
 
         return ref, pos
 
+    def _else_branch_hint(self, scope: BuiltinScope) -> str:
+        """The one place the scope error looks wrong: the `else` of the very
+        check that would have produced the builtin. The else branch is not the
+        check's body -- it is the if/else's -- and it runs when the check found
+        nothing, so there is nothing to name there either."""
+        if_else = self.context.nearest_ancestor(opcodes.OpIfElse)
+
+        if (
+            if_else is None
+            or not if_else.children
+            or not isinstance(if_else.children[0], scope.producers)
+        ):
+            return ""
+
+        return " -- an `else` runs when the check failed, so it has none"
+
     def _chain_type(self, ref: TFBReference, before_sub: bool) -> str | None:
         """The type a field name is looked up against, or None when the script
         cannot tell -- a builtin resolves through the op that produced it, and
@@ -271,11 +293,19 @@ class Compiler:
     def _read_field(
         self, tokens: list[Token], pos: int, type_name: str | None, index_word: str
     ) -> tuple[int, int]:
-        """A field after `.` or `:`: a name, a quoted name, or a raw index
-        like `field[0x2a]`. `pos` is the operator; the returned position is
-        just past the field."""
+        """A field after `.` or `:`: a name, a quoted name, a raw index like
+        `field[0x2a]`, or -- for a field that holds a set -- a name in the
+        brackets a set may be written in, `.[waypoints]`. `pos` is the
+        operator; the returned position is just past the field."""
         t_op = tokens[pos]
-        token = tokens[pos + 1] if pos + 1 < len(tokens) else None
+
+        # `.[waypoints]` is `.waypoints` said out loud. The brackets come
+        # before the name, which is what tells them from the `field[0x2a]`
+        # index form, where they come after it.
+        t_open = tokens[pos + 1] if _at_op(tokens, pos + 1, SET_OPEN) else None
+        name_pos = pos + 2 if t_open is not None else pos + 1
+
+        token = tokens[name_pos] if name_pos < len(tokens) else None
 
         if token is None:
             raise CompileError(
@@ -283,7 +313,8 @@ class Compiler:
             )
 
         if (
-            token.kind == "NAME"
+            t_open is None
+            and token.kind == "NAME"
             and token.value == index_word
             and _at_op(tokens, pos + 2, INDEX_OPEN)
         ):
@@ -321,7 +352,27 @@ class Compiler:
                 token.col,
             )
 
-        return index, pos + 2
+        if t_open is None:
+            return index, name_pos + 1
+
+        if not _at_op(tokens, name_pos + 1, SET_CLOSE):
+            t = tokens[name_pos + 1] if name_pos + 1 < len(tokens) else t_open
+            raise CompileError(
+                f"expected {SET_CLOSE!r} to close {SET_OPEN!r} around "
+                + f"{token.value!r}",
+                t.line,
+                t.col,
+            )
+
+        if member_is_set(type_name, index) is False:
+            raise CompileError(
+                f"{SET_OPEN}{SET_CLOSE} says {token.value!r} is a set of things, "
+                + f"and {type_name}'s {token.value!r} is a single thing",
+                t_open.line,
+                t_open.col,
+            )
+
+        return index, name_pos + 2
 
     def _read_index(
         self, tokens: list[Token], pos: int, index_word: str, low: int, high: int
@@ -360,7 +411,56 @@ class Compiler:
         return index, pos + 3
 
     def read_ref_base(self, tokens: list[Token], pos: int) -> tuple[TFBReference, int]:
-        """The target a reference starts at: a builtin, or a variable name."""
+        """The target a reference starts at, with the brackets a set may be
+        written in: `players` and `[players]` are the same target."""
+        if not _at_op(tokens, pos, SET_OPEN):
+            return self.read_ref_target(tokens, pos)
+
+        t_open = tokens[pos]
+        ref, pos = self.read_ref_target(tokens, pos + 1)
+
+        if not _at_op(tokens, pos, SET_CLOSE):
+            t = tokens[pos] if pos < len(tokens) else t_open
+            raise CompileError(
+                f"expected {SET_CLOSE!r} to close {SET_OPEN!r} -- "
+                + self._set_bracket_hint(tokens, pos),
+                t.line,
+                t.col,
+            )
+
+        # The brackets are decoration, but they do say something, so a value
+        # written as a set is a mistake worth stopping at. Only what the script
+        # can actually tell: `@found_variable` is whatever the lookup found.
+        if names_a_set(ref) is False:
+            raise CompileError(
+                f"{SET_OPEN}{SET_CLOSE} says this is a set of things, "
+                + "and this one is a single thing",
+                t_open.line,
+                t_open.col,
+            )
+
+        return ref, pos + 1
+
+    def _set_bracket_hint(self, tokens: list[Token], pos: int) -> str:
+        """Where the brackets should have gone, said in terms of what was
+        written instead. They hug the name of the set, the way Reference
+        prints one, so the rest of the chain stays outside them."""
+        if _at_op(tokens, pos, MEMBER_OP) or _at_op(tokens, pos, SUB_OP):
+            return (
+                "a field of something gets its own brackets, so they go around "
+                + f"the field: `@myself{MEMBER_OP}{SET_OPEN}clones{SET_CLOSE}`"
+            )
+
+        if _at_op(tokens, pos, SCOPE_OP):
+            return (
+                f"{SCOPE_OP}first picks one element out of the set, so it comes "
+                + f"after them: `{SET_OPEN}players{SET_CLOSE}{SCOPE_OP}first`"
+            )
+
+        return f"they go around the name of the set: `{SET_OPEN}players{SET_CLOSE}`"
+
+    def read_ref_target(self, tokens: list[Token], pos: int) -> tuple[TFBReference, int]:
+        """The target itself: a builtin, or a variable name."""
         if pos >= len(tokens):
             t = tokens[-1] if tokens else Token("EOF", "", 0, 0)
             raise CompileError("expected a reference", t.line, t.col)
@@ -372,8 +472,15 @@ class Compiler:
         table = TABLE_TOKENS.get(t_base.value) if t_base.kind == "BUILTIN" else None
         if table is not None:
             if pos >= len(tokens) or tokens[pos].kind not in ("NAME", "STRING"):
+                bracketed = _at_op(tokens, pos, SET_OPEN)
                 raise CompileError(
-                    f"expected a variable name after {t_base.value}",
+                    f"expected a variable name after {t_base.value}"
+                    + (
+                        f" -- the brackets go around the whole target, "
+                        + f"{SET_OPEN}{t_base.value} name{SET_CLOSE}"
+                        if bracketed
+                        else ""
+                    ),
                     t_base.line,
                     t_base.col,
                 )
@@ -392,6 +499,15 @@ class Compiler:
                 if not builtin_kind:
                     raise CompileError(
                         f"Unknown builtin '{t_base.value}'", t_base.line, t_base.col
+                    )
+
+                out_of_scope = builtin_out_of_scope(builtin_kind, self.context)
+                if out_of_scope is not None:
+                    raise CompileError(
+                        out_of_scope.message(t_base.value)
+                        + self._else_branch_hint(out_of_scope),
+                        t_base.line,
+                        t_base.col,
                     )
 
                 return (

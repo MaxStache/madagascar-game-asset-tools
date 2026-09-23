@@ -127,9 +127,14 @@ def render_argument(tokens: list[Token]) -> str:
 
 
 def name_tokens(name: str) -> list[Token]:
-    """A field name as source: bare when the lexer reads it back as one name,
-    quoted when it has punctuation in it, like "heading (OBSOLETE)"."""
-    if BARE_NAME.fullmatch(name):
+    """A field or variable name as source: bare only when it is a single word.
+
+    The lexer would read `my target` back as one name too, but a decompilation
+    is read next to the script it came from, and quotes are what show where a
+    name ends: `setReference("my target", @subset#first)`. Anything BARE_NAME
+    rejects -- "heading (OBSOLETE)", "interrupted?" -- has to be quoted anyway.
+    """
+    if " " not in name and BARE_NAME.fullmatch(name):
         return [synth_token("NAME", name)]
 
     return [synth_token("STRING", name)]
@@ -159,8 +164,18 @@ def render_statement_head(statement: Statement) -> str:
 
 
 class Decompiler:
-    def __init__(self, script: ScriptFile):
+    """Turns a `ScriptFile` back into source.
+
+    `drop_filler_tails` leaves out the `+ 0` that 25,651 of the shipped RHS
+    carry because the format reads six bytes there whether or not they mean
+    anything (see tfbpseudo.rhs.TAILLESS_TYPES). The compiler writes them back
+    on its own, so the source says the same thing either way -- it is a
+    question of whether you want to read them.
+    """
+
+    def __init__(self, script: ScriptFile, drop_filler_tails: bool = False):
         self.tfbscript = script
+        self.drop_filler_tails = drop_filler_tails
         self.script = None
         self.output = ""
         self.indentation_level = 0
@@ -276,9 +291,11 @@ class Decompiler:
                     )
 
                 # The declaration names the behavior itself, so it is always
-                # the bare name -- it is references to it that may need the
-                # whole string to tell two same-named entries apart.
-                name = render_argument(name_tokens(i.behavior_entry.name))
+                # the plain name -- it is references to it that may need the
+                # whole string to tell two same-named entries apart. Quoted
+                # whatever the name is, so every `behavior "..."` line reads
+                # the same and a name with a space in it cannot run into `{`.
+                name = render_token(synth_token("STRING", i.behavior_entry.name))
                 self.add_line(f"behavior {name} {{")
                 self.indentation_level = 1
                 self.decompile_block(i)
@@ -428,14 +445,16 @@ class Decompiler:
     def rhs_tokens(self, rhs: Rhs) -> list[Token]:
         """The tokens a compile handler would have read `rhs` from --
         the inverse of Compiler.get_rhs_by_tokens."""
-        return rhs_tokens(rhs, self.ref_tokens)
+        return rhs_tokens(rhs, self.ref_tokens, self.drop_filler_tails)
 
     def condition_tokens(
         self, lhs: TFBReference, rel_op: RelOp, rhs: Rhs
     ) -> list[Token]:
         """The tokens a compile handler would have read this condition from --
         the inverse of Compiler.get_condition_by_tokens."""
-        return condition_tokens(lhs, rel_op, rhs, self.ref_tokens)
+        return condition_tokens(
+            lhs, rel_op, rhs, self.ref_tokens, self.drop_filler_tails
+        )
 
     def statement_from_opcode(self, opcode: opcodes.Opcode) -> Statement:
         # if/else is not a method of its own: it is the wrapper a check gets
@@ -568,6 +587,11 @@ class Decompiler:
         self.add_line("};")
 
 
-def decompile_script(script: ScriptFile) -> str:
-    """Decompile a script file into TfbPseudo source text."""
-    return Decompiler(script).decompile()
+def decompile_script(script: ScriptFile, drop_filler_tails: bool = False) -> str:
+    """Decompile a script file into TfbPseudo source text.
+
+    `drop_filler_tails` writes `Script Time` where the file says
+    `Script Time + 0`, for the tails that are there to fill the bytes the
+    engine reads rather than to add anything. The compiler puts them back.
+    """
+    return Decompiler(script, drop_filler_tails).decompile()

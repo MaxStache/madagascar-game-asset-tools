@@ -31,6 +31,7 @@ from tfbpseudo.arguments import (
 from tfbpseudo.compiler import METHOD_OPCODE_TABLE, MethodSpec
 from tfbpseudo.references import (
     BARE_NAME,
+    BUILTIN_SCOPES,
     BUILTIN_TOKENS,
     NULL_BUILTIN_TOKEN,
     SCOPE_BY_NAME,
@@ -69,7 +70,7 @@ PRODUCERS: dict[str, tuple[tuple[str, int], ...]] = {
     "@controlled": (("control", 0), ("spawnActor", 0)),
     "@each": (("forEach", 0),),
     "@subset": (("findSubset", 0), ("checkFOV", 2)),
-    "@found": (("findVariable", 0),),
+    "@found_variable": (("findVariable", 0),),
 }
 
 # The first thing an argument names, which is what its type starts at.
@@ -260,24 +261,42 @@ def enclosing_call(line: str) -> tuple[str, int] | None:
     return stack[-1] if stack else None
 
 
-def open_blocks(head: str) -> list[str]:
-    """The header of every block still open at the end of `head`.
+@dataclass(frozen=True)
+class OpenBlock:
+    """A block the cursor is inside: its `{` has been passed, its `}` has not."""
 
-    Outermost first, a header being whatever stands between the end of the
-    last statement and the brace that opened the block: `behavior Patrol {`
-    then `forEach(@subset, forward) {`.
+    header: str  # what stands before the brace, e.g. `forEach(players, forward)`
+    start: int  # where that header begins, as an offset into the source
+
+
+def open_block_stack(head: str) -> list[OpenBlock]:
+    """Every block still open at the end of `head`, outermost first.
+
+    A header is whatever stands between the end of the last statement and the
+    brace that opened the block: `behavior Patrol`, then
+    `forEach(@subset, forward)`. Where it starts is kept too, so that whoever
+    wants the line a block opens on can have it.
     """
-    stack: list[str] = []
+    stack: list[OpenBlock] = []
     current: list[str] = []
+    current_at = 0
     in_string = False
     escaped = False
     at = 0
+
+    def add(char: str) -> None:
+        """Take a character into the header being built, remembering where
+        that header started."""
+        nonlocal current_at
+        if not current:
+            current_at = at
+        current.append(char)
 
     while at < len(head):
         char = head[at]
 
         if in_string:
-            current.append(char)
+            add(char)
             if escaped:
                 escaped = False
             elif char == "\\":
@@ -286,7 +305,7 @@ def open_blocks(head: str) -> list[str]:
                 in_string = False
         elif char == '"':
             in_string = True
-            current.append(char)
+            add(char)
         elif head.startswith("//", at):
             ended = head.find("\n", at)
             at = len(head) if ended < 0 else ended
@@ -296,7 +315,7 @@ def open_blocks(head: str) -> list[str]:
             at = len(head) if ended < 0 else ended + 2
             continue
         elif char == "{":
-            stack.append("".join(current).strip())
+            stack.append(_open_block(current, current_at))
             current = []
         elif char == "}":
             if stack:
@@ -305,11 +324,55 @@ def open_blocks(head: str) -> list[str]:
         elif char == ";":
             current = []
         else:
-            current.append(char)
+            add(char)
 
         at += 1
 
     return stack
+
+
+def _open_block(chars: list[str], first_at: int) -> OpenBlock:
+    """The header those characters spell and where it really starts -- the
+    leading whitespace comes off both together."""
+    text = "".join(chars)
+    return OpenBlock(text.strip(), first_at + len(text) - len(text.lstrip()))
+
+
+def open_blocks(head: str) -> list[str]:
+    """The header of every block still open at the end of `head`."""
+    return [block.header for block in open_block_stack(head)]
+
+
+def producer_methods(token: str) -> tuple[str, ...]:
+    """What can produce the builtin `token`, e.g. ("findSubset", "checkFOV").
+
+    Straight off BUILTIN_SCOPES, the table the compiler checks a builtin
+    against, so what is gone looking for here is what the compiler insists on.
+    """
+    kind = BUILTIN_TOKENS.get(token)
+    scope = BUILTIN_SCOPES.get(kind) if kind is not None else None
+
+    return scope.methods if scope is not None else ()
+
+
+def producer_of(source: str, position: int, token: str) -> tuple[str, int] | None:
+    """The op that produced the builtin `token` at `position`: what it is
+    called, and the line it opens on.
+
+    Innermost first, because that is the one the builtin means -- two
+    `findVariable`s inside one another leave the inner one's find in
+    `@found_variable`, the same op the compiler resolves it through.
+    """
+    methods = producer_methods(token)
+    if not methods:
+        return None
+
+    for block in reversed(open_block_stack(source[:position])):
+        call = call_parts(block.header)
+        if call is not None and call[0] in methods:
+            return call[0], source.count("\n", 0, block.start) + 1
+
+    return None
 
 
 def call_parts(header: str) -> tuple[str, list[str]] | None:

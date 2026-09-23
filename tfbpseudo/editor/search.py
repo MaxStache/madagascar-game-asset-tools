@@ -122,22 +122,20 @@ class SearchBox(QWidget):
         layout.addWidget(self.close_button)
 
         self.edit.textChanged.connect(self.refresh)
-        self.edit.returnPressed.connect(self.next_match)
         for toggle in (self.case_button, self.word_button, self.regex_button):
             toggle.toggled.connect(self.refresh)
         self.prev_button.clicked.connect(self.previous_match)
         self.next_button.clicked.connect(self.next_match)
         self.close_button.clicked.connect(self.dismiss)
 
-        self.shortcut(
-            QKeySequence(Qt.KeyboardModifier.ShiftModifier | Qt.Key.Key_Return),
-            self.previous_match,
-        )
-        self.shortcut(
-            QKeySequence(Qt.KeyboardModifier.ShiftModifier | Qt.Key.Key_Enter),
-            self.previous_match,
-        )
         self.shortcut(QKeySequence(Qt.Key.Key_Escape), self.dismiss)
+
+        # Enter in the find box steps through the matches, and that is all it
+        # does: a QLineEdit hands the key on to its parent when it is done with
+        # it, and this box's parent is the editor, which would answer by
+        # putting a newline in the script. So the key is taken here (see
+        # eventFilter) rather than bound to `returnPressed`.
+        self.edit.installEventFilter(self)
 
         # An edit invalidates the positions we found, so re-run the query.
         self.editor.document().contentsChanged.connect(self.on_document_changed)
@@ -203,6 +201,8 @@ class SearchBox(QWidget):
         self.hide()
 
         if span is not None:
+            self.editor.reveal_position(span[0])
+
             cursor = self.editor.textCursor()
             cursor.setPosition(span[0])
             cursor.setPosition(span[1], QTextCursor.MoveMode.KeepAnchor)
@@ -360,6 +360,10 @@ class SearchBox(QWidget):
         if span is None:
             return
 
+        # A hit can be inside a block that has been folded away, and the
+        # point of going to it is to see it.
+        self.editor.reveal_position(span[0])
+
         cursor = self.editor.textCursor()
         cursor.setPosition(span[0])
         self.editor.setTextCursor(cursor)
@@ -400,8 +404,18 @@ class SearchBox(QWidget):
         )
 
     def eventFilter(self, watched, event) -> bool:
+        if watched is self.edit and event.type() == QEvent.Type.KeyPress:
+            if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+                if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+                    self.previous_match()
+                else:
+                    self.next_match()
+
+                return True  # never let it through to the text underneath
+
         if event.type() == QEvent.Type.Resize and self.isVisible():
             self.reposition()
+
         return super().eventFilter(watched, event)
 
     def showEvent(self, event) -> None:

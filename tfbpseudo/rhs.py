@@ -23,6 +23,7 @@ from typing import cast
 
 from tfbpseudo.errors import CompileError, DecompileError
 from tfbpseudo.lexer import Token, synth_token
+from tfbpseudo.references import SET_OPEN
 from tfbscript.opcodes.enums import RelOp
 from tfbscript.reference import Reference as TFBReference
 from tfbscript.rhs import Rhs
@@ -94,6 +95,80 @@ class _Cursor:
         return CompileError(msg, token.line, token.col)
 
 
+# ----- the operator tail the format needs -----
+
+# What a reference RHS can land on without the engine reading an operator and
+# a second operand after it. readRHS (Game.exe 0043fd20) takes that 6-byte
+# tail only when its gate is-a `value`, and the gate is the descriptor of the
+# reference it has just read -- so it is what the reference lands on that
+# decides, not what is being assigned to.
+#
+# Read off the shipped scripts: of the 46,964 reference RHS in the 1147 files
+# under Levels/, all 39,865 that land on a value, actor, angle, sprite,
+# waypoint, particle or attachment carry the tail, and all 6,402 that land on
+# a colour or a 2D pair do not. The seven that go the other way are cases our
+# own reader mis-parses -- see Rhs._tail_follows, which says as much.
+#
+# This is why the shipped scripts are full of `+ 0`: it is not arithmetic, it
+# is the six bytes the engine is going to read whether or not anything wrote
+# them. Leave them out and the engine reads the next instruction's bytes as
+# the tail.
+TAILLESS_TYPES = frozenset({"color", "2D"})
+
+FILLER_OPERATOR = OPERATOR_BY_TOKEN["+"]
+
+
+def takes_operator_tail(rhs: Rhs) -> bool:
+    """Whether the engine will read an operator and a second operand after
+    `rhs`, and the compiler therefore has to write them.
+
+    A reference whose type cannot be worked out answers no: it is the honest
+    answer where the type is unknown, and it leaves what the script already
+    says alone -- the shipped scripts have fourteen of those, all writing a
+    field of a builtin that has no binding.
+    """
+    if rhs.kind != "reference" or not isinstance(rhs.value, TFBReference):
+        return False
+
+    try:
+        landed = rhs.value.resolve_type().type
+    except ValueError:
+        return False
+
+    return landed is not None and landed not in TAILLESS_TYPES
+
+
+def with_operator_tail(rhs: Rhs) -> Rhs:
+    """`rhs` with the tail the engine is going to read: `+ 0`, which leaves
+    the value it stands for alone."""
+    return Rhs(
+        TAG_REFERENCE,
+        "expression",
+        rhs.value,
+        operator=FILLER_OPERATOR,
+        rhs=Rhs(TAG_INT, "int", 0),
+    )
+
+
+def is_filler_tail(rhs: Rhs) -> bool:
+    """Whether `rhs` is a reference plus the tail the format needs, rather
+    than arithmetic the script meant.
+
+    Exactly `+ 0` on an int, and only where `takes_operator_tail` would put it
+    back -- so what this hides, the compiler writes again, byte for byte. The
+    172 shipped tails that are `+ 0.0` or `- 0` are left alone: they do the
+    same nothing, but not in a way this could re-create.
+    """
+    if rhs.kind != "expression" or rhs.operator != FILLER_OPERATOR:
+        return False
+
+    tail = rhs.rhs
+    if tail is None or tail.kind != "int" or tail.value != 0 or tail.is_random:
+        return False
+
+    return takes_operator_tail(Rhs(TAG_REFERENCE, "reference", rhs.value))
+
+
 def parse_rhs(tokens: list[Token], read_ref: ReadRefFn) -> Rhs:
     """The Rhs an argument's tokens spell out."""
     if not tokens:
@@ -104,7 +179,11 @@ def parse_rhs(tokens: list[Token], read_ref: ReadRefFn) -> Rhs:
 
     t_operator = cursor.peek()
     if t_operator is None:
-        return left
+        # Nothing written after the value. If the engine is going to read an
+        # operator and a second operand here anyway, they have to be in the
+        # file, or it reads the next instruction instead -- which is the one
+        # way a script that compiles can still crash the game.
+        return with_operator_tail(left) if takes_operator_tail(left) else left
 
     if t_operator.kind != "OP" or t_operator.value not in OPERATOR_BY_TOKEN:
         raise cursor.error(f"unexpected {t_operator.value!r} after the value")
@@ -170,13 +249,17 @@ def parse_condition(
 
 
 def condition_tokens(
-    lhs: TFBReference, rel_op: RelOp, rhs: Rhs, ref_tokens: RefTokensFn
+    lhs: TFBReference,
+    rel_op: RelOp,
+    rhs: Rhs,
+    ref_tokens: RefTokensFn,
+    drop_filler: bool = False,
 ) -> list[Token]:
     """The tokens parse_condition would have read this condition from."""
     return (
         ref_tokens(lhs)
         + [synth_token("OP", rel_op.symbol())]
-        + rhs_tokens(rhs, ref_tokens)
+        + rhs_tokens(rhs, ref_tokens, drop_filler)
     )
 
 
@@ -205,7 +288,9 @@ def _parse_term(cursor: _Cursor) -> Rhs:
         cursor.next()
         return _parse_call(cursor, token)
 
-    if token.kind in ("NAME", "BUILTIN", "STRING"):
+    # A set may be written in brackets, so a term can start with one: the
+    # reference reader is the one that knows where the brackets end.
+    if token.kind in ("NAME", "BUILTIN", "STRING") or cursor.at_op(SET_OPEN):
         return Rhs(TAG_REFERENCE, "reference", cursor.take_ref())
 
     cursor.next()
@@ -309,8 +394,19 @@ def _int_arguments(
     return values
 
 
-def rhs_tokens(rhs: Rhs, ref_tokens: RefTokensFn) -> list[Token]:
-    """The tokens parse_rhs would have read this Rhs from -- the inverse."""
+def rhs_tokens(
+    rhs: Rhs, ref_tokens: RefTokensFn, drop_filler: bool = False
+) -> list[Token]:
+    """The tokens parse_rhs would have read this Rhs from -- the inverse.
+
+    `drop_filler` leaves out a `+ 0` that only exists because the format needs
+    six bytes there. Nothing is lost by it: parse_rhs writes exactly that tail
+    back in the same places, which is what makes leaving it out safe rather
+    than merely tidier.
+    """
+    if drop_filler and is_filler_tail(rhs):
+        return _reference_tokens(rhs, ref_tokens)
+
     if rhs.kind != "expression":
         return _term_tokens(rhs, ref_tokens)
 

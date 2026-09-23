@@ -1,17 +1,5 @@
-"""What the editor remembers between runs.
-
-Two things, both about getting back to work: the files opened lately, and
-where each source was last compiled to. Neither is worth a file of its own, so
-they go where Qt puts this sort of thing -- the registry on Windows, a config
-file elsewhere -- through QSettings.
-
-Paths are kept as text exactly as they were given. A remembered path is a
-guess about the world, so everything here hands back what it stored and lets
-the caller find out whether it is still true.
-"""
 
 # pyright: basic
-
 import json
 from pathlib import Path
 

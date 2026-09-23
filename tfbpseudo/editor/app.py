@@ -30,9 +30,11 @@ try:
         QFontDatabase,
         QKeySequence,
         QTextCursor,
+        QIcon,
     )
     from PySide6.QtWidgets import (
         QApplication,
+        QDialog,
         QFileDialog,
         QLabel,
         QMainWindow,
@@ -45,9 +47,15 @@ except ModuleNotFoundError:  # pragma: no cover - the editor just cannot run
 
 from tfbscript.editor.fonts import register_bold_variant
 
-from . import settings
+from . import preferences, settings
 from .completer import Completer
-from .completions import call_at, definition_of, name_at
+from .completions import (
+    call_at,
+    definition_of,
+    name_at,
+    producer_methods,
+    producer_of,
+)
 from .highlighter import TfbPseudoHighlighter
 from .panel import HEIGHT as PANEL_HEIGHT, Panel, describe
 from .search import SearchBox
@@ -73,44 +81,38 @@ OPEN_FILTER = (
 )
 
 
-# What a new file starts as: the shape of a script with nothing in it, laid
-# out the way the decompiler lays one out, so an empty editor says what goes
-# where. It compiles as it stands -- every block here is allowed to be empty,
-# and the notes sit outside the declaration blocks because only a declaration
-# can go inside one.
-STARTER = """\
-// A new script. Fill in the blocks you need and delete the rest.
 
-// Variables the level already owns, spelled the way it spells them:
-//     "players::set::actor";
+STARTER = """\
+// Read more at:
+// https://mmtk.maxttc.me/docs/tfbpseudo
+//
+// (Documentation is not available yet.)
+
 globals {
 }
 
-// This script's own. A `user` one has to be made with createVariable before
-// anything reads it:
-//     "my timer::user::value";
 locals {
 }
 
 prescript {
     startup {
-        // Runs once, as the script starts.
+        // Runs once when the script starts.
     }
 
     shutdown {
-        // Runs once, as the script stops.
+        // Runs once when the script stops.
     }
 
     update {
-        // Runs every frame, whichever behavior is the current one.
+        // Runs every frame.
     }
 }
 
-// A behavior is a body that runs while it is the current one; setBehavior
-// switches to another.
-behavior Idle {
+behavior MyBehavior {
+    // Runs every frame while this behavior is active.
 }
 """
+
 
 
 class EditorWindow(QMainWindow):
@@ -120,7 +122,9 @@ class EditorWindow(QMainWindow):
         self.source_path: Path | None = None  # the .tai this text is saved as
         self.opened_from: Path | None = None  # what was opened, whichever kind
 
-        self.theme = DEFAULT
+        # What was chosen last time this was open, and the theme it names.
+        self.preferences = preferences.load()
+        self.theme = preferences.theme_named(self.preferences.theme)
 
         self.editor = CodeEditor(theme=self.theme)
         self.highlighter = TfbPseudoHighlighter(self.editor.document(), self.theme)
@@ -147,6 +151,9 @@ class EditorWindow(QMainWindow):
         self.editor.cursorPositionChanged.connect(self.update_signature)
 
         self.build_menus()
+        # The theme is already on, having been built with; this is for the
+        # rest of what was chosen last time.
+        self.apply_preferences()
         self.resize(1000, 760)
         self.split.setSizes([760 - PANEL_HEIGHT, PANEL_HEIGHT])
         self.start_empty()
@@ -158,9 +165,7 @@ class EditorWindow(QMainWindow):
     def build_menus(self) -> None:
         file_menu = self.menuBar().addMenu("File")
 
-        self.add_action(
-            file_menu, "New", QKeySequence.StandardKey.New, self.new_file
-        )
+        self.add_action(file_menu, "New", QKeySequence.StandardKey.New, self.new_file)
         self.add_action(
             file_menu, "Open...", QKeySequence.StandardKey.Open, self.open_file
         )
@@ -191,8 +196,12 @@ class EditorWindow(QMainWindow):
         )
         file_menu.addSeparator()
         self.add_action(
-            file_menu, "Quit", QKeySequence.StandardKey.Quit, self.close
+            file_menu,
+            "Settings...",
+            QKeySequence.StandardKey.Preferences,
+            self.edit_settings,
         )
+        self.add_action(file_menu, "Quit", QKeySequence.StandardKey.Quit, self.close)
 
         edit_menu = self.menuBar().addMenu("Edit")
         self.add_action(
@@ -254,11 +263,29 @@ class EditorWindow(QMainWindow):
         )
 
         script_menu = self.menuBar().addMenu("Script")
-        self.add_action(
-            script_menu, "Check", QKeySequence("Ctrl+K"), self.check_source
-        )
+        self.add_action(script_menu, "Check", QKeySequence("Ctrl+K"), self.check_source)
 
         view_menu = self.menuBar().addMenu("View")
+        self.add_action(
+            view_menu,
+            "Fold Block",
+            QKeySequence("Ctrl+Minus"),
+            self.editor.toggle_fold_at_cursor,
+        )
+        self.add_action(
+            view_menu,
+            "Fold All",
+            QKeySequence("Ctrl+Shift+Minus"),
+            lambda: self.editor.fold_all(),
+        )
+        self.add_action(
+            view_menu,
+            "Unfold All",
+            QKeySequence("Ctrl+Shift+Equal"),
+            lambda: self.editor.fold_all(False),
+        )
+        view_menu.addSeparator()
+
         themes = QActionGroup(view_menu)
         themes.setExclusive(True)
 
@@ -269,6 +296,70 @@ class EditorWindow(QMainWindow):
             action.triggered.connect(lambda _, t=theme: self.apply_theme(t))
             themes.addAction(action)
             view_menu.addAction(action)
+
+    def edit_settings(self) -> None:
+        """The settings, as a dialog. What it answers is written to the
+        settings file and applied on the spot."""
+        dialog = preferences.SettingsDialog(self.preferences, self)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        chosen = dialog.chosen()
+        was = self.preferences
+        self.preferences = chosen
+
+        self.apply_preferences(was)
+
+        if preferences.save(chosen):
+            self.status(f"Settings saved to {preferences.path()}")
+        else:
+            self.status(f"Could not write {preferences.path()}")
+
+    def apply_preferences(self, was: preferences.Preferences | None = None) -> None:
+        """Make the editor look the way the settings say.
+
+        `was` is what they were, so a decompilation can be re-read when the
+        setting that decides how it reads has changed -- and only then, and
+        only while there is nothing unsaved to lose.
+        """
+        chosen = self.preferences
+
+        if was is None or chosen.theme != was.theme:
+            self.apply_theme(preferences.theme_named(chosen.theme))
+
+        if was is None or chosen.font_size != was.font_size:
+            self.editor.set_font_size(chosen.font_size)
+
+        if was is not None and chosen.drop_filler_tails != was.drop_filler_tails:
+            self.reread_script()
+
+    def reread_script(self) -> None:
+        """Decompile what is open again, now that it would come out differently.
+
+        Only a decompilation with nothing unsaved in it: re-reading is a
+        convenience, and it must never be the thing that loses an edit.
+        """
+        path = self.opened_from
+
+        if (
+            path is None
+            or path.suffix.lower() != SCRIPT_SUFFIX
+            or self.editor.document().isModified()
+        ):
+            return
+
+        try:
+            script = ScriptFile.from_path(path)
+            text = decompile_script(script, self.preferences.drop_filler_tails)
+        except Exception as error:
+            self.report(f"Could not read {path.name} again", error)
+            return
+
+        self.editor.setPlainText(text)
+        self.editor.document().setModified(False)
+        self.panel.lint()
+        self.status(f"Decompiled {path.name} again")
 
     def apply_theme(self, theme: Theme) -> None:
         """Repaint everything -- the chrome and the syntax have to move
@@ -328,7 +419,7 @@ class EditorWindow(QMainWindow):
 
     def update_title(self) -> None:
         dirty = "*" if self.editor.document().isModified() else ""
-        self.setWindowTitle(f"{dirty}{self.document_name()} - TfbPseudo Editor")
+        self.setWindowTitle(f"{dirty}{self.document_name()} - TFBPseudo Editor")
 
     # ----- opening -----
 
@@ -376,7 +467,9 @@ class EditorWindow(QMainWindow):
         try:
             if path.suffix.lower() == SCRIPT_SUFFIX:
                 script = ScriptFile.from_path(path)
-                text = decompile_script(script)
+                text = decompile_script(
+                    script, self.preferences.drop_filler_tails
+                )
                 # The text is a decompilation, not a file on disk yet, so Save
                 # has to ask where to put it rather than overwrite the .ai.
                 self.source_path = None
@@ -566,12 +659,18 @@ class EditorWindow(QMainWindow):
         self.signature.setText(f"{method}({', '.join(marked)})")
 
     def go_to_definition(self) -> None:
-        """Jump to where the name under the cursor is declared."""
+        """Jump to where the name under the cursor comes from: the line that
+        declares a variable, or the op that produces a builtin."""
         source = self.editor.toPlainText()
-        name = name_at(source, self.editor.textCursor().position())
+        position = self.editor.textCursor().position()
+        name = name_at(source, position)
 
         if not name:
             self.status("No name under the cursor.")
+            return
+
+        if name.startswith("@"):
+            self.go_to_producer(source, position, name)
             return
 
         line = definition_of(source, name)
@@ -581,6 +680,26 @@ class EditorWindow(QMainWindow):
 
         self.editor.go_to_line(line)
         self.status(f"{name} is declared on line {line}.")
+
+    def go_to_producer(self, source: str, position: int, name: str) -> None:
+        """A builtin is whatever the op that produced it left behind, so where
+        it comes from is that op: the innermost one the cursor is inside of.
+        Two `findVariable`s inside one another answer with the inner one."""
+        methods = producer_methods(name)
+
+        if not methods:
+            self.status(f"Nothing produces {name}, it is the same everywhere.")
+            return
+
+        found = producer_of(source, position, name)
+        if found is None:
+            wanted = " or ".join(methods)
+            self.status(f"{name} has no {wanted} around it to come from.")
+            return
+
+        method, line = found
+        self.editor.go_to_line(line)
+        self.status(f"{name} comes from the {method} on line {line}.")
 
     # ----- odds and ends -----
 
@@ -638,7 +757,10 @@ def build_application(theme: Theme = DEFAULT) -> "QApplication":
     app.setPalette(qt_palette(theme))
     app.setStyleSheet(scrollbar_style(theme))
 
-    fonts = Path(__file__).resolve().parent.parent.parent / "tfbscript" / "editor" / "fonts"
+
+    fonts = (
+        Path(__file__).resolve().parent.parent.parent / "tfbscript" / "editor" / "fonts"
+    )
     if fonts.exists():
         QFontDatabase.addApplicationFont(
             str(fonts / "ms-sans-serif" / "MS Sans Serif.ttf")
@@ -660,6 +782,13 @@ def open_editor(path: Path | str | None = None) -> None:
     app = build_application()
 
     window = EditorWindow()
+
+    
+    icon = QIcon(str(Path(__file__).resolve().parent / "favicon.png"))
+    app.setWindowIcon(icon)
+    window.setWindowIcon(icon)
+
+
     if path is not None:
         window.load(Path(path))
 

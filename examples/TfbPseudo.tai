@@ -117,7 +117,10 @@ behavior Chase {
 
 behavior Answer the alarm {
     // Only the players still standing: `:` names the field to filter on.
-    findSubset(players:health > 0) {
+    // A set can be written in brackets, the way tfbtool prints one -- it says
+    // out loud that this is many actors and not one. Saying it is optional,
+    // and the brackets go around the name: `@myself.[clones]`, `[players]#first`.
+    findSubset([players]:health > 0) {
         forEach(@subset, forward) {
             sendMessage(Alarm, @each, 1);
 
@@ -129,7 +132,7 @@ behavior Answer the alarm {
         };
 
         // Everyone left is now a friend of mine.
-        changeMembership(@myself.clones, add, @subset);
+        changeMembership(@myself.[clones], add, [@subset]);
     };
 }
 

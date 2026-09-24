@@ -156,9 +156,11 @@ class Parser:
         return b.decode(encoding)
 
     def readLengthPrefixedString(self, encoding="latin-1", removePadding=False) -> str:
-        # u32 length prefix
-        # char[length]
-        # non-null-terminated, but may be padded to 4 bytes
+        """
+        u32 length prefix\n
+        char[length]\n
+        non-null-terminated, but may be padded to 4 bytes\n
+        """
         length = self.readUint32()
         b = self.readBytes(length)
         

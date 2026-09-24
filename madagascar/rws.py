@@ -45,8 +45,8 @@ def loads_rws(data: bytes) -> RWS_File:
 
     raise ValueError(
         f"Not an audio .rws: top chunk is 0x{top.type:03X} ({found}), expected "
-        f"0x{RWSectionType.rwaID_WAVEDICT.value:03X} (wave dictionary) or "
-        f"0x{RWSectionType.rwaID_STREAM.value:03X} (audio stream)."
+        + f"0x{RWSectionType.rwaID_WAVEDICT.value:03X} (wave dictionary) or "
+        + f"0x{RWSectionType.rwaID_STREAM.value:03X} (audio stream)."
     )
 
 

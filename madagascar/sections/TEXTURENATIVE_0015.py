@@ -69,6 +69,72 @@ class RWTextureFormat(Enum):
     FORMAT_555 = 0x0A00  # RGB 555
 
 
+# On-disk values of the Xbox raster's `compression` byte. The DXT level (1/3/5)
+# is not what goes in the file, so anything building a texture has to map to
+# these before writing.
+XBOX_COMPRESSION_NONE = 0x00
+XBOX_COMPRESSION_DXT1 = 0x0C
+XBOX_COMPRESSION_DXT3 = 0x0E
+XBOX_COMPRESSION_DXT5 = 0x0F
+
+# DXT level as callers name it -> the code the Xbox raster stores. Only DXT1 can
+# be encoded, so that is the only level offered here.
+_XBOX_COMPRESSION_BY_DXT_LEVEL = {
+    1: XBOX_COMPRESSION_DXT1,
+}
+
+# The name sits in a fixed 32 byte field and the game reads it as a C string, so
+# the last byte has to stay free for the terminator.
+MAX_TEXTURE_NAME_LENGTH = 31
+
+# Largest edge the format can express: width and height are u16 fields, so this
+# is the biggest power of two that fits in one. Nothing below it is enforced,
+# because nothing below it is broken — for reference, the Xbox GPU samples up
+# to 4096 and the game itself never ships an edge above 512.
+MAX_TEXTURE_DIMENSION = 32768
+
+
+def is_power_of_two(value: int) -> bool:
+    return value > 0 and value & (value - 1) == 0
+
+
+def validate_texture_name(name: str, field_name: str = "name"):
+    """Raise if a texture name will not survive the fixed 32 byte field."""
+
+    if len(name) > MAX_TEXTURE_NAME_LENGTH:
+        raise ValueError(
+            f"Texture {field_name} {name!r} is {len(name)} characters, "
+            f"max is {MAX_TEXTURE_NAME_LENGTH}"
+        )
+
+    if not name.isascii():
+        raise ValueError(
+            f"Texture {field_name} {name!r} must be ASCII"
+        )
+
+
+def validate_texture_size(width: int, height: int):
+    """Raise unless the dimensions are ones the Xbox swizzler can represent.
+
+    The Morton swizzle tiles the image into squares of ``min(width, height)``,
+    so anything else drops pixels silently instead of failing — a 48x48 image
+    loses about a fifth of them. Both edges have to be powers of two.
+    """
+
+    for edge, value in (("width", width), ("height", height)):
+        if not is_power_of_two(value):
+            raise ValueError(
+                f"Texture {edge} {value} must be a power of two "
+                f"(the Xbox swizzler corrupts anything else)"
+            )
+
+        if value > MAX_TEXTURE_DIMENSION:
+            raise ValueError(
+                f"Texture {edge} {value} does not fit the u16 field "
+                f"(max {MAX_TEXTURE_DIMENSION})"
+            )
+
+
 @dataclass
 class RWTextureRasterFormat:
     format: RWTextureFormat = RWTextureFormat.DEFAULT
@@ -523,17 +589,76 @@ class RW_TextureNative_Struct(RW_Section):
 
         data_size = w * h
 
-        if self.dxt_compression == 0:
+        if self.dxt_compression == XBOX_COMPRESSION_NONE:
             data_size *= self.bitdeph // 8
-        elif self.dxt_compression == 0x0C:
+        elif self.dxt_compression == XBOX_COMPRESSION_DXT1:
             # DXT1: 4 bits per pixel
             data_size //= 2
+        elif self.dxt_compression not in (
+            XBOX_COMPRESSION_DXT3,
+            XBOX_COMPRESSION_DXT5,
+        ):
+            # DXT3/DXT5 are a byte per pixel, which `w * h` already is. Any
+            # other value would silently declare a wrong texel_data_size.
+            raise ValueError(
+                f"Unknown Xbox compression code 0x{self.dxt_compression:02X}"
+            )
 
         # Final mip is padded to a 4-byte boundary
         # if mip_level == self.mipmap_count - 1:
         #    data_size = (data_size + 3) & ~3
 
         return data_size, w, h
+
+    def validate(self):
+        """Raise if this raster would be written out malformed.
+
+        Covers the things the game reads back as fixed width fields, plus the
+        power of two rule the swizzler depends on. Called from write(), so a
+        texture assembled by hand cannot reach the file in a broken state.
+        """
+
+        validate_texture_name(self.name)
+        validate_texture_name(self.mask_name, "mask_name")
+
+        if not self.has_texel_data:
+            # A metadata-only entry carries no raster at all, so none of the
+            # checks below apply to it.
+            return
+
+        validate_texture_size(self.width, self.height)
+
+        if not 0 <= self.mipmap_count <= 0xFF:
+            raise ValueError(
+                f"mipmap_count {self.mipmap_count} does not fit in a byte"
+            )
+
+        if self.mipmap_count != len(self.mipmaps):
+            raise ValueError(
+                f"mipmap_count is {self.mipmap_count} but {len(self.mipmaps)} "
+                f"mipmap levels are present"
+            )
+
+        if self.dxt_compression == XBOX_COMPRESSION_NONE and self.bitdeph not in (
+            8,
+            16,
+            32,
+        ):
+            raise ValueError(
+                f"Uncompressed textures need a bit depth of 8, 16 or 32, "
+                f"got {self.bitdeph}"
+            )
+
+        if self.raster_format.pal8 and len(self.palette) != 256:
+            raise ValueError(
+                f"pal8 rasters carry 256 palette entries, got {len(self.palette)}"
+            )
+
+        if self.raster_format.pal4 and len(self.palette) != 32:
+            raise ValueError(
+                f"pal4 rasters carry 32 palette entries (Xbox D3DPALETTESIZE_32), "
+                f"got {len(self.palette)}"
+            )
 
     @override
     def write(self, f: BinaryIO, stamp: int, parent: RW_Section | None = None):
@@ -545,6 +670,8 @@ class RW_TextureNative_Struct(RW_Section):
             raise NotImplementedError(
                 f"Writing textures for platform {self.platform_id} not implemented yet"
             )
+
+        self.validate()
 
         write_u32(buf, self.platform_id.value)
 
@@ -812,7 +939,9 @@ class RW_TextureNative(RW_Section):
 
         filepath = Path(filepath)
         if not name:
-            name = filepath.stem[:31]
+            # Not truncated: a stem that is too long should be reported rather
+            # than quietly renaming the texture.
+            name = filepath.stem
 
         assert Image is not None, (
             "Pillow is required for PNG import"
@@ -897,7 +1026,13 @@ def swizzle(data: bytes, width: int, height: int, bpp: int = 1) -> bytearray:
 
     Returns:
         Swizzled texel data.
+
+    Raises:
+        ValueError: If the dimensions are not powers of two, which would make
+            the Morton mapping drop pixels.
     """
+    validate_texture_size(width, height)
+
     out = bytearray(width * height * bpp)
 
     if width >= height:
@@ -1283,10 +1418,16 @@ def create_texture(
     if len(rgba) != width * height * 4:
         raise ValueError(f"RGBA data length {len(rgba)} != {width}x{height}x4")
 
+    # Validate before the quantizer runs, so a bad name or size fails straight
+    # away rather than after the expensive part.
+    validate_texture_name(name)
+    validate_texture_name(mask_name, "mask_name")
+    validate_texture_size(width, height)
+
     tex = RW_TextureNative()
     tex.struct.platform_id = platform
-    tex.struct.name = name[:31]
-    tex.struct.mask_name = mask_name[:31]
+    tex.struct.name = name
+    tex.struct.mask_name = mask_name
     tex.struct.width = width
     tex.struct.height = height
     tex.struct.bitdeph = depth
@@ -1300,8 +1441,15 @@ def create_texture(
     tex.struct.has_alpha = has_alpha
 
     if dxt:
-        # DXT compressed
-        tex.struct.dxt_compression = dxt
+        # DXT compressed. `dxt` is the level the caller asked for; the file
+        # stores the Xbox compression code, and writing the level itself makes
+        # the texel_data_size come out twice the real size.
+        if dxt not in _XBOX_COMPRESSION_BY_DXT_LEVEL:
+            raise ValueError(
+                f"Unsupported DXT level: {dxt} "
+                f"(supported: {sorted(_XBOX_COMPRESSION_BY_DXT_LEVEL)})"
+            )
+        tex.struct.dxt_compression = _XBOX_COMPRESSION_BY_DXT_LEVEL[dxt]
         tex.struct.raster_format = RWTextureRasterFormat(
             RWTextureFormat.FORMAT_8888, False, False, False, True
         )

@@ -14,6 +14,10 @@ from madagascar.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_
 from madagascar.sections.TEXTURENATIVE_0015 import RW_TextureNative
 from madagascar.sections.EXTENSION_0003 import RW_Extension
 
+# textureCount is a u16 from RW 3.6 on, which every Madagascar dictionary is.
+MAX_TEXTURES_PER_DICTIONARY = 0xFFFF
+
+
 class RW_TextureDictionary_DeviceId(Enum):
     D3D8 = 1
     D3D9 = 2
@@ -158,6 +162,12 @@ class RW_TextureDictionary(RW_Section):
 
     def add_texture(self, texture: RW_TextureNative):
         """Add a texture to the dictionary an update textureCount"""
+        if len(self.textures) >= MAX_TEXTURES_PER_DICTIONARY:
+            raise ValueError(
+                f"A texture dictionary holds at most "
+                f"{MAX_TEXTURES_PER_DICTIONARY} textures"
+            )
+
         self.textures.append(texture)
         self.struct.textureCount = len(self.textures)
 

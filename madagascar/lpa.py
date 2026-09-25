@@ -155,9 +155,6 @@ class RW_TFB_LipAnimation(RW_TFB_KFSet):
     def read(cls, parser: Parser) -> Self:
         return cast(Self, super().read(parser))
 
-    def generate_from_wav(data: bytes):
-        pass
-
     @property
     def visemes(self) -> list[TFB_VisemeKey]:
         visemes: list[TFB_VisemeKey] = []

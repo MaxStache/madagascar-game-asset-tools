@@ -10,8 +10,6 @@ from madagascar.streamfuncs.stringfuncs.sf_LoadEmbeddedAsset import (
     RW_sf_LoadEmbeddedAsset,
 )
 
-from enum import StrEnum
-
 init(autoreset=True)
 
 class StreamEditMixin(StreamQueryMixin):

@@ -80,23 +80,6 @@ class BuiltinScope:
         return f"{token} is {self.stands_for}, so it only means anything inside {bodies}"
 
 
-# Every builtin but `@myself` names something an enclosing op left behind, and
-# outside that op's body there is nothing for it to name -- the engine reads
-# whatever the last op of that kind happened to put there, so a stray `@each`
-# is a bug rather than a value.
-#
-# Which op that is was read off the shipped scripts rather than guessed: of the
-# 79,121 builtin references in the 1147 files under Levels/, every single one
-# sits inside the body of an op listed here -- `@each` under a `forEach`
-# (19,530 uses), `@found_variable` under a `findVariable` (4,360), `@message`
-# under a `checkMessage` (1,030), `@subset` under a `findSubset` or a
-# `checkFOV` (1,513), `@controlled` under a `control` or a `spawnActor`
-# (2,821). `@myself` is the script's own actor, needs no producer, and is left
-# out of here because it is legal anywhere.
-#
-# "Inside the body" is the rule, not "on the op": a producer's own arguments
-# are read before its body opens, so the `@controlled` in `control(@controlled)`
-# names an outer `control`, which is how the shipped scripts use it too.
 BUILTIN_SCOPES: dict[BuiltinType, BuiltinScope] = {
     BuiltinType.CONTROLLED: BuiltinScope(
         producers=(OpControl, OpSpawnActor),

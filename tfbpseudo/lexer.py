@@ -21,7 +21,7 @@ def synth_token(kind: str, value: str) -> Token:
 
 TOKEN_SPEC = [
     ("COMMENT", r"//[^\n]*|/\*.*?\*/"),  # // my comment
-    ("STRING", r'"(?:[^"\\\n]|\\.)*"'),  # "my string"
+    ("STRING", r'(?<![.:])"(?:[^"\\\n]|\\.)*"'),
     ("NUMBER", r"0x[0-9A-Fa-f]+|\d+(?:\.\d+)?(?:[eE][+-]?\d+)?"),  # 123, 1.5, 1e-7
     ("BUILTIN", r"@[A-Za-z_][A-Za-z0-9_]*"),
     ("IDENT", r"[A-Za-z_][A-Za-z0-9_]*"),

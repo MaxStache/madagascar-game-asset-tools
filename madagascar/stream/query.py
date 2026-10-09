@@ -59,12 +59,15 @@ class StreamQueryMixin:
         self,
         name: str | None = None,
         guid: uuid.UUID | None = None,
+        assetType: str | None = None,
     ) -> Iterator[RW_sf_LoadEmbeddedAsset]:
         """Embedded assets matching every filter that is not None, in stream order."""
         for asset in self._records(RW_sf_LoadEmbeddedAsset):
             if guid is not None and asset.guid != guid:
                 continue
             if name is not None and asset.name != name:
+                continue
+            if assetType is not None and asset.type != assetType:
                 continue
             yield asset
 
@@ -152,6 +155,11 @@ class StreamQueryMixin:
             self.assetByNameSoft(name),
             f"No asset in this stream is named: {name}",
         )
+
+    def assetsByType(
+            self, assetType: str
+    ) -> list[RW_sf_LoadEmbeddedAsset]:
+        return list(self._assetsWhere(assetType=assetType))
 
     def assetByIDSoft(
         self, asset_id: uuid.UUID | str

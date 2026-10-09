@@ -23,8 +23,8 @@ class RW_StreamFile(StreamEditMixin, StreamLogMixin):
     contents: list[RW_StreamFunc] = field(default_factory=list)
 
     _INTERNAL_CHECKING_VERIFIED = False
-    _INTERNAL_CHECKING_PLACEMENTDIRTY = False
-    _INTERNAL_CHECKING_PLACEMENTUPDATED = False
+    _INTERNAL_CHECKING_PLACEMENT_DIRTY = False
+    _INTERNAL_CHECKING_PLACEMENT_UPDATED = False
 
     @staticmethod
     def read(parser: Parser) -> "RW_StreamFile":

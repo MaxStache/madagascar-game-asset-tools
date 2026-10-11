@@ -44,6 +44,25 @@ class RW_StreamFile(StreamEditMixin, StreamLogMixin):
 
         return streamf
 
+    @classmethod
+    def load(cls, path: Path | str, gzipped: bool = False) -> "RW_StreamFile":
+        """Load a .STREAM level file from disk
+
+        Args:
+            filepath: Path to the .stream file.
+            gzipped: Whether the file is gzipped or not. (Levels on PC are not)
+
+        Returns:
+            Parsed Stream File.
+        """
+        opener = gzip.open if gzipped else open
+
+        with opener(path, "rb") as f:
+            parser = Parser(f.read(), endian="little")
+
+        return cls.read(parser)
+
+        
     def write(self, f: BinaryIO, stamp: int) -> None:
         buf = io.BytesIO()
 

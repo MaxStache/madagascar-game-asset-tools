@@ -1,3 +1,5 @@
+from .extended_stream import LevelStream
+
 from .classes import RWClass
 from .actorparams import ActorParamBlock, CProtoActorParams, SharedActorParams
 from .cprotoactor import CProtoActor
@@ -15,5 +17,7 @@ __all__ = [
     "CameraData",
     "CameraDataOffset",
     "LevelHub",
-    "Prefab"
+    "Prefab",
+    # --
+    "LevelStream", # LevelStream.load(fp)
 ]

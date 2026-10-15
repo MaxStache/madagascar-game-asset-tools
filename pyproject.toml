@@ -39,6 +39,14 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["cli"]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = ["-ra", "--strict-markers"]
+markers = [
+    "gamedata: needs the stock level files in Levels/ (gitignored, skipped when missing)",
+]
+
 [tool.uv.workspace]
 members = [
     "madlysimple",

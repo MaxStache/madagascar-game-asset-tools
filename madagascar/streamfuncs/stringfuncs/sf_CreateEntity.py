@@ -610,8 +610,11 @@ class RW_sf_CreateEntity(RW_StreamFunc):
         elif self.behaviour == "CameraData":
             self.getAttribute("CameraData", 0x0).setString(name)
 
-    def tfbGetName(self) -> str:
+    def tfbGetName(self) -> str | None:
         """Get object name from CTFBCommand"""
-        data = self.getAttribute("CTFBCommand", 0x0).data
-        data = data.replace(b"\xbf", b"").rstrip(b"\x00")
+        attr = self.getAttributeSoft("CTFBCommand", 0x0)
+        if attr is None:
+            return None
+
+        data = attr.data.replace(b"\xbf", b"").rstrip(b"\x00")
         return data.decode("latin1")

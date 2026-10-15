@@ -150,8 +150,8 @@ class RW_sf_LoadEmbeddedAsset(RW_StreamFunc):
         return copy.deepcopy(self)
 
     def importFrom(self, path: Path | str):
-        pass
-        # TODO: Implement
+        self.data = Path(path).read_bytes()
+        self.dataSize = len(self.data)
 
     def exportTo(self, path: Path | str):
         Path(path).write_bytes(self.data)

@@ -9,5 +9,7 @@ def main() -> None:
     from .commands import repack  # type: ignore # noqa: F401
     from .commands import txd_unpack  # type: ignore # noqa: F401
     from .commands import txd_add_texture  # type: ignore # noqa: F401
+    from .commands import mod  # type: ignore # noqa: F401
+    from .commands import config  # type: ignore # noqa: F401
 
     app()

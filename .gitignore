@@ -61,3 +61,11 @@ scratch/
 
 # Compiler output from examples/
 *.out.ai
+
+# mod build output (cli mod build)
+mods/*/build/
+
+# machine-specific settings (cli config)
+settings.toml
+
+mods/

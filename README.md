@@ -16,6 +16,7 @@ This repo is a collection of tools used for modding the game "Madagascar" (relea
   - [4. Running scripts with UV](#4-running-scripts-with-uv)
 - [Usage](#usage)
   - [CLI](#cli)
+  - [Mods](#mods)
 
 ## Requirements
 
@@ -91,6 +92,46 @@ or
 
 ```bash
 uv run cli COMMAND --help
+```
+
+### Mods
+
+A mod is a folder in `mods/` that edits the stock levels in `Levels/`:
+
+```text
+mods/<name>/
+  mod.toml      # name, description
+  build.py      # @level(...) functions
+  assets/       # files the mod imports (.AI scripts, textures, ...)
+  build/        # output (gitignored)
+```
+
+Each `@level` function receives the named levels, loaded from `Levels/<level>.stream`.
+After all functions ran, every level they touched is saved to `build/<level>.stream`.
+
+```python
+from pathlib import Path
+from madagascar.mod import level
+
+ASSETS = Path(__file__).parent / "assets"
+
+@level("kingofny")
+def gold_coins(kingofny):
+    kingofny.assetByName("DG_Coin_Collectable.AI").importFrom(ASSETS / "scripts/DG_Coin_Collectable.AI")
+
+@level("kingofny")          # stacked: runs once per level
+@level("kingofny_regen")
+def bigger_coins(lvl): ...
+
+@level("street", "kingofny")  # several names: one call with all levels
+def alex_to_marty(street, kingofny): ...
+```
+
+```bash
+uv run cli config --game-dir "C:/Games/Madagascar"  # once, writes settings.toml
+uv run cli mod init my_mod --level kingofny
+uv run cli mod build my_mod
+uv run cli mod install my_mod
 ```
 
 ## Related

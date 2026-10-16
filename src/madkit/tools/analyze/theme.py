@@ -90,8 +90,8 @@ def configure_style(root):
                     ],
                 },
             )
-        ],
-    )
+        ], # type: ignore
+    ) # type: ignore
     style.configure(
         "Vertical.TScrollbar",
         background="#4a4f5a",
@@ -126,7 +126,7 @@ def configure_style(root):
     return style
 
 
-def make_dot(color, size, padding_x):
+def make_dot(color: str, size: int, padding_x: int):
     img = tk.PhotoImage(width=size + padding_x * 2, height=size)
 
     cx = size / 2
@@ -178,7 +178,7 @@ def make_dot(color, size, padding_x):
     return img
 
 
-def make_icons(size=15, padding_x=5):
+def make_icons(size:int=15, padding_x:int=5):
     """Build the green/blue/gray 3D dot icons used in the tree."""
     return (
         make_dot("#00D100", size, padding_x),

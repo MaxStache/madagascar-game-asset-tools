@@ -1,0 +1,35 @@
+[project]
+name = "tfbscript"
+version = "0.1.0"
+description = "Parser and decompiler for TFB script (.ai) files used by Madagascar - The Game (2005)"
+requires-python = ">=3.12"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Max Stache" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Games/Entertainment",
+    "Topic :: Software Development :: Libraries",
+]
+
+dependencies = [
+    "fonttools>=4.63.0",
+    "PySide6>=6.11.1",
+    "PyYAML>=6.0.3",
+]
+
+[project.urls]
+Repository = "https://github.com/MaxStache/madagascar-game-asset-tools"
+Issues = "https://github.com/MaxStache/madagascar-game-asset-tools/issues"
+
+[project.scripts]
+tfbtool = "tfbscript.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.sdist]
+# Local game scripts and notes, gitignored at the repo root
+exclude = ["example_scripts", "my_scripts", "archive", "*.decomp"]

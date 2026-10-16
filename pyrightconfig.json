@@ -13,7 +13,7 @@
     "env",
     ".venv",
     "other/**",
-    "tools/**",
+    "src/madkit/tools/**",
     "blender_mad_import_bsp/**",
     "stream_unpack.py",
     "stream_repack.py"

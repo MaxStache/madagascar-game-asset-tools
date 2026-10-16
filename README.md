@@ -4,119 +4,109 @@
 
 Loads `.stream .dff .txd .bsp .txl .rws .lpa`
 
-This repo is a collection of tools used for modding the game "Madagascar" (released in 2005).
+`madkit` is a collection of tools for modding the game "Madagascar" (released in 2005): a CLI to unpack, repack and build mods for the game's level files, plus viewers for streams and textures.
 
 ## Contents
 
 - [Requirements](#requirements)
-- [Installation](#installation)
-  - [1. Install uv](#1-install-uv)
-  - [2. Clone the repository](#2-clone-the-repository)
-  - [3. Install dependencies](#3-install-dependencies)
-  - [4. Running scripts with UV](#4-running-scripts-with-uv)
-- [Usage](#usage)
-  - [CLI](#cli)
-  - [Mods](#mods)
+- [Getting started](#getting-started)
+  - [1. Create a modding folder](#1-create-a-modding-folder)
+  - [2. Copy the stock levels](#2-copy-the-stock-levels)
+  - [3. Configure madkit](#3-configure-madkit)
+- [Mods](#mods)
+- [CLI](#cli)
+- [Tools](#tools)
+- [Development](#development)
 
 ## Requirements
 
 - [Python >= 3.12](https://www.python.org/downloads/)
-- [uv package manager installed](https://docs.astral.sh/uv/getting-started/installation/)
-
-## Installation
+- Your own copy of the game
 
 > [!NOTE]
+>
 > ## 🎥 Video Tutorials
+>
 > **[▶️ Madagascar Modding Tutorials – YouTube Playlist](https://www.youtube.com/playlist?list=PLbBnMoHCtodg)**
 
-### 1. Install uv
+## Getting started
 
-If you don't already have `uv`, install it from the official documentation:
+### 1. Create a modding folder
 
-<https://docs.astral.sh/uv/getting-started/installation/>
-
-Restart your terminal / vscode after installation if necessary.
-
-### 2. Clone the repository
+Make a folder for your mods with its own virtual environment, and install `madkit` and `madlysimple` into it:
 
 ```bash
-git clone https://github.com/MaxStache/madagascar-game-asset-tools.git
-cd madagascar-game-asset-tools
-```
+mkdir my-madagascar-mods
+cd my-madagascar-mods
+python -m venv .venv
 
-### 3. Install dependencies
-
-Run:
-
-```bash
-uv sync
-```
-
-This automatically creates a virtual environment and installs the dependencies specified by the project.
-
-### 4. Running scripts with UV
-
-You can run Python scripts through `uv` without manually activating the virtual environment:
-
-```bash
-uv run python <script>.py
-uv run python -m <module>
-```
-
-Alternatively, activate the virtual environment manually:
-
-```bash
 # WINDOWS:
 .venv\Scripts\activate
 # LINUX/MACOS:
-.venv/bin/activate
+source .venv/bin/activate
+
+pip install madkit madlysimple
 ```
 
-## Usage
+`madkit` is the CLI and tools, `madlysimple` the helpers you use in your mod scripts.
 
-### CLI
+The environment stays active until you close the terminal. In every new terminal, `cd` into your modding folder and run the `activate` line again before using `madkit`.
 
-```bash
-uv run cli unpack LEVEL.stream output/directory/
+To update later: `pip install --upgrade madkit madlysimple`.
 
-uv run cli repack input/directory/ LEVEL.stream
-```
+### 2. Copy the stock levels
 
-For more information run
-
-```bash
-uv run cli --help
-```
-
-or
-
-```bash
-uv run cli COMMAND --help
-```
-
-### Mods
-
-A mod is a folder in `mods/` that edits the stock levels in `Levels/`:
+Mods are built from the original `.stream` level files. Copy the game's `Levels/` folder into your modding folder:
 
 ```text
-mods/<name>/
+my-madagascar-mods/
+  .venv/
+  Levels/          # copy of <game folder>/Levels, never modified
+```
+
+> [!IMPORTANT]
+> Keep this copy untouched. `madkit mod install` overwrites the levels in the game folder, so building from the game's own `Levels/` would stack mods on top of each other.
+
+### 3. Configure madkit
+
+Tell `madkit` where the game is installed (once):
+
+```bash
+madkit config --game-dir "C:/Games/Madagascar"
+```
+
+This writes a `settings.toml` in the current folder, so run `madkit` from your modding folder. Use `--levels-dir` if your stock levels are somewhere other than `Levels/`.
+
+## Mods
+
+Create a mod:
+
+```bash
+madkit mod init my_mod --level kingofny
+```
+
+This creates:
+
+```text
+mods/my_mod/
   mod.toml      # name, description
   build.py      # @level(...) functions
   assets/       # files the mod imports (.AI scripts, textures, ...)
-  build/        # output (gitignored)
 ```
 
 Each `@level` function receives the named levels, loaded from `Levels/<level>.stream`.
-After all functions ran, every level they touched is saved to `build/<level>.stream`.
+After all functions ran, every level they received is saved to `mods/my_mod/build/<level>.stream`.
 
 ```python
 from pathlib import Path
-from madagascar.mod import level
+
+from madformats.mod import level
+from madformats.stream import RW_StreamFile
 
 ASSETS = Path(__file__).parent / "assets"
 
 @level("kingofny")
-def gold_coins(kingofny):
+def gold_coins(kingofny: RW_StreamFile) -> None:
     kingofny.assetByName("DG_Coin_Collectable.AI").importFrom(ASSETS / "scripts/DG_Coin_Collectable.AI")
 
 @level("kingofny")          # stacked: runs once per level
@@ -127,24 +117,68 @@ def bigger_coins(lvl): ...
 def alex_to_marty(street, kingofny): ...
 ```
 
+Build it, or build it and copy the levels into the game:
+
 ```bash
-uv run cli config --game-dir "C:/Games/Madagascar"  # once, writes settings.toml
-uv run cli mod init my_mod --level kingofny
-uv run cli mod build my_mod
-uv run cli mod install my_mod
+madkit mod build my_mod     # -> mods/my_mod/build/
+madkit mod install my_mod   # build + copy into <game folder>/Levels
 ```
 
-## Related
+Back up the game's `Levels/` folder before installing mods, so you can restore the originals.
 
-- [madagascar-tfbtool](https://github.com/MaxStache/madagascar-tfbtool) —
-  parser and decompiler for the game's TFB script files (`.ai`).
+## CLI
+
+```bash
+madkit unpack LEVEL.stream output/directory/
+
+madkit repack input/directory/ LEVEL.stream
+```
+
+For more information run
+
+```bash
+madkit --help
+madkit COMMAND --help
+```
+
+## Tools
+
+GUI tools are run as modules:
+
+```bash
+python -m madkit.tools.stream LEVEL.stream   # stream viewer
+python -m madkit.tools.txd FILE.txd          # texture viewer
+python -m madkit.tools.analyze FILE          # RenderWare file viewer
+tfbeditor                                    # TfbPseudo AI script editor
+```
+
+## Development
+
+To work on madkit itself you need [uv](https://docs.astral.sh/uv/getting-started/installation/). Clone the repository and install the whole workspace:
+
+```bash
+git clone https://github.com/MaxStache/madagascar-game-asset-tools.git
+cd madagascar-game-asset-tools
+uv sync
+```
+
+The repository is a uv workspace with these packages, all installed in editable mode:
+
+| Package | Path | Import |
+| --- | --- | --- |
+| `madkit` (CLI + tools) | `src/madkit/` | `madkit.cli`, `madkit.tools.*` |
+| `madformats` (file formats) | `packages/madformats/` | `madformats` |
+| `madlysimple` (modding helpers) | `packages/madlysimple/` | `madlysimple` |
+| `tfbpseudo` (AI script compiler + editor) | `packages/tfbpseudo/` | `tfbpseudo` |
+| `tfbscript` (.ai parser/decompiler, `tfbtool`) | `packages/tfbscript/` | `tfbscript` |
+
+Each package under `packages/` has its own `pyproject.toml` and is published to PyPI on its own.
 
 ## License
 
-Apache-2.0. See [LICENSE](LICENSE).
+Apache-2.0. See [LICENSE](https://github.com/MaxStache/madagascar-game-asset-tools/blob/main/LICENSE).
 
 ## Disclaimer
 
 Unofficial fan project, not affiliated with or endorsed by DreamWorks,
-Activision or Toys for Bob. No game assets are included, you need your own
-copy of the game.
+Activision or Toys for Bob. No game assets are included, you need your own copy of the game.

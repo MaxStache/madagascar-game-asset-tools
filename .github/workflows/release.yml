@@ -1,0 +1,60 @@
+# Builds every package in the workspace and publishes new versions to PyPI.
+#
+# Runs when a GitHub release is published, or by hand from the Actions tab.
+# Files whose version is already on PyPI are skipped, so bump `version` in the
+# pyproject.toml of each package you want to release.
+#
+# Uses PyPI trusted publishing: no token, but each PyPI project needs this repo,
+# `release.yml` and the `pypi` environment registered as a trusted publisher.
+
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Build all packages
+        run: uv build --all-packages
+
+      - name: Check metadata
+        run: uvx twine check --strict dist/*
+
+      - name: Smoke test the wheels
+        run: |
+          uv venv --python 3.12 /tmp/smoke
+          uv pip install --python /tmp/smoke dist/*.whl
+          /tmp/smoke/bin/madkit --help
+          /tmp/smoke/bin/python -c "import madformats, madlysimple, tfbpseudo, tfbscript, madkit.cli"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/madkit/
+    permissions:
+      id-token: write  # trusted publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Publish new versions to PyPI
+        run: uv publish --trusted-publishing always --check-url https://pypi.org/simple/

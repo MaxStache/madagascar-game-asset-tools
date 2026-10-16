@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from cli.settings import load_settings
+from madkit.cli.settings import load_settings
 
 ROOT = Path(__file__).resolve().parent.parent
 

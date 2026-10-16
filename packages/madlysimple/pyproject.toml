@@ -1,0 +1,34 @@
+[project]
+name = "madlysimple"
+description = "Tools to make modding with the madformats package easier"
+version = "0.1.1"
+requires-python = ">=3.12"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Max Stache" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Games/Entertainment",
+    "Topic :: Software Development :: Libraries",
+]
+
+dependencies = [
+    "colorama>=0.4.6",
+    "madformats>=0.1.0",
+    "tfbpseudo>=0.1.0",
+    "tfbscript>=0.1.0",
+]
+
+[project.urls]
+Repository = "https://github.com/MaxStache/madagascar-game-asset-tools"
+Issues = "https://github.com/MaxStache/madagascar-game-asset-tools/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+madformats = { workspace = true }
+tfbpseudo = { workspace = true }
+tfbscript = { workspace = true }

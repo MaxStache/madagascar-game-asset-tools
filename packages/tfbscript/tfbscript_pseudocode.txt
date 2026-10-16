@@ -1,0 +1,18 @@
+tfbscript "TFB Script" unk=00000000
+
+globals {
+    "Zoo Loop"
+}
+
+prescript {
+    startup {
+        check reference (myself is Sounds_Zoocrowd) {
+            playSound(%Zoo Loop)
+        }
+    }
+    shutdown {
+        check reference (myself is Sounds_Zoocrowd) {
+            stopSound(%Zoo Loop)
+        }
+    }
+}

@@ -1,0 +1,29 @@
+[project]
+name = "madformats"
+description = "Modding and file tools for - Madagascar the game, 2005 -"
+version = "0.1.1"
+requires-python = ">=3.12"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Max Stache" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Games/Entertainment",
+    "Topic :: Software Development :: Libraries",
+]
+
+dependencies = [
+    "colorama>=0.4.6",
+    "numpy>=2.5.1",
+    "pillow>=12.3.0",
+    "pymemoryeditor>=2.1.0",
+]
+
+[project.urls]
+Repository = "https://github.com/MaxStache/madagascar-game-asset-tools"
+Issues = "https://github.com/MaxStache/madagascar-game-asset-tools/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

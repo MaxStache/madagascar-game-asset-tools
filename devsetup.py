@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from pathlib import Path
 
-from madagascar.savegame import read_save, write_save
+from madformats.savegame import read_save, write_save
 
 
 DEFAULT_SAVE_PATH = (

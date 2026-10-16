@@ -53,8 +53,8 @@ Levels/
 
 
 
-tools/printhook
-tools/mods
+native/printhook
+native/mods
 
 # Local scratch drivers / experiments
 scratch/
@@ -69,3 +69,10 @@ mods/*/build/
 settings.toml
 
 mods/
+# tfbscript local data (game scripts, notes, decompiler output)
+packages/tfbscript/example_scripts/
+packages/tfbscript/my_scripts/
+packages/tfbscript/archive/
+packages/tfbscript/nopush.txt
+_MYNOTES.*
+*.decomp

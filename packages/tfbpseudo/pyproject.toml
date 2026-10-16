@@ -1,0 +1,38 @@
+[project]
+name = "tfbpseudo"
+description = "Compiler and decompiler for TfbPseudo, a text version of Madagascar AI scripts"
+version = "0.1.1"
+requires-python = ">=3.12"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Max Stache" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Games/Entertainment",
+    "Topic :: Software Development :: Libraries",
+]
+
+dependencies = [
+    "tfbscript>=0.1.0",
+]
+
+[project.urls]
+Repository = "https://github.com/MaxStache/madagascar-game-asset-tools"
+Issues = "https://github.com/MaxStache/madagascar-game-asset-tools/issues"
+
+[project.optional-dependencies]
+# Only tfbpseudo.editor needs Qt; the compiler and decompiler do not.
+editor = [
+    "pyside6>=6.11.2",
+]
+
+[project.gui-scripts]
+tfbeditor = "tfbpseudo.editor:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv.sources]
+tfbscript = { workspace = true }

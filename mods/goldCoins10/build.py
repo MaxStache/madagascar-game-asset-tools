@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from madagascar.mod import level
-from madagascar.stream import RW_StreamFile
+from madformats.mod import level
+from madformats.stream import RW_StreamFile
 
 ASSETS = Path(__file__).parent / "assets"
 

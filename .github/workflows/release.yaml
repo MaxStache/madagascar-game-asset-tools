@@ -5,7 +5,7 @@
 # pyproject.toml of each package you want to release.
 #
 # Uses PyPI trusted publishing: no token, but each PyPI project needs this repo,
-# `release.yml` and the `pypi` environment registered as a trusted publisher.
+# `release.yaml` and the `pypi` environment registered as a trusted publisher.
 
 name: Release
 

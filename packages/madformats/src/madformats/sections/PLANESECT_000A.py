@@ -29,7 +29,6 @@ class RW_PlaneSector_Struct(RW_Section):
     it collapses to picking one coordinate.
     
     REFRENCE TO: RenderWare Whitepapers - worlds.pdf
-    WRITTEN BY: Claude Opus 4.8 Extra
     """
 
     left_is_atomic: int = 0  # uint32
@@ -47,7 +46,6 @@ class RW_PlaneSector_Struct(RW_Section):
     geometry at the plane.
     
     REFRENCE TO: RenderWare Whitepapers - worlds.pdf
-    WRITTEN BY: Claude Opus 4.8 Extra
     """
 
     @classmethod

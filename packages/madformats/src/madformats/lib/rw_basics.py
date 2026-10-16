@@ -206,7 +206,6 @@ class RW_Axis_Type(IntEnum):
     /* the y-axis */.
 
     REFRENCE TO: RenderWare Whitepapers - worlds.pdf
-    WRITTEN BY: Claude Opus 4.8 Extra
     """
 
     rwPLANE_X = 0

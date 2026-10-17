@@ -61,11 +61,17 @@ class RW_TextureDictionary_Struct(RW_Section):
     def write(self, f: BinaryIO, stamp: int, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
+        # Count the parent's actual textures so a stale textureCount can't desync the file
+        if isinstance(parent, RW_TextureDictionary):
+            texture_count = len(parent.textures)
+        else:
+            texture_count = self.textureCount
+
         if library_id_unpack(stamp)[0] > 0x3600:
-            write_u16(buf, self.textureCount)
+            write_u16(buf, texture_count)
             write_u16(buf, self.deviceId.value)
         else:
-            write_u32(buf, self.textureCount)
+            write_u32(buf, texture_count)
 
         rw_header = RWHeader(
             type=RWSectionType.rwID_STRUCT.value,

@@ -1,6 +1,6 @@
 [project]
 name = "tfbscript"
-version = "0.1.1"
+version = "0.1.2"
 description = "Parser and decompiler for TFB script (.ai) files used by Madagascar - The Game (2005)"
 requires-python = ">=3.12"
 readme = "README.md"

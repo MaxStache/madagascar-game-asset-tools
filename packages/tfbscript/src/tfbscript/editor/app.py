@@ -10,7 +10,7 @@ from tfbscript.script import ScriptFile
 
 try:
     from PySide6.QtCore import Qt
-    from PySide6.QtGui import QAction, QFont, QFontDatabase, QKeySequence
+    from PySide6.QtGui import QAction, QKeySequence
     from PySide6.QtWidgets import (
         QApplication,
         QMainWindow,
@@ -23,12 +23,9 @@ try:
 except ModuleNotFoundError:
     print("WARN: PySide6 not installed, editor wont work")
 
-from .fonts import register_bold_variant
 from .search import SearchBar, SearchEntry, TreeSearch
 from .style import build_palette, Win98TreeStyle
 from .widgets import populate_tree
-
-import yaml
 
 os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "0")
 os.environ.setdefault("QT_SCALE_FACTOR", "1")
@@ -46,34 +43,11 @@ def editor_from_filepath(filepath: Path | str):
 def open_editor(script: ScriptFile):
     app = cast(QApplication, QApplication.instance()) or QApplication([])
 
-    SCRIPT_DIR = Path(__file__).resolve().parent
-
     window = QMainWindow()
     window.setWindowTitle("TFBScript Editor")
     window.resize(1200, 720)
 
     app.setStyle(Win98TreeStyle(QStyleFactory.create("Fusion")))
-
-    QFontDatabase.addApplicationFont(
-        str(Path(SCRIPT_DIR, "fonts", "ms-sans-serif", "MS Sans Serif.ttf"))
-    )
-    register_bold_variant(
-        "MS Sans Serif",
-        Path(SCRIPT_DIR, "fonts", "ms-sans-serif-bold", "MS Sans Serif Bold.ttf"),
-    )
-
-    if not Path("EDITOR.yaml").exists():
-        cfg = {"appereance": {"font": "MS Sans Serif"}}
-    else:
-        with open("EDITOR.yaml", "r") as f:
-            cfg = yaml.safe_load(f)
-
-    font_name = cfg.get("appereance", {}).get("font", "MS Sans Serif")
-
-    font = QFont(font_name)
-    font.setPixelSize(13)
-    font.setBold(True)
-    app.setFont(font)
 
     app.setPalette(build_palette())
 

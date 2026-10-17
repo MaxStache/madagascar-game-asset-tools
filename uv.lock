@@ -121,7 +121,7 @@ wheels = [
 
 [[package]]
 name = "madformats"
-version = "0.1.1"
+version = "0.1.2"
 source = { editable = "packages/madformats" }
 dependencies = [
     { name = "colorama" },
@@ -140,7 +140,7 @@ requires-dist = [
 
 [[package]]
 name = "madkit"
-version = "0.1.3"
+version = "0.1.4"
 source = { editable = "." }
 dependencies = [
     { name = "cyclopts" },
@@ -558,7 +558,7 @@ provides-extras = ["editor"]
 
 [[package]]
 name = "tfbscript"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "packages/tfbscript" }
 dependencies = [
     { name = "fonttools" },

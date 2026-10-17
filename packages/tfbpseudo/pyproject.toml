@@ -1,7 +1,7 @@
 [project]
 name = "tfbpseudo"
 description = "Compiler and decompiler for TfbPseudo, a text version of Madagascar AI scripts"
-version = "0.1.1"
+version = "0.1.2"
 requires-python = ">=3.12"
 readme = "README.md"
 license = "Apache-2.0"
@@ -14,7 +14,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "tfbscript>=0.1.0",
+    "tfbscript>=0.1.1",
 ]
 
 [project.urls]

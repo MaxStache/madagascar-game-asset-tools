@@ -26,8 +26,6 @@ try:
     from PySide6.QtGui import (
         QAction,
         QActionGroup,
-        QFont,
-        QFontDatabase,
         QKeySequence,
         QTextCursor,
         QIcon,
@@ -44,9 +42,6 @@ try:
     )
 except ModuleNotFoundError:  # pragma: no cover - the editor just cannot run
     print("WARN: PySide6 not installed, the editor wont work")
-
-import tfbscript.editor.fonts
-from tfbscript.editor.fonts import register_bold_variant
 
 from . import preferences, settings
 from .completer import Completer
@@ -757,21 +752,6 @@ def build_application(theme: Theme = DEFAULT) -> "QApplication":
     app.setStyle(QStyleFactory.create("Fusion"))
     app.setPalette(qt_palette(theme))
     app.setStyleSheet(scrollbar_style(theme))
-
-
-    fonts = Path(tfbscript.editor.fonts.__file__).resolve().parent / "fonts"
-    if fonts.exists():
-        QFontDatabase.addApplicationFont(
-            str(fonts / "ms-sans-serif" / "MS Sans Serif.ttf")
-        )
-        register_bold_variant(
-            "MS Sans Serif", fonts / "ms-sans-serif-bold" / "MS Sans Serif Bold.ttf"
-        )
-
-        font = QFont("MS Sans Serif")
-        font.setPixelSize(13)
-        font.setBold(True)
-        app.setFont(font)
 
     return app
 

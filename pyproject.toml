@@ -1,6 +1,6 @@
 [project]
 name = "madkit"
-version = "0.1.6"
+version = "0.1.7"
 description = "CLI and tools for modding Madagascar (2005)"
 requires-python = ">=3.12"
 readme = "README.md"

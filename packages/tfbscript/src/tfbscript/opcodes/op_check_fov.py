@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import BinaryIO, override
 
 from tfbscript.ansi import comparison, keyword, number
-from tfbscript.binary import write_u8
+from madformats.lib.writer import write_u8
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.opcodes.enums import CheckFOVMode, RelOp
 from tfbscript.payload import PayloadReader
@@ -40,10 +40,10 @@ class OpCheckFOV(Opcode):
 
         target_ref = reader.readRef()
 
-        range_relop = RelOp(reader.read_u8())
+        range_relop = RelOp(reader.readUint8())
         range = reader.readRHS()
 
-        checkfov_mode = CheckFOVMode(reader.read_u8())
+        checkfov_mode = CheckFOVMode(reader.readUint8())
 
         return cls(
             angle_base=angle_base,

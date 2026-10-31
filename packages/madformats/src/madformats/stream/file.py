@@ -18,13 +18,14 @@ from colorama import Fore, init
 
 init(autoreset=True)
 
+
 @dataclass
 class RW_StreamFile(StreamEditMixin, StreamLogMixin):
     contents: list[RW_StreamFunc] = field(default_factory=list)
 
-    _INTERNAL_CHECKING_VERIFIED = False
-    _INTERNAL_CHECKING_PLACEMENT_DIRTY = False
-    _INTERNAL_CHECKING_PLACEMENT_UPDATED = False
+    _INTERNAL_DID_VERFY = False
+    _INTERNAL_PLACEMENT_DIRTY = False
+    _INTERNAL_PLACEMENT_UPDATED = False
 
     @staticmethod
     def read(parser: Parser) -> "RW_StreamFile":
@@ -62,19 +63,24 @@ class RW_StreamFile(StreamEditMixin, StreamLogMixin):
 
         return cls.read(parser)
 
-        
-    def write(self, f: BinaryIO, stamp: int) -> None:
+    def toBytes(self, stamp: int) -> bytes:
         buf = io.BytesIO()
 
         for sf in self.contents:
             sf.write(buf, stamp)
 
-        f.write(buf.getvalue())
+        return buf.getvalue()
+
+    def write(self, f: BinaryIO, stamp: int) -> None:
+        f.write(self.toBytes(stamp))
 
     def save(self, filepath: str | Path) -> None:
         """WRITE WITH DEFAULT VERSION STAMP"""
-        if not self._INTERNAL_CHECKING_VERIFIED:
-            print(Fore.LIGHTRED_EX + "WARN: STREAM WAS NEVER VERIFIES, we recomment running a few quick checks by running 'level_stream.verify()' before save")
+        if not self._INTERNAL_DID_VERFY:
+            print(
+                Fore.LIGHTRED_EX
+                + "WARN: STREAM WAS NEVER VERIFIES, we recomment running a few quick checks by running 'level_stream.verify()' before save"
+            )
         with open(filepath, "wb") as f:
             self.write(f, DEFAULT_VERSION_STAMP)
             f.flush()

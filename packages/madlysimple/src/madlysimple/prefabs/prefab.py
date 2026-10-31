@@ -10,7 +10,7 @@ from madformats.streamfuncs.stringfuncs.sf_LoadEmbeddedAsset import (
 )
 from ..levelhub import LevelHub
 from ..cprotoactor import CProtoActor
-from tfbscript import ScriptFile, BinaryReader as TFBScriptBinaryReader
+from tfbscript import ScriptFile
 from colorama import init, Fore
 
 init(autoreset=True)
@@ -139,8 +139,7 @@ def add_actor_from_level_to_level(
     if actor.scriptRef:
         resolved = actor.scriptRef.resolveSoft(context)
         if resolved and isinstance(resolved, RW_sf_LoadEmbeddedAsset):
-            breader = TFBScriptBinaryReader(resolved.data, True)
-            script = ScriptFile.read(breader)
+            script = ScriptFile.read(Parser(resolved.data))
 
             for entry in script.global_refs.entries:
                 if (

@@ -7,13 +7,13 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, BinaryIO, Self, TypeVar
 
 from tfbscript.ansi import flow_control, keyword
-from tfbscript.binary import write_u32, write_u8
+from madformats.lib.writer import write_u32, write_u8
 from tfbscript.debug import DebugStore
 from tfbscript.payload import PayloadReader
 from tfbscript.string_table import StringTable
 
 if TYPE_CHECKING:
-    from tfbscript.binary import BinaryReader
+    from madformats.lib.parser import Parser
 
 
 @dataclass
@@ -148,7 +148,7 @@ class Opcode:
     @classmethod
     def read(
         cls,
-        reader: "BinaryReader",
+        reader: "Parser",
         context: ParserContext,
         debug_store: DebugStore | None = None,
         debugOptions: dict[str, bool | int] | None = None,
@@ -164,9 +164,9 @@ class Opcode:
         if debugOptions is None:
             debugOptions = {}
 
-        opcode_index = reader.read_u8()
-        flags = InstructionFlags.decode(reader.read_u32())
-        payload_size = reader.read_u8()
+        opcode_index = reader.readUint8()
+        flags = InstructionFlags.decode(reader.readUint32())
+        payload_size = reader.readUint8()
 
         behavior_entry = None
 
@@ -199,23 +199,22 @@ class Opcode:
                     debug_store.unresolved_ops.add(opcode_name)
                 opcode_class = Opcode
 
-        raw_payload = reader.read_bytes(payload_size)
+        raw_payload = reader.readBytes(payload_size)
         payload_reader = PayloadReader(
             raw_payload,
             context.global_refs,
             context.local_refs,
-            little_endian=True,
             context=context,
         )
 
         try:
             instruction = opcode_class.parse_payload(payload_reader)
 
-            if payload_reader.size_remaining() > 0 and opcode_class is not Opcode:
+            if payload_reader.remaining() > 0 and opcode_class is not Opcode:
                 print(
                     f"Warning: {opcode_class.__name__} did not consume all payload bytes "
                     + f"(opcode index {opcode_index}, name {opcode_name if opcode_name else 'control block'}): "
-                    + f"{payload_reader.size_remaining()} bytes remaining, "
+                    + f"{payload_reader.remaining()} bytes remaining, "
                     + f"{payload_reader.offset} bytes read "
                     + f"-> {payload_reader.offset}/{len(payload_reader.data)} bytes read",
                     file=sys.stderr,
@@ -227,7 +226,7 @@ class Opcode:
                     raise ValueError(
                         f"Opcode {opcode_class.__name__} did not consume all payload bytes "
                         + f"(opcode index {opcode_index}, name {opcode_name if opcode_name else 'control block'}): "
-                        + f"{payload_reader.size_remaining()} bytes remaining, "
+                        + f"{payload_reader.remaining()} bytes remaining, "
                         + f"{payload_reader.offset} bytes read "
                         + f"-> {payload_reader.offset}/{len(payload_reader.data)} bytes read"
                     )
@@ -288,7 +287,7 @@ class Opcode:
     def parse_payload(cls, reader: PayloadReader) -> Self:
         """Parse this opcode's payload. Override in subclasses; the base
         implementation is the generic fallback and parses nothing."""
-        reader.read_bytes(reader.size_remaining())  # consume all remaining bytes
+        reader.readBytes(reader.remaining())  # consume all remaining bytes
         if cls is not Opcode:
             print(
                 f"Warning: parse_payload not implemented for {cls.__name__}. "

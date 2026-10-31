@@ -4,10 +4,10 @@ import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, BinaryIO
 
-from tfbscript.binary import write_u32, write_u8
+from madformats.lib.writer import write_u32, write_u8
 
 if TYPE_CHECKING:
-    from tfbscript.binary import BinaryReader
+    from madformats.lib.parser import Parser
 
 
 @dataclass
@@ -42,10 +42,10 @@ class StringTableEntry:
         self._split_myself()
 
     @classmethod
-    def read(cls, reader: "BinaryReader") -> "StringTableEntry":
-        length = reader.read_u8()
-        string = reader.read_string(length)
-        metadata = reader.read_bytes(4)
+    def read(cls, reader: "Parser") -> "StringTableEntry":
+        length = reader.readUint8()
+        string = reader.readString(length)
+        metadata = reader.readBytes(4)
 
         return cls(string, metadata)
 
@@ -71,8 +71,8 @@ class StringTable:
     entries: list[StringTableEntry] = field(default_factory=list)
 
     @classmethod
-    def read(cls, reader: "BinaryReader") -> "StringTable":
-        count = reader.read_u32()
+    def read(cls, reader: "Parser") -> "StringTable":
+        count = reader.readUint32()
         return cls([StringTableEntry.read(reader) for _ in range(count)])
 
     def write(self, f: BinaryIO) -> None:

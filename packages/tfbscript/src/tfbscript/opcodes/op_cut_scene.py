@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Any, BinaryIO, override
 
 from tfbscript.ansi import func_call
-from tfbscript.binary import write_u8
+from madformats.lib.writer import write_u8
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.opcodes.enums import CutsceneCommand
 from tfbscript.payload import PayloadReader
@@ -15,7 +15,7 @@ class OpCutScene(Opcode):
     @classmethod
     @override
     def parse_payload(cls, reader: PayloadReader) -> "OpCutScene":
-        cutscene_cmd = CutsceneCommand(reader.read_u8())
+        cutscene_cmd = CutsceneCommand(reader.readUint8())
         return cls(cutscene_command=cutscene_cmd)
 
     @override

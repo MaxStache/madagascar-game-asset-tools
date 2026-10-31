@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import BinaryIO, override
 
 from tfbscript.ansi import func_call
-from tfbscript.binary import write_u8
+from madformats.lib.writer import write_u8
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.opcodes.enums import AnimationMapping
 from tfbscript.payload import PayloadReader
@@ -22,7 +22,7 @@ class OpMoveFrom(Opcode):
     def parse_payload(cls, reader: PayloadReader) -> "OpMoveFrom":
         return cls(
             target_ref=reader.readRef(),
-            with_anim=AnimationMapping(reader.read_u8()),
+            with_anim=AnimationMapping(reader.readUint8()),
             until_beyond=reader.readRHS(),
         )
 

@@ -6,7 +6,7 @@ from tfbscript.ansi import (
     func_call,
     variable,
 )
-from tfbscript.binary import write_u8
+from madformats.lib.writer import write_u8
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.opcodes.enums import RelOp
 from tfbscript.payload import PayloadReader
@@ -27,7 +27,7 @@ class OpFindSubset(Opcode):
     @override
     def parse_payload(cls, reader: PayloadReader) -> "OpFindSubset":
         set_ref = reader.readRef()
-        rel_op = RelOp(reader.read_u8())
+        rel_op = RelOp(reader.readUint8())
         rhs = reader.readRHS()
         return cls(set_ref=set_ref, rel_op=rel_op, rhs=rhs)
 

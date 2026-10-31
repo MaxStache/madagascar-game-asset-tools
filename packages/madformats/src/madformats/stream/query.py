@@ -138,6 +138,11 @@ class StreamQueryMixin:
         """Every sf_LoadEmbeddedAsset record, in stream order."""
         return list(self._assetsWhere())
 
+    def scripts(self) -> list[RW_sf_LoadEmbeddedAsset]:
+        """Every SCRIPT asset, in stream order."""
+        return list(self._assetsWhere(assetType="SCRIPT"))
+
+
     def assetsByName(self, name: str) -> list[RW_sf_LoadEmbeddedAsset]:
         """Every sf_LoadEmbeddedAsset record with a specific name, in stream order."""
         return list(self._assetsWhere(name=name))

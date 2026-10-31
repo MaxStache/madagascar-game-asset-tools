@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import BinaryIO, override
 
 from tfbscript.ansi import comparison, keyword
-from tfbscript.binary import write_u8
+from madformats.lib.writer import write_u8
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.opcodes.enums import MembershipTest
 from tfbscript.payload import PayloadReader
@@ -20,7 +20,7 @@ class OpCheckMembership(Opcode):
     @override
     def parse_payload(cls, reader: PayloadReader) -> "OpCheckMembership":
         ref1 = reader.readRef()
-        membershipTest = MembershipTest(reader.read_u8())
+        membershipTest = MembershipTest(reader.readUint8())
         ref2 = reader.readRef()
         return cls(ref1=ref1, membershipTest=membershipTest, ref2=ref2)
 

@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Any, BinaryIO, override
 
 from tfbscript.ansi import comparison, keyword
-from tfbscript.binary import write_u8
+from madformats.lib.writer import write_u8
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.opcodes.enums import RelOp
 from tfbscript.payload import PayloadReader
@@ -21,7 +21,7 @@ class OpCheckValue(Opcode):
     @override
     def parse_payload(cls, reader: PayloadReader) -> "OpCheckValue":
         lhs = reader.readRef()
-        rel_op = RelOp(reader.read_u8())
+        rel_op = RelOp(reader.readUint8())
         rhs = reader.readRHS()
         return cls(lhs=lhs, rel_op=rel_op, rhs=rhs)
 

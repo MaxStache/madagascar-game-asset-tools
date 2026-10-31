@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Any, BinaryIO, override
 
 from tfbscript.ansi import func_call, method, parentheses
-from tfbscript.binary import write_u8
+from madformats.lib.writer import write_u8
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.opcodes.enums import AnimationMapping
 from tfbscript.payload import PayloadReader
@@ -16,7 +16,7 @@ class OpPlayAnimation(Opcode):
     @classmethod
     @override
     def parse_payload(cls, reader: PayloadReader) -> "OpPlayAnimation":
-        return cls(animation=AnimationMapping(reader.read_u8()))
+        return cls(animation=AnimationMapping(reader.readUint8()))
 
     @override
     def source_line(self, inline: bool = False) -> str:

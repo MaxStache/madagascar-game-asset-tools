@@ -4,8 +4,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import BinaryIO
 
+from madformats.lib.parser import Parser
+from madformats.lib.writer import write_u32, write_u8
 from tfbscript import ansi
-from tfbscript.binary import BinaryReader, write_u32, write_u8
 from tfbscript.arena import arena_dwords
 from tfbscript.debug import DebugStore
 from tfbscript.opcodes import Opcode, ParserContext
@@ -31,7 +32,7 @@ class ScriptFile:
 
     @classmethod
     def read(
-        cls, reader: BinaryReader, debugOptions: dict[str, bool | int] | None = None
+        cls, reader: Parser, debugOptions: dict[str, bool | int] | None = None
     ) -> "ScriptFile":
         """Read a ScriptFile from a binary reader."""
 
@@ -40,15 +41,15 @@ class ScriptFile:
 
         debug_store: DebugStore = DebugStore()
 
-        magic_string = reader.read_string(reader.read_u8())
+        magic_string = reader.readString(reader.readUint8())
         #print(magic_string)
-        unk = reader.read_bytes(4)
+        unk = reader.readBytes(4)
 
         opcode_table = StringTable.read(reader)
         global_refs = StringTable.read(reader)
         local_refs = StringTable.read(reader)
 
-        instruction_count = reader.read_u32()
+        instruction_count = reader.readUint32()
         context = ParserContext(opcode_table, global_refs, local_refs)
 
         instructions: list[Opcode] = []
@@ -121,9 +122,7 @@ class ScriptFile:
 
         data = Path(path).read_bytes()
 
-        script = cls.read(
-            BinaryReader(data, little_endian=True), debugOptions=debugOptions
-        )
+        script = cls.read(Parser(data), debugOptions=debugOptions)
         script._file_path = Path(path)
         return script
 

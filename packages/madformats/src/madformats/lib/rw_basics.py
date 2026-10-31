@@ -5,7 +5,11 @@ from dataclasses import dataclass, field
 from typing import Any, BinaryIO, override
 
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import DEFAULT_VERSION_STAMP, RWSectionType, strfunc_func
+from madformats.lib.rwConstants import (
+    DEFAULT_VERSION_STAMP,
+    RWSectionType,
+    strfunc_func,
+)
 
 
 def write_u8(f: BinaryIO, v: int):
@@ -255,6 +259,9 @@ class Vector4:
         write_f32(f, self.z)
         write_f32(f, self.w)
 
+    def __iter__(self):
+        return iter((self.x, self.y, self.z, self.w))
+
 
 @dataclass()
 class RWColor32:
@@ -481,6 +488,9 @@ class RW_Matrix4x4:
         buf = io.BytesIO()
         self.write(buf)
         return buf.getvalue()
+
+    def __iter__(self):
+        return iter((self.row1, self.row2, self.row3, self.row4))
 
 
 def expect_chunk_type_or_raise(

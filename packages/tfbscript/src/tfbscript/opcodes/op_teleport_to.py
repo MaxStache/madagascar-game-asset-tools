@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import BinaryIO, override
 
 from tfbscript.ansi import func_call
-from tfbscript.binary import write_u8
+from madformats.lib.writer import write_u8
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.opcodes.enums import SetDirection
 from tfbscript.payload import PayloadReader
@@ -24,7 +24,7 @@ class OpTeleportTo(Opcode):
     def parse_payload(cls, reader: PayloadReader) -> "OpTeleportTo":
         return cls(
             target_ref=reader.readRef(),
-            set_direction=SetDirection(reader.read_u8()),
+            set_direction=SetDirection(reader.readUint8()),
             facing=reader.readRHS(),
             duration=reader.readRHS(),
         )

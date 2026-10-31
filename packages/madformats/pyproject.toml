@@ -1,7 +1,7 @@
 [project]
 name = "madformats"
 description = "Modding and file tools for - Madagascar the game, 2005 -"
-version = "0.1.2"
+version = "0.1.3"
 requires-python = ">=3.12"
 readme = "README.md"
 license = "Apache-2.0"
@@ -18,11 +18,15 @@ dependencies = [
     "numpy>=2.5.1",
     "pillow>=12.3.0",
     "pymemoryeditor>=2.1.0",
+    "tfbscript>=0.1.3",
 ]
 
 [project.urls]
 Repository = "https://github.com/MaxStache/madagascar-game-asset-tools"
 Issues = "https://github.com/MaxStache/madagascar-game-asset-tools/issues"
+
+[tool.uv.sources]
+tfbscript = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

@@ -1,6 +1,5 @@
 """Parser and decompiler for TFB script (.ai) files."""
 
-from tfbscript.binary import BinaryReader
 from tfbscript.payload import PayloadReader
 from tfbscript.reference import Reference
 from tfbscript.rhs import Rhs
@@ -24,7 +23,6 @@ def __getattr__(name: str):
 
 
 __all__ = [
-    "BinaryReader",
     "PayloadReader",
     "Reference",
     "Rhs",

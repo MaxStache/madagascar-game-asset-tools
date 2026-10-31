@@ -121,13 +121,14 @@ wheels = [
 
 [[package]]
 name = "madformats"
-version = "0.1.2"
+version = "0.1.3"
 source = { editable = "packages/madformats" }
 dependencies = [
     { name = "colorama" },
     { name = "numpy" },
     { name = "pillow" },
     { name = "pymemoryeditor" },
+    { name = "tfbscript" },
 ]
 
 [package.metadata]
@@ -136,11 +137,12 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.5.1" },
     { name = "pillow", specifier = ">=12.3.0" },
     { name = "pymemoryeditor", specifier = ">=2.1.0" },
+    { name = "tfbscript", editable = "packages/tfbscript" },
 ]
 
 [[package]]
 name = "madkit"
-version = "0.1.5"
+version = "0.1.6"
 source = { editable = "." }
 dependencies = [
     { name = "cyclopts" },
@@ -183,7 +185,7 @@ dev = [{ name = "pytest", specifier = ">=9.1.1" }]
 
 [[package]]
 name = "madlysimple"
-version = "0.1.2"
+version = "0.1.3"
 source = { editable = "packages/madlysimple" }
 dependencies = [
     { name = "colorama" },
@@ -558,10 +560,11 @@ provides-extras = ["editor"]
 
 [[package]]
 name = "tfbscript"
-version = "0.1.2"
+version = "0.1.3"
 source = { editable = "packages/tfbscript" }
 dependencies = [
     { name = "fonttools" },
+    { name = "madformats" },
     { name = "pyside6" },
     { name = "pyyaml" },
 ]
@@ -569,6 +572,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fonttools", specifier = ">=4.63.0" },
+    { name = "madformats", editable = "packages/madformats" },
     { name = "pyside6", specifier = ">=6.11.1" },
     { name = "pyyaml", specifier = ">=6.0.3" },
 ]

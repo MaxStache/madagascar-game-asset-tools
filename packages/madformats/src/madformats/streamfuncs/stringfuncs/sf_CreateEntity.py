@@ -597,24 +597,33 @@ class RW_sf_CreateEntity(RW_StreamFunc):
         self.entityID = uuid.uuid4()
 
     def tfbSetName(self, name: str):
-        self.getAttribute("CTFBCommand", 0x0).setString(name)
+        self.getAttributeOrCreate("CTFBCommand", 0x0).setString(name)
 
         if self.behaviour == "CTFBModel":
-            self.getAttribute("CTFBModel", 0x0).setString(name)
+            self.getAttributeOrCreate("CTFBModel", 0x0).setString(name)
         elif self.behaviour == "CProtoActor":
-            self.getAttribute("CProtoActor", 0x0).setString(name)
+            self.getAttributeOrCreate("CProtoActor", 0x0).setString(name)
         elif self.behaviour == "SpriteObject":
-            self.getAttribute("SpriteObject", 0x0).setString(name)
+            self.getAttributeOrCreate("SpriteObject", 0x0).setString(name)
         elif self.behaviour == "CTFBSound":
-            self.getAttribute("CTFBSound", 0x0).setString(name)
+            self.getAttributeOrCreate("CTFBSound", 0x0).setString(name)
         elif self.behaviour == "CameraData":
-            self.getAttribute("CameraData", 0x0).setString(name)
+            self.getAttributeOrCreate("CameraData", 0x0).setString(name)
 
     def tfbGetName(self) -> str | None:
         """Get object name from CTFBCommand"""
         attr = self.getAttributeSoft("CTFBCommand", 0x0)
         if attr is None:
             return None
+
+        data = attr.data.replace(b"\xbf", b"").rstrip(b"\x00")
+        return data.decode("latin1")
+
+    def getDisplayName(self) -> str:
+        """Get a MEANT FOR DISPLAY name"""
+        attr = self.getAttributeSoft("CTFBCommand", 0x0)
+        if attr is None:
+            return f"ID-{self.entityID}"
 
         data = attr.data.replace(b"\xbf", b"").rstrip(b"\x00")
         return data.decode("latin1")

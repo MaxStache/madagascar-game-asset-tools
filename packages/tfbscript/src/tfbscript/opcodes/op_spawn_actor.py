@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Any, BinaryIO, override
 
 from tfbscript.ansi import keyword
-from tfbscript.binary import write_u8
+from madformats.lib.writer import write_u8
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.payload import PayloadReader
 from tfbscript.reference import Reference
@@ -26,12 +26,12 @@ class OpSpawnActor(Opcode):
         at_ref = reader.readRef()
         facing_rhs = reader.readRHS()
 
-        if reader.size_remaining() > 0:
+        if reader.remaining() > 0:
             return cls(
                 clone_ref=clone_ref,
                 at_ref=at_ref,
                 facing_rhs=facing_rhs,
-                remaining=reader.read_u8(),
+                remaining=reader.readUint8(),
             )
         return cls(clone_ref=clone_ref, at_ref=at_ref, facing_rhs=facing_rhs)
 

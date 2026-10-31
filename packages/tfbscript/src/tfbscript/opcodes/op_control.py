@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Any, BinaryIO, override
 
 from tfbscript.ansi import keyword
-from tfbscript.binary import write_u8
+from madformats.lib.writer import write_u8
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.opcodes.enums import ControlRequirement
 from tfbscript.payload import PayloadReader
@@ -32,10 +32,10 @@ class OpControl(Opcode):
         target = reader.readRef()
 
         script_control = ControlRequirement.Allow
-        has_script_control = reader.size_remaining() >= 1
+        has_script_control = reader.remaining() >= 1
 
         if has_script_control:
-            script_control = ControlRequirement(reader.read_u8())
+            script_control = ControlRequirement(reader.readUint8())
 
         return cls(
             target=target,

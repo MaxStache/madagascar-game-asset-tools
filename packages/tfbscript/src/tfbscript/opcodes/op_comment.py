@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Any, BinaryIO, override
 
 from tfbscript.ansi import comment
-from tfbscript.binary import write_u8
+from madformats.lib.writer import write_u8
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.payload import PayloadReader
 
@@ -15,7 +15,7 @@ class OpComment(Opcode):
     @classmethod
     @override
     def parse_payload(cls, reader: PayloadReader) -> "OpComment":
-        content = reader.read_string(reader.read_u8())
+        content = reader.readString(reader.readUint8())
         return cls(content=content)
 
     @override

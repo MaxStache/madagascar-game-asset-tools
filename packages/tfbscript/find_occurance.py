@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from tfbscript.binary import BinaryReader
+from madformats.lib.parser import Parser
 from tfbscript.string_table import StringTable
 
 folder = Path("example_scripts/kony")
@@ -10,10 +10,10 @@ OP_CODE = "cut-scene"
 
 def check_occurance(file: Path):
     with open(file, "rb") as f:
-        reader = BinaryReader(f.read())
+        reader = Parser(f.read())
 
-        _magic_string = reader.read_string(reader.read_u8())
-        _unk = reader.read_bytes(4)
+        _magic_string = reader.readString(reader.readUint8())
+        _unk = reader.readBytes(4)
 
         opcode_table = StringTable.read(reader)
         _global_refs = StringTable.read(reader)
@@ -24,12 +24,12 @@ def check_occurance(file: Path):
         #        print(file)
         #        print("DKWOAHDIUAWOHDIOWA")
 
-        instruction_count = reader.read_u32()
+        instruction_count = reader.readUint32()
         occurance_count = 0
         for _ in range(instruction_count):
-            op_idx = reader.read_u8()
+            op_idx = reader.readUint8()
             reader.skip(4)
-            reader.skip(reader.read_u8())
+            reader.skip(reader.readUint8())
             if op_idx == 0xFF:
                 continue
             else:

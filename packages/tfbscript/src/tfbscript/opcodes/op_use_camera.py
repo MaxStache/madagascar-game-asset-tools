@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import BinaryIO, override
 
 from tfbscript.ansi import func_call
-from tfbscript.binary import write_f32, write_u8
+from madformats.lib.writer import write_f32, write_u8
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.opcodes.enums import CamTransitionInMode, CamTransitionOutMode
 from tfbscript.payload import PayloadReader
@@ -27,14 +27,14 @@ class OpUseCamera(Opcode):
     def parse_payload(cls, reader: PayloadReader) -> "OpUseCamera":
         camera_ref = reader.readRef()
 
-        trans_in_mode = CamTransitionInMode(reader.read_u8())
-        trans_in_duration = reader.read_f32()
+        trans_in_mode = CamTransitionInMode(reader.readUint8())
+        trans_in_duration = reader.readFloat()
 
-        trans_out_mode = CamTransitionOutMode(reader.read_u8())
+        trans_out_mode = CamTransitionOutMode(reader.readUint8())
 
         trans_out_duration = None
         if trans_out_mode != CamTransitionOutMode.no_transition:
-            trans_out_duration = reader.read_f32()
+            trans_out_duration = reader.readFloat()
 
         return cls(
             camera_ref=camera_ref,

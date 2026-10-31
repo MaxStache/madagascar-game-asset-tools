@@ -11,5 +11,6 @@ def main() -> None:
     #from .commands import txd_add_texture  # type: ignore # noqa: F401
     from .commands import mod  # type: ignore # noqa: F401
     from .commands import config  # type: ignore # noqa: F401
+    from .commands import upgrade  # type: ignore # noqa: F401
 
     app()

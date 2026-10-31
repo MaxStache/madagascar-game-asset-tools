@@ -4,11 +4,11 @@ from enum import Enum
 from typing import TYPE_CHECKING, BinaryIO, TypeVar, override
 
 from tfbscript.ansi import builtin, keyword, variable, variable_global
-from tfbscript.binary import write_u32
+from madformats.lib.writer import write_u32
 from tfbscript.string_table import StringTable, StringTableEntry
 
 if TYPE_CHECKING:
-    from tfbscript.binary import BinaryReader
+    from madformats.lib.parser import Parser
     from tfbscript.opcodes.base import Opcode, ParserContext
 
 _OpcodeT = TypeVar("_OpcodeT", bound="Opcode")
@@ -567,7 +567,7 @@ class Reference:
     @classmethod
     def read(
         cls,
-        reader: "BinaryReader",
+        reader: "Parser",
         global_refs: StringTable,
         local_refs: StringTable,
         context: "ParserContext | None" = None,
@@ -575,7 +575,7 @@ class Reference:
         """Parse a 4-byte TFB-Script variable reference.
 
         Args:
-            reader: BinaryReader positioned at the reference.
+            reader: Parser positioned at the reference.
             global_refs: the script's 2nd string table (globals) for name resolution.
             local_refs: the script's 3rd string table (locals) for name resolution.
             context: the script's parser context, used to resolve the type of
@@ -583,10 +583,10 @@ class Reference:
         Returns:
             A Reference with the decoded bit-fields and a resolved `name`.
         """
-        if reader.size_remaining() < 4:
+        if reader.remaining() < 4:
             raise ValueError("a reference is 4 bytes, not enough bytes remaining")
 
-        raw = reader.read_u32()
+        raw = reader.readUint32()
         fields = {
             "raw": raw,
             "index": raw >> 0xE,

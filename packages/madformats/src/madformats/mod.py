@@ -20,7 +20,7 @@ from typing import Any
 
 type LevelFunc = Callable[..., Any]
 
-_REGISTRY: list[tuple[tuple[str, ...], LevelFunc]] = []
+_REGISTRY: list[tuple[tuple[str, ...], LevelFunc]] = []  # [ ( names, func) ]
 
 
 def level(*names: str) -> Callable[[LevelFunc], LevelFunc]:
@@ -37,14 +37,21 @@ def level(*names: str) -> Callable[[LevelFunc], LevelFunc]:
 
     return decorator
 
-
 def collect(build_py: Path) -> list[tuple[tuple[str, ...], LevelFunc]]:
     """Import a mod's build.py and return its ``@level`` entries in run order."""
+
     _REGISTRY.clear()
-    spec = importlib.util.spec_from_file_location(f"_mod_{build_py.parent.name}", build_py)
+
+    spec = importlib.util.spec_from_file_location(
+        f"_mod_{build_py.parent.name}", build_py
+    )
     if spec is None or spec.loader is None:
         raise ImportError(f"Cannot load {build_py}")
+
     spec.loader.exec_module(importlib.util.module_from_spec(spec))
+
     entries = list(_REGISTRY)
+    
     _REGISTRY.clear()
+
     return entries

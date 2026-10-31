@@ -4,7 +4,7 @@ from typing import override
 from typing import BinaryIO
 
 from tfbscript.ansi import func_call
-from tfbscript.binary import write_u32
+from madformats.lib.writer import write_u32
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.payload import PayloadReader
 from tfbscript.reference import Reference
@@ -39,20 +39,20 @@ class OpSlideValue(Opcode):
         interpolation_time = reader.readRHS()
 
         # Normally exactly 8 bytes remain.
-        if reader.size_remaining() >= 8:
+        if reader.remaining() >= 8:
             return cls(
                 lhs=lhs,
                 target_value=target_value,
                 interpolation_time=interpolation_time,
-                ease_out=reader.read_u32(),
-                ease_in=reader.read_u32(),
+                ease_out=reader.readUint32(),
+                ease_in=reader.readUint32(),
             )
 
         return cls(
             lhs=lhs,
             target_value=target_value,
             interpolation_time=interpolation_time,
-            _trailing=reader.read_bytes(reader.size_remaining()),
+            _trailing=reader.readBytes(reader.remaining()),
         )
 
     @override

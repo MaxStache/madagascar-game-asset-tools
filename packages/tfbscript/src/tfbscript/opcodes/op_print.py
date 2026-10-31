@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Any, BinaryIO, override
 
 from tfbscript.ansi import func_call, quoted_string
-from tfbscript.binary import write_u8
+from madformats.lib.writer import write_u8
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.payload import PayloadReader
 from tfbscript.reference import Reference
@@ -18,7 +18,7 @@ class OpPrint(Opcode):
     @override
     def parse_payload(cls, reader: PayloadReader) -> "OpPrint":
         target = reader.readRef()
-        content = reader.read_string(reader.read_u8())
+        content = reader.readString(reader.readUint8())
         return cls(target=target, content=content)
 
     @override

@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING
 
-from tfbscript.binary import BinaryReader
+from madformats.lib.parser import Parser
 from tfbscript.reference import Reference
 from tfbscript.rhs import Rhs
 from tfbscript.string_table import StringTable
@@ -11,8 +11,8 @@ if TYPE_CHECKING:
     from tfbscript.opcodes.base import ParserContext
 
 
-class PayloadReader(BinaryReader):
-    """A BinaryReader over one opcode payload.
+class PayloadReader(Parser):
+    """A Parser over one opcode payload.
 
     Also carries the script's global/local reference tables so payload parsers
     can read References and RHS operands without threading the tables through.
@@ -23,10 +23,10 @@ class PayloadReader(BinaryReader):
         data: bytes,
         global_refs: StringTable,
         local_refs: StringTable,
-        little_endian: bool = True,
+        endian: str = "little",
         context: "ParserContext | None" = None,
     ):
-        super().__init__(data, little_endian)
+        super().__init__(data, endian)
         self.global_refs = global_refs
         self.local_refs = local_refs
         self.context = context

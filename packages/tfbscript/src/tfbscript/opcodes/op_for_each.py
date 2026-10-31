@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Any, BinaryIO, override
 
 from tfbscript.ansi import keyword
-from tfbscript.binary import write_u8
+from madformats.lib.writer import write_u8
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.opcodes.enums import SetDirection
 from tfbscript.payload import PayloadReader
@@ -23,7 +23,7 @@ class OpForEach(Opcode):
     def parse_payload(cls, reader: PayloadReader) -> "OpForEach":
         return cls(
             set_ref=reader.readRef(),
-            set_direction=SetDirection(reader.read_u8()),
+            set_direction=SetDirection(reader.readUint8()),
         )
 
     @override

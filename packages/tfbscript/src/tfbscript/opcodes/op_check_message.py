@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import BinaryIO, override
 
 from tfbscript.ansi import keyword
-from tfbscript.binary import write_u8
+from madformats.lib.writer import write_u8
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.opcodes.enums import RelOp
 from tfbscript.payload import PayloadReader
@@ -42,10 +42,10 @@ class OpCheckMessage(Opcode):
         # Ref: 4b
         # RelOp: 1b
         # Rhs: min. 5b
-        if reader.size_remaining() >= 4 + 1 + 5:
+        if reader.remaining() >= 4 + 1 + 5:
             sender_ref = reader.readRef()
 
-            rel_op = RelOp(reader.read_u8())
+            rel_op = RelOp(reader.readUint8())
             value = reader.readRHS()
 
             return cls(

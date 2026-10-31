@@ -5,12 +5,12 @@ from enum import IntEnum
 from typing import TYPE_CHECKING, BinaryIO, cast, override
 
 from tfbscript.ansi import number, operator, rgb_square, type_
-from tfbscript.binary import write_f32, write_i16, write_rgba, write_s32, write_u8
+from madformats.lib.writer import write_f32, write_i16, write_rgba, write_s32, write_u8
 from tfbscript.reference import Reference
 from tfbscript.string_table import StringTable
 
 if TYPE_CHECKING:
-    from tfbscript.binary import BinaryReader
+    from madformats.lib.parser import Parser
     from tfbscript.opcodes.base import ParserContext
 
 _OPERATORS = {
@@ -45,7 +45,7 @@ class Rhs:
     @classmethod
     def read(
         cls,
-        reader: "BinaryReader",
+        reader: "Parser",
         global_refs: StringTable,
         local_refs: StringTable,
         context: "ParserContext | None" = None,
@@ -53,7 +53,7 @@ class Rhs:
         """Parse a 5-11 byte TFB-Script RHS.
 
         Args:
-            reader: BinaryReader positioned at the RHS.
+            reader: Parser positioned at the RHS.
             global_refs: the script's 2nd string table (globals) for name resolution.
             local_refs: the script's 3rd string table (locals) for name resolution.
             context: the script's parser context, threaded through to any
@@ -108,8 +108,8 @@ class Rhs:
         # and every round-trip mismatch attributable to opcodes with no
         # write_payload).
 
-        available = reader.size_remaining()
-        tag = reader.read_u8()
+        available = reader.remaining()
+        tag = reader.readUint8()
 
         # Reference, optionally extended to an expression by an operator tail.
         if tag == 0x02:
@@ -118,7 +118,7 @@ class Rhs:
             if available < 11 or not cls._tail_follows(reader):
                 return cls(tag, "reference", ref)
 
-            op = reader.read_u8()
+            op = reader.readUint8()
             # The tail's second operand is a plain TERM, never another
             # expression: Game.exe's readRHS reads it with a single
             # FUN_004346f0 (reference, 0043fe27) or one constant reader, and
@@ -133,7 +133,7 @@ class Rhs:
         return cls._read_term_body(reader, tag, global_refs, local_refs, context)
 
     @staticmethod
-    def _tail_follows(reader: "BinaryReader") -> bool:
+    def _tail_follows(reader: "Parser") -> bool:
         """Whether an operator + second term really follows the reference just read.
 
         The remaining-bytes test alone is not enough: an opcode that has more
@@ -154,7 +154,7 @@ class Rhs:
         one; the only 7 exceptions had 0x10 there -- a float tag from the
         *following* field, i.e. precisely the over-read this rejects.
         """
-        if reader.size_remaining() < 6:
+        if reader.remaining() < 6:
             return False
 
         op = reader.data[reader.offset]
@@ -169,14 +169,14 @@ class Rhs:
     @classmethod
     def _read_term(
         cls,
-        reader: "BinaryReader",
+        reader: "Parser",
         global_refs: StringTable,
         local_refs: StringTable,
         context: "ParserContext | None" = None,
     ) -> "Rhs":
         """Read one operand of an expression: a tag plus its value, with no
         operator tail. Used for the second operand only."""
-        tag = reader.read_u8()
+        tag = reader.readUint8()
 
         if tag == 0x02:
             ref = Reference.read(reader, global_refs, local_refs, context)
@@ -187,7 +187,7 @@ class Rhs:
     @classmethod
     def _read_term_body(
         cls,
-        reader: "BinaryReader",
+        reader: "Parser",
         tag: int,
         global_refs: StringTable,
         local_refs: StringTable,
@@ -210,21 +210,22 @@ class Rhs:
 
         # Integer
         if (tag & 0xF0) == 0x00:
-            return cls(tag, "int", reader.read_i32())
+            return cls(tag, "int", reader.readInt32())
 
         # Float (0x80 is the engine's "indirect float", normalized to 0x10 by
         # the reader; it takes the same 4-byte float payload).
         if (tag & 0xF0) in (0x10, 0x80):
-            value = round(reader.read_f32(), 7)  # round for display
+            value = round(reader.readFloat(), 7)  # round for display
             return cls(tag, "float", value)
 
         # RGBA color
         if (tag & 0xF0) == 0x20:
-            return cls(tag, "color", reader.read_rgba())
+            rgba = (reader.readUint8(), reader.readUint8(), reader.readUint8(), reader.readUint8())
+            return cls(tag, "color", rgba)
 
         # int16 pair
         if (tag & 0xF0) == 0x30:
-            return cls(tag, "pair", (reader.read_i16(), reader.read_i16()))
+            return cls(tag, "pair", (reader.readInt16(), reader.readInt16()))
 
         raise ValueError(f"Unknown RHS tag 0x{tag:02X}")
 

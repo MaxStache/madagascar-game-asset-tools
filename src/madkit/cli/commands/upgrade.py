@@ -55,13 +55,15 @@ def _upgrade_command(packages: list[str]) -> list[str]:
 
 
 @app.command
-def upgrade(dry_run: bool = False):
+def upgrade(dry_run: bool = False, verbose: bool = False):
     """Upgrade all installed madkit packages using the package manager they were installed with.
 
     Parameters
     ----------
     dry_run : bool
         Only print the command that would be run.
+    verbose : bool
+        Show the package manager's output.
     """
     before = _installed_versions()
 
@@ -79,8 +81,19 @@ def upgrade(dry_run: bool = False):
     if dry_run:
         return
 
-    result = subprocess.run(command, check=False)
+    if verbose:
+        result = subprocess.run(command, check=False)
+    else:
+        result = subprocess.run(
+            command,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
     if result.returncode != 0:
+        if not verbose:
+            print(result.stdout, end="")
         raise SystemExit(result.returncode)
 
     after = _installed_versions()

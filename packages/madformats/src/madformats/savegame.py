@@ -2,10 +2,8 @@ from __future__ import annotations
 
 import struct
 import zlib
-from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
-
 from typing import override
 
 from madformats.stream import load_stream
@@ -14,24 +12,24 @@ from madformats.streamfuncs import RW_sf_CreateEntity
 __version__ = "1.2.0"
 
 __all__ = [
+    "Declaration",
+    "Entry",
     "SaveError",
     "SaveFile",
     "Slot",
-    "Entry",
-    "Declaration",
-    "read_save",
-    "write_save",
-    "roundtrip_ok",
-    "tfb_hash",
-    "entry_id",
-    "build_catalog",
-    "read_declarations",
-    "saved_declarations",
-    "payload_checksum",
     "bit_get",
-    "bit_set",
-    "set_bits",
     "bit_runs",
+    "bit_set",
+    "build_catalog",
+    "entry_id",
+    "payload_checksum",
+    "read_declarations",
+    "read_save",
+    "roundtrip_ok",
+    "saved_declarations",
+    "set_bits",
+    "tfb_hash",
+    "write_save",
 ]
 
 SLOT_COUNT = 4
@@ -67,7 +65,7 @@ ENGINE_GLOBALS: tuple[tuple[str, str], ...] = (
     ("effects volume", "value"),
     ("music volume", "value"),
     ("rumble disabled", "value"),
-    ("Global Placement Removed", "user"),   # the blob
+    ("Global Placement Removed", "user"),  # the blob
     ("Next Level Auto Load", "value"),
     ("Game Running Time", "value"),
 )
@@ -89,7 +87,8 @@ def _fold_case(data: bytes) -> bytes:
 
 def tfb_hash(text: str | bytes) -> int:
     """CRC-32 (poly 0xEDB88320) over the case-folded string, *without* the
-    final complement.  ``FUN_0043bb20`` @ 0x43BB20."""
+    final complement.  ``FUN_0043bb20`` @ 0x43BB20.
+    """
     data = text.encode("latin-1") if isinstance(text, str) else text
     return zlib.crc32(_fold_case(data)) ^ 0xFFFFFFFF
 
@@ -275,7 +274,7 @@ class Entry:
             if len(new) != len(self.blob):
                 raise SaveError(
                     f"{self.name!r} is {len(self.blob)} bytes; cannot store "
-                    + f"{len(new)} without resizing the payload"
+                    f"{len(new)} without resizing the payload",
                 )
             self.blob = bytes(new)
             return
@@ -293,7 +292,7 @@ class Entry:
             if isinstance(new, float):
                 if not new.is_integer():
                     raise SaveError(
-                        f"{self.name!r} stores an int; {new} is not a whole number"
+                        f"{self.name!r} stores an int; {new} is not a whole number",
                     )
                 new = int(new)
             if not 0 <= new <= INT_MAX:
@@ -376,7 +375,7 @@ class Slot:
         return set_bits(blob) if blob else []
 
     @placements_removed.setter
-    def placements_removed(self, ids: Iterable[int]) -> None:
+    def placements_removed(self, ids: list[int]) -> None:
         e = self.entry("Global Placement Removed")
         if e.blob is None:
             raise SaveError("Global Placement Removed did not parse as a blob")
@@ -385,7 +384,7 @@ class Slot:
         for pid in ids:
             if not 0 <= pid < limit:
                 raise SaveError(
-                    f"placement id {pid} is past the {limit} bits this save stores"
+                    f"placement id {pid} is past the {limit} bits this save stores",
                 )
             bit_set(buf, pid, True)
         e.blob = bytes(buf)
@@ -410,7 +409,7 @@ class Slot:
         if placement_id >= len(e.blob) * 8:
             raise SaveError(
                 f"placement id {placement_id} is past the "
-                + f"{len(e.blob) * 8} bits this save stores"
+                f"{len(e.blob) * 8} bits this save stores",
             )
         buf = bytearray(e.blob)
         bit_set(buf, placement_id, removed)
@@ -425,7 +424,7 @@ class Slot:
         if len(body) > payload_size:
             raise SaveError(
                 f"slot {self.index} packs to {len(body)} bytes, which does not "
-                + f"fit the {payload_size}-byte payload"
+                f"fit the {payload_size}-byte payload",
             )
         return body.ljust(payload_size, b"\x00")
 
@@ -461,6 +460,7 @@ def pack_percent_complete(coins_collected: int, furthest_unlocked_level: int) ->
     """(coins_collected, furthest_unlocked_level) -> u32"""
     return (furthest_unlocked_level << COINS_BITS) | (coins_collected & COINS_MASK)
 
+
 @dataclass
 class SaveFile:
     slots: list[Slot] = field(default_factory=list)
@@ -478,18 +478,23 @@ class SaveFile:
 
     def write(self, path: str | Path) -> None:
         """Write every slot back out.  The slot stride is fixed, so the file
-        keeps exactly the size it was read at."""
+        keeps exactly the size it was read at.
+        """
         Path(path).write_bytes(self.pack())
 
-    def createDevSlot(self, slot:int):
+    def createDevSlot(self, slot: int):
         self.slots[slot].placements_removed = []
-        self.slots[slot].percent_complete = pack_percent_complete(1100,12)
+        self.slots[slot].percent_complete = pack_percent_complete(1100, 12)
         self.slots[slot].set("furthest_level_unlocked", 12)
         self.slots[slot].set("last_level_played", 7)
         self.slots[slot].set("Current_Checkpoint_Index", 0)
         self.slots[slot].set("Next Level Auto Load", 14)
-        self.slots[slot].set("zoovenir_item_bits", 0x7FFF7FFF) # 01111111111111110111111111111111
-        self.slots[slot].set("zoovenir_disable_bits", 0x00000000) # 00000000000000000000000000000000
+        self.slots[slot].set(
+            "zoovenir_item_bits", 0x7FFF7FFF
+        )  # 01111111111111110111111111111111
+        self.slots[slot].set(
+            "zoovenir_disable_bits", 0x00000000
+        )  # 00000000000000000000000000000000
         self.slots[slot].play_time_seconds = 0
         self.slots[slot].stream_name = "map.stream"
 
@@ -520,7 +525,7 @@ class SaveFile:
 
         self.slots[slot].set("coins_banquet", 0)
         self.slots[slot].set("destruction_street", 0)
-        
+
 
 def _split_slots(data: bytes) -> tuple[int, list[bytes]]:
     if len(data) % (4 * 4):
@@ -588,7 +593,7 @@ def _walk_payload(payload: bytes, catalog: dict[int, str]) -> list[Entry]:
         if name is None:
             raise SaveError(
                 f"unknown id 0x{stored:08X} at +0x{pos:X} "
-                + f"(entry {len(entries)}); wrong stream file?"
+                f"(entry {len(entries)}); wrong stream file?",
             )
         pos += 4
 
@@ -646,7 +651,8 @@ def write_save(save: SaveFile, path: str | Path) -> None:
 
 
 def roundtrip_ok(
-    path: str | Path, stream_path: str | Path = "Levels/global.stream"
+    path: str | Path,
+    stream_path: str | Path = "Levels/global.stream",
 ) -> bool:
     """True if reading and re-packing ``path`` reproduces it byte for byte.
 
@@ -685,14 +691,22 @@ def _main(argv: list[str] | None = None) -> int:
     ap.add_argument("-a", "--all", action="store_true", help="show zero entries too")
     ap.add_argument("--strict", action="store_true")
     ap.add_argument(
-        "--slot", type=int, help="restrict edits to this slot (default: every used slot)"
+        "--slot",
+        type=int,
+        help="restrict edits to this slot (default: every used slot)",
     )
     ap.add_argument(
-        "--set", action="append", default=[], metavar="NAME=VALUE",
+        "--set",
+        action="append",
+        default=[],
+        metavar="NAME=VALUE",
         help="assign a global; repeatable",
     )
     ap.add_argument(
-        "--placement", action="append", default=[], metavar="ID[=0|1]",
+        "--placement",
+        action="append",
+        default=[],
+        metavar="ID[=0|1]",
         help="mark a placement removed (default 1); repeatable",
     )
     ap.add_argument("-o", "--out", help="write edits here (default: in place)")
@@ -734,8 +748,10 @@ def _main(argv: list[str] | None = None) -> int:
             continue
 
         ok = "ok" if slot.checksum_ok else "MISMATCH"
-        print(f"  version          {slot.version}"
-              + f"{'' if slot.version == SAVE_VERSION else '  <-- expected 8'}")
+        print(
+            f"  version          {slot.version}"
+            f"{'' if slot.version == SAVE_VERSION else '  <-- expected 8'}"
+        )
         print(f"  entries          {slot.entry_count}")
         print(f"  language         {slot.language_id}")
         print(f"  percent complete {slot.percent_complete}")

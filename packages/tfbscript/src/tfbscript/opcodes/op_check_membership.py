@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from typing import BinaryIO, override
 
-from tfbscript.ansi import comparison, keyword
 from madformats.lib.writer import write_u8
+from tfbscript.ansi import comparison, keyword
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.opcodes.enums import MembershipTest
 from tfbscript.payload import PayloadReader

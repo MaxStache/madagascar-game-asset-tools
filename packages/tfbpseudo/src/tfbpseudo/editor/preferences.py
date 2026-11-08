@@ -35,6 +35,7 @@ from tfbpseudo.editor.theme import DEFAULT, THEMES
 
 FILE_NAME = "settings.json"
 FONT_MIN, FONT_MAX = 6, 32
+SYSTEM_SIZE = 0  # an interface size that leaves the system's own standing
 
 KEEP, DROP = "Keep them", "Leave them out"
 
@@ -45,15 +46,18 @@ class Preferences:
 
     theme: str = DEFAULT.name
     font_size: int = 12
+    # The chrome around the text: the panel, the status bar, the find box.
+    interface_font_size: int = SYSTEM_SIZE
 
     drop_filler_tails: bool = True
 
 
 def directory() -> Path:
     """Where the settings file goes: this machine's config directory, under
-    our own name."""
+    our own name.
+    """
     base = QStandardPaths.writableLocation(
-        QStandardPaths.StandardLocation.GenericConfigLocation
+        QStandardPaths.StandardLocation.GenericConfigLocation,
     )
 
     return Path(base or Path.home() / ".config") / ORGANISATION / APPLICATION
@@ -88,6 +92,17 @@ def load() -> Preferences:
     if isinstance(size, int) and not isinstance(size, bool):
         preferences = replace(preferences, font_size=min(max(size, FONT_MIN), FONT_MAX))
 
+    size = stored.get("interface_font_size")
+    if isinstance(size, int) and not isinstance(size, bool):
+        preferences = replace(
+            preferences,
+            interface_font_size=(
+                SYSTEM_SIZE
+                if size == SYSTEM_SIZE
+                else min(max(size, FONT_MIN), FONT_MAX)
+            ),
+        )
+
     drop = stored.get("drop_filler_tails")
     if isinstance(drop, bool):
         preferences = replace(preferences, drop_filler_tails=drop)
@@ -104,7 +119,8 @@ def save(preferences: Preferences) -> bool:
     try:
         directory().mkdir(parents=True, exist_ok=True)
         path().write_text(
-            json.dumps(asdict(preferences), indent=2) + "\n", encoding="utf-8"
+            json.dumps(asdict(preferences), indent=2) + "\n",
+            encoding="utf-8",
         )
     except OSError:
         return False
@@ -138,6 +154,16 @@ class SettingsDialog(QDialog):
         self.font_size.setValue(preferences.font_size)
         self.font_size.setSuffix(" pt")
 
+        # One step below the smallest size stands for the system's own, so
+        # going back to it is just scrolling down.
+        self.interface_font_size = QSpinBox(self)
+        self.interface_font_size.setRange(FONT_MIN - 1, FONT_MAX)
+        self.interface_font_size.setSpecialValueText("System default")
+        self.interface_font_size.setValue(
+            preferences.interface_font_size or FONT_MIN - 1,
+        )
+        self.interface_font_size.setSuffix(" pt")
+
         self.filler = QComboBox(self)
         self.filler.addItems([KEEP, DROP])
         self.filler.setCurrentText(DROP if preferences.drop_filler_tails else KEEP)
@@ -156,7 +182,8 @@ class SettingsDialog(QDialog):
 
         form = QFormLayout()
         form.addRow("Theme", self.theme)
-        form.addRow("Font size", self.font_size)
+        form.addRow("Editor text size", self.font_size)
+        form.addRow("Interface text size", self.interface_font_size)
         form.addRow("`+ 0` when decompiling", self.filler)
         form.addRow("", note)
 
@@ -173,8 +200,11 @@ class SettingsDialog(QDialog):
 
     def chosen(self) -> Preferences:
         """What the dialog was left saying."""
+        interface = self.interface_font_size.value()
+
         return Preferences(
             theme=self.theme.currentText(),
             font_size=self.font_size.value(),
+            interface_font_size=SYSTEM_SIZE if interface < FONT_MIN else interface,
             drop_filler_tails=self.filler.currentText() == DROP,
         )

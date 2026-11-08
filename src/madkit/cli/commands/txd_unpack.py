@@ -1,10 +1,13 @@
+import os
+
+from madformats.txd import load_txd
+
 from ..cli import app
 from ..utils import (
-    ValidatedExistingFile,
     ValidatedDir,
+    ValidatedExistingFile,
 )
-from madformats.txd import load_txd
-import os
+
 
 @app.command
 def txd_unpack(
@@ -19,8 +22,8 @@ def txd_unpack(
         File to unpack.
     output_dir : str
         Directory to unpack the stream file into.
-    """
 
+    """
     os.makedirs(output_dir, exist_ok=True)
     txdfile = load_txd(txd_file)
     txdfile.export_all(output_dir, raise_on_error=True)

@@ -1,16 +1,24 @@
-# noqa: N999
 import io
 from dataclasses import dataclass, field
 from typing import override
 
 from madformats.lib.parser import Parser
-from madformats.lib.writer import write_u32, write_f32, write_u16
+from madformats.lib.rw_basics import (
+    RW_UV,
+    RW_GeometryTriangle,
+    RW_Section,
+    RWColor32,
+    RWHeader,
+    RWSphere,
+    RwV3d,
+    expect_chunk_type_or_raise,
+    library_id_unpack,
+)
 from madformats.lib.rwConstants import RWSectionType
-from madformats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise, RWSphere, RW_UV, RWColor32, RW_GeometryTriangle, Vector3, library_id_unpack
-
+from madformats.lib.writer import write_f32, write_u16, write_u32
+from madformats.sections.EXTENSION_0003 import RW_Extension
 from madformats.sections.MATLIST_0008 import RW_MaterialList
 
-from madformats.sections.EXTENSION_0003 import RW_Extension
 
 @dataclass
 class RpGeometryFlags:
@@ -86,6 +94,7 @@ class RpGeometryFlags:
         print(f"  numTexCoordSets: {self.numTexCoordSets}")
         print(f"  native: {self.native}")
 
+
 @dataclass
 class RW_Geometry_Struct_MorphTarget:
     boundingSphere: RWSphere = field(default_factory=RWSphere)
@@ -93,12 +102,13 @@ class RW_Geometry_Struct_MorphTarget:
     hasNormals: bool = False  # u32
 
     # if hasVertices:
-    vertices: list[Vector3] = field(default_factory=list)  # Vector3 each
+    vertices: list[RwV3d] = field(default_factory=list)  # RwV3d each
     # endif
 
     # if hasNormals:
-    normals: list[Vector3] = field(default_factory=list)  # Vector3 each
+    normals: list[RwV3d] = field(default_factory=list)  # RwV3d each
     # endif
+
 
 @dataclass
 class RW_Geometry_Struct(RW_Section):
@@ -116,23 +126,25 @@ class RW_Geometry_Struct(RW_Section):
     # endif
 
     preLitColors: list[RWColor32] = field(
-        default_factory=list
+        default_factory=list,
     )  # RWColor32 each numVertices
     texCordSets: list[list[RW_UV]] = field(
-        default_factory=list
+        default_factory=list,
     )  # RW_UV each numVertices * numTexCoordSets
 
     triangles: list[RW_GeometryTriangle] = field(
-        default_factory=list
+        default_factory=list,
     )  # RW_GeometryTriangle each numTriangles
 
     morphTargets: list[RW_Geometry_Struct_MorphTarget] = field(
-        default_factory=list
+        default_factory=list,
     )  # RW_Geometry_Struct_MorphTarget each numMorphTargets
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_Geometry_Struct":
+    def read(
+        cls, parser: Parser, parent: RW_Section | None = None
+    ) -> "RW_Geometry_Struct":
         geo_s = cls()
         geo_s.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -190,12 +202,12 @@ class RW_Geometry_Struct(RW_Section):
             if mt.hasVertices:
                 mt.vertices = []
                 for _ in range(geo_s.numVertices):
-                    mt.vertices.append(Vector3.read(parser))
+                    mt.vertices.append(RwV3d.read(parser))
 
             if mt.hasNormals:
                 mt.normals = []
                 for _ in range(geo_s.numVertices):
-                    mt.normals.append(Vector3.read(parser))
+                    mt.normals.append(RwV3d.read(parser))
 
             geo_s.morphTargets.append(mt)
 
@@ -253,6 +265,7 @@ class RW_Geometry_Struct(RW_Section):
         )
         f.write(rw_header.pack())
         f.write(buf.getvalue())
+
 
 @dataclass
 class RW_Geometry(RW_Section):

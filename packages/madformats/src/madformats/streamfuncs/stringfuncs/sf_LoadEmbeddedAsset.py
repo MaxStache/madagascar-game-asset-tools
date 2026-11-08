@@ -1,8 +1,8 @@
 import copy
 import io
-from pathlib import Path
 import uuid
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, BinaryIO, override
 
 from madformats.lib.parser import Parser
@@ -74,21 +74,33 @@ class RW_sf_LoadEmbeddedAsset(RW_StreamFunc):
         # --- header
         headerBuf = io.BytesIO()
         write_lengthPrefixedString(
-            headerBuf, self.name, addNullTerminator=True, alignTo4=True
+            headerBuf,
+            self.name,
+            addNullTerminator=True,
+            alignTo4=True,
         )
 
         write_guid(headerBuf, self.guid)
 
         write_lengthPrefixedString(
-            headerBuf, self.type, addNullTerminator=True, alignTo4=True
+            headerBuf,
+            self.type,
+            addNullTerminator=True,
+            alignTo4=True,
         )
 
         write_lengthPrefixedString(
-            headerBuf, self.filePath, addNullTerminator=True, alignTo4=True
+            headerBuf,
+            self.filePath,
+            addNullTerminator=True,
+            alignTo4=True,
         )
 
         write_lengthPrefixedString(
-            headerBuf, self.deps, addNullTerminator=True, alignTo4=True
+            headerBuf,
+            self.deps,
+            addNullTerminator=True,
+            alignTo4=True,
         )
 
         write_u32(headerBuf, 0)  # doing this because renderware wants it, idk

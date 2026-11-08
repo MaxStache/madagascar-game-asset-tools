@@ -73,7 +73,9 @@ class TfbPseudoHighlighter(QSyntaxHighlighter):
 
         methods = sorted(METHOD_OPCODE_TABLE, key=len, reverse=True)
         builtins = sorted(
-            list(BUILTIN_TOKENS) + list(TABLE_TOKENS), key=len, reverse=True
+            list(BUILTIN_TOKENS) + list(TABLE_TOKENS),
+            key=len,
+            reverse=True,
         )
 
         # (pattern, format, which capture group to paint -- 0 is the whole match)
@@ -114,13 +116,16 @@ class TfbPseudoHighlighter(QSyntaxHighlighter):
         )
 
         rule(QRegularExpression.escape(NULL_BUILTIN_TOKEN), char_format(theme.null))
-        rule("|".join(QRegularExpression.escape(b) for b in builtins),
-             char_format(theme.builtin, bold=True))
+        rule(
+            "|".join(QRegularExpression.escape(b) for b in builtins),
+            char_format(theme.builtin, bold=True),
+        )
 
-        rule(r"\b0[xX][0-9A-Fa-f]+\b|\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b",
-             char_format(theme.number))
-        rule(r"[{}()\[\];,.:#=+\-*/<>!]|==|!=|<=|>=",
-             char_format(theme.punctuation))
+        rule(
+            r"\b0[xX][0-9A-Fa-f]+\b|\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?\b",
+            char_format(theme.number),
+        )
+        rule(r"[{}()\[\];,.:#=+\-*/<>!]|==|!=|<=|>=", char_format(theme.punctuation))
 
         # Last, so nothing inside them is painted as code.
         rule(r'"(?:[^"\\\n]|\\.)*"', char_format(theme.string))
@@ -143,7 +148,8 @@ class TfbPseudoHighlighter(QSyntaxHighlighter):
 
     def highlight_block_comment(self, text: str) -> None:
         """`/* ... */`, which can run across lines -- the state says whether
-        this line started inside one."""
+        this line started inside one.
+        """
         self.setCurrentBlockState(0)
 
         start = 0

@@ -1,8 +1,8 @@
 """Dark theme colours, ttk style setup, and tree icons for the analyzer GUI."""
 
+import math
 import tkinter as tk
 from tkinter import ttk
-import math
 
 COLORS = {
     "bg": "#181818",
@@ -21,12 +21,10 @@ COLORS = {
     "sel_bg": "#264f78",
     "sel_fg": "#ffffff",
     "tree_bg": "#181818",
-
-    #--
+    # --
     "enum_class": "#e04c6c",
     "enum_value": "#cece5d",
-
-    #--
+    # --
     "hex_read": "#d8dee9",
     "hex_not_read": "#6C727E",
     "hex_offset": "#8B9AA7",
@@ -40,8 +38,8 @@ def configure_style(root):
     style = ttk.Style()
     style.theme_use("clam")
 
-    #root.tk.call("tk", "scaling", 1.0)
-    #if "tk::mac::ScrollFractions" in root.tk.call("info", "commands"):
+    # root.tk.call("tk", "scaling", 1.0)
+    # if "tk::mac::ScrollFractions" in root.tk.call("info", "commands"):
     #    root.tk.call("tk::mac::ScrollFractions", True)
 
     style.configure("Treeview", rowheight=22)
@@ -62,7 +60,8 @@ def configure_style(root):
     style.configure("TFrame", background=COLORS["bg"])
     style.configure("Treeview", relief="flat")
     style.layout(
-        "Treeview", [("Treeview.treearea", {"sticky": "nswe"})]
+        "Treeview",
+        [("Treeview.treearea", {"sticky": "nswe"})],
     )  # drop the border box
 
     # paned window sashes
@@ -86,12 +85,12 @@ def configure_style(root):
                 {
                     "sticky": "ns",
                     "children": [
-                        ("Vertical.Scrollbar.thumb", {"expand": 1, "sticky": "nswe"})
+                        ("Vertical.Scrollbar.thumb", {"expand": 1, "sticky": "nswe"}),
                     ],
                 },
-            )
-        ], # type: ignore
-    ) # type: ignore
+            ),
+        ],  # type: ignore
+    )  # type: ignore
     style.configure(
         "Vertical.TScrollbar",
         background="#4a4f5a",
@@ -137,7 +136,7 @@ def make_dot(color: str, size: int, padding_x: int):
     lx = cx - radius * 0.35
     ly = cy - radius * 0.35
 
-    base = tuple(int(color[i:i+2], 16) for i in (1, 3, 5))
+    base = tuple(int(color[i : i + 2], 16) for i in (1, 3, 5))
 
     for x in range(size):
         for y in range(size):
@@ -156,29 +155,21 @@ def make_dot(color: str, size: int, padding_x: int):
                 # Bottom-right inset shadow
                 shadow = max(0, (dx + dy) / (radius * 2))
 
-                factor = (
-                    0.75
-                    + highlight * 0.45
-                    - edge * 0.20
-                    - shadow * 0.25
-                )
+                factor = 0.75 + highlight * 0.45 - edge * 0.20 - shadow * 0.25
 
                 factor = max(0.0, min(1.3, factor))
 
-                rgb = tuple(
-                    min(255, max(0, int(c * factor)))
-                    for c in base
-                )
+                rgb = tuple(min(255, max(0, int(c * factor))) for c in base)
 
                 img.put(
-                    "#%02X%02X%02X" % rgb,
-                    (x + padding_x, y)
+                    "#{:02X}{:02X}{:02X}".format(*rgb),
+                    (x + padding_x, y),
                 )
 
     return img
 
 
-def make_icons(size:int=15, padding_x:int=5):
+def make_icons(size: int = 15, padding_x: int = 5):
     """Build the green/blue/gray 3D dot icons used in the tree."""
     return (
         make_dot("#00D100", size, padding_x),

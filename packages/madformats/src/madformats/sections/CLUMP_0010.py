@@ -2,16 +2,15 @@ import io
 from dataclasses import dataclass, field
 from typing import BinaryIO, override
 
-from madformats.lib.writer import write_u32
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
-
-from madformats.sections.EXTENSION_0003 import RW_Extension
+from madformats.lib.rwConstants import RWSectionType
+from madformats.lib.writer import write_u32
 from madformats.sections.ATOMIC_0014 import RW_Atomic
+from madformats.sections.CAMERA_0005 import RW_Camera
+from madformats.sections.EXTENSION_0003 import RW_Extension
 from madformats.sections.FRAMELIST_000E import RW_FrameList
 from madformats.sections.GEOMETRYLIST_001A import RW_GeometryList
-from madformats.sections.CAMERA_0005 import RW_Camera
 
 
 @dataclass
@@ -24,7 +23,9 @@ class RW_Clump_Struct(RW_Section):
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_Clump_Struct":
+    def read(
+        cls, parser: Parser, parent: RW_Section | None = None
+    ) -> "RW_Clump_Struct":
         clump_s = cls()
         clump_s.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -55,6 +56,7 @@ class RW_Clump_Struct(RW_Section):
         f.write(rw_header.pack())
         f.write(buf.getvalue())
 
+
 @dataclass
 class RW_Clump(RW_Section):
     header: RWHeader = field(default_factory=RWHeader)
@@ -68,7 +70,7 @@ class RW_Clump(RW_Section):
 
     camera_frame_indices: list[int] = field(default_factory=list)  # u32 each numCameras
     cameras: list[RW_Camera] = field(default_factory=list)
-    
+
     extension: RW_Extension = field(default_factory=RW_Extension)
 
     @classmethod
@@ -101,9 +103,9 @@ class RW_Clump(RW_Section):
 
         if clump.struct.numLights > 0:
             raise NotImplementedError(
-                f"RW_Clump has {clump.struct.numLights} lights, but light parsing is not implemented"
+                f"RW_Clump has {clump.struct.numLights} lights, but light parsing is not implemented",
             )
-        
+
         for _ in range(clump.struct.numCameras):
             parser.readRWChunkHeader()  # skip
             clump.camera_frame_indices.append(parser.readUint32())

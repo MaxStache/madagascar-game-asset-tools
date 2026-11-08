@@ -3,12 +3,16 @@ from dataclasses import dataclass, field
 from typing import BinaryIO, Union, override
 
 from madformats.lib.parser import Parser
+from madformats.lib.rw_basics import (
+    RW_Axis_Type,
+    RW_Section,
+    RWHeader,
+    expect_chunk_type_or_raise,
+)
 from madformats.lib.rwConstants import RWSectionType
-from madformats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise, RW_Axis_Type
 from madformats.lib.writer import write_f32, write_u32
 from madformats.sections.ATOMICSECT_0009 import RW_AtomicSector
 from madformats.sections.shared.worldflags import RpWorldFlags
-
 
 
 @dataclass
@@ -50,7 +54,9 @@ class RW_PlaneSector_Struct(RW_Section):
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_PlaneSector_Struct":
+    def read(
+        cls, parser: Parser, parent: RW_Section | None = None
+    ) -> "RW_PlaneSector_Struct":
         ps_s = cls()
         ps_s.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -107,9 +113,14 @@ class RW_PlaneSector(RW_Section):
     @classmethod
     @override
     def read(  # pyright: ignore[reportIncompatibleMethodOverride]
-        cls, parser: Parser, parent: RW_Section | None = None, worldFlags: RpWorldFlags | None = None
+        cls,
+        parser: Parser,
+        parent: RW_Section | None = None,
+        worldFlags: RpWorldFlags | None = None,
     ) -> "RW_PlaneSector":
-        assert worldFlags is not None, "worldFlags must be provided when reading RW_PlaneSector"
+        assert worldFlags is not None, (
+            "worldFlags must be provided when reading RW_PlaneSector"
+        )
         ps = cls()
         ps.worldFlags = worldFlags
         ps.header = RWHeader.read(parser)
@@ -127,29 +138,37 @@ class RW_PlaneSector(RW_Section):
                 RWSectionType.rwID_ATOMICSECT.value,
                 "RW_PlaneSector left child chunk type",
             )
-            ps.left_child = RW_AtomicSector.read(parser, parent=ps, worldFlags=worldFlags)
+            ps.left_child = RW_AtomicSector.read(
+                parser, parent=ps, worldFlags=worldFlags
+            )
         else:
             expect_chunk_type_or_raise(
                 RWHeader.peek(parser),
                 RWSectionType.rwID_PLANESECT.value,
                 "RW_PlaneSector left child chunk type",
             )
-            ps.left_child = RW_PlaneSector.read(parser, parent=ps, worldFlags=worldFlags)
-        
+            ps.left_child = RW_PlaneSector.read(
+                parser, parent=ps, worldFlags=worldFlags
+            )
+
         if ps.struct.right_is_atomic:
             expect_chunk_type_or_raise(
                 RWHeader.peek(parser),
                 RWSectionType.rwID_ATOMICSECT.value,
                 "RW_PlaneSector right child chunk type",
             )
-            ps.right_child = RW_AtomicSector.read(parser, parent=ps, worldFlags=worldFlags)
+            ps.right_child = RW_AtomicSector.read(
+                parser, parent=ps, worldFlags=worldFlags
+            )
         else:
             expect_chunk_type_or_raise(
                 RWHeader.peek(parser),
                 RWSectionType.rwID_PLANESECT.value,
                 "RW_PlaneSector right child chunk type",
             )
-            ps.right_child = RW_PlaneSector.read(parser, parent=ps, worldFlags=worldFlags)
+            ps.right_child = RW_PlaneSector.read(
+                parser, parent=ps, worldFlags=worldFlags
+            )
 
         return ps
 
@@ -186,7 +205,6 @@ class RW_PlaneSector(RW_Section):
         else:
             sectors.extend(self.left_child.collect_atomic_sectors())
 
-            
         if isinstance(self.right_child, RW_AtomicSector):
             sectors.append(self.right_child)
         else:

@@ -1,17 +1,17 @@
 import io
-from dataclasses import dataclass, field
 import struct
+from dataclasses import dataclass, field
 from typing import override
 
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from madformats.lib.rwConstants import RWSectionType
 
 
 @dataclass
 class RW_SkyMipmapVal(RW_Section):
-    """See https://gtamods.com/wiki/Sky_Mipmap_Val_(RW_Section)
-    """
+    """See https://gtamods.com/wiki/Sky_Mipmap_Val_(RW_Section)"""
+
     header: RWHeader = field(default_factory=RWHeader)
 
     k_val: int = 0  # signed 12-bit integer
@@ -19,7 +19,9 @@ class RW_SkyMipmapVal(RW_Section):
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_SkyMipmapVal":
+    def read(
+        cls, parser: Parser, parent: RW_Section | None = None
+    ) -> "RW_SkyMipmapVal":
         skymmv = cls()
         skymmv.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(

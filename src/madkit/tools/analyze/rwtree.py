@@ -1,8 +1,7 @@
 """Recursive RenderWare chunk tree reader."""
 
-import madformats.lib.rw_basics as rw_basics
 import madformats.lib.rwConstants as rw_constants
-import madformats.lib.parser as parser
+from madformats.lib import parser, rw_basics
 
 RWHeader = rw_basics.RWHeader
 RWSectionType = rw_constants.RWSectionType
@@ -24,8 +23,7 @@ CONTAINER_CHUNKS = {
     RWSectionType.rwID_WORLD.value,
     RWSectionType.rwID_ATOMICSECT.value,
     RWSectionType.rwID_PLANESECT.value,
-
-    #RW AUDIO
+    # RW AUDIO
     RWSectionType.rwaID_WAVEDICT.value,
     RWSectionType.rwaID_WAVEDICT_WAVE.value,
     RWSectionType.rwaID_WAVE.value,
@@ -47,11 +45,11 @@ def read_recursive(parser, depth=0):
         # (e.g. 0x0100000C for a 12-byte struct); fall back to the low 24
         # bits if that fits, otherwise clamp to what is actually left.
         masked = header.size & 0x00FFFFFF
-        fixed = masked if masked <= parser.remaining() else parser.remaining()
+        fixed = min(masked, parser.remaining())
         print(
             f"Warning: chunk 0x{header.type:X} at depth {depth} declares "
             f"size {header.size:#x} but only {parser.remaining()} bytes "
-            f"remain; using {fixed}"
+            f"remain; using {fixed}",
         )
         header.size = fixed
 

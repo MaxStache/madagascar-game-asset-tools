@@ -35,7 +35,7 @@ class OpDecValue(Opcode):
                     "name": "lhs",
                     "ref": self.lhs,
                 },
-            ]
+            ],
         }
 
     @override

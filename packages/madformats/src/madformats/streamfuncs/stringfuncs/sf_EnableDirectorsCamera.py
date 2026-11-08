@@ -3,9 +3,8 @@ from dataclasses import dataclass, field
 from typing import Any, override
 
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import strfunc_func
 from madformats.lib.rw_basics import RW_StreamFunc, RWHeader, expect_chunk_type_or_raise
-
+from madformats.lib.rwConstants import strfunc_func
 
 
 @dataclass
@@ -29,7 +28,6 @@ class RW_sf_EnableDirectorsCamera(RW_StreamFunc):
     @override
     def write(self, f, stamp):
         buf = io.BytesIO()
-
 
         rw_header = RWHeader(
             type=strfunc_func.sf_EnableDirectorsCamera.value,

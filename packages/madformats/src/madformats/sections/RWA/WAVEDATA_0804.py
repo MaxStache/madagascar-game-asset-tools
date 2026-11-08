@@ -2,15 +2,15 @@ from dataclasses import dataclass, field
 from typing import override
 
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from madformats.lib.rwConstants import RWSectionType
+
 
 @dataclass
 class RWA_WaveData(RW_Section):
     header: RWHeader = field(default_factory=RWHeader)
-    
-    data: bytes = b""  # Wave data bytes
 
+    data: bytes = b""  # Wave data bytes
 
     @classmethod
     @override
@@ -22,8 +22,10 @@ class RWA_WaveData(RW_Section):
             RWSectionType.rwaID_WAVEDATA.value,
             "RWA_Wave chunk type",
         )
-        
-        wave_dta.data = parser.readBytes(wave_dta.header.size)  # Read the wave data bytes
+
+        wave_dta.data = parser.readBytes(
+            wave_dta.header.size
+        )  # Read the wave data bytes
 
         return wave_dta
 

@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Any, BinaryIO, override
 
-from tfbscript.ansi import keyword
 from madformats.lib.writer import write_u8
+from tfbscript.ansi import keyword
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.opcodes.enums import SetDirection
 from tfbscript.payload import PayloadReader
@@ -61,5 +61,5 @@ class OpForEach(Opcode):
                     "name": "set_direction",
                     "entry": self.set_direction,
                 },
-            ]
+            ],
         }

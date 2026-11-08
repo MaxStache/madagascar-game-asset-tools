@@ -1,20 +1,23 @@
+import json
+import os
 from enum import Enum
+from pathlib import Path
+from typing import Any, cast
+
+from madformats.lib.rwConstants import strfunc_func
+from madformats.stream import load_stream
+from madformats.streamfuncs.stringfuncs.sf_LoadEmbeddedAsset import (
+    RW_sf_LoadEmbeddedAsset,
+)
 
 from ..cli import app
 from ..utils import (
-    ValidatedExistingFile,
     ValidatedDir,
-    progress,
+    ValidatedExistingFile,
     loadEmbeddedAssets_to_file_name,
+    progress,
     sanitize_filename,
 )
-from madformats.stream import load_stream
-from madformats.lib.rwConstants import strfunc_func
-import json
-import os
-from pathlib import Path
-from typing import Any, cast
-from madformats.streamfuncs.stringfuncs.sf_LoadEmbeddedAsset import RW_sf_LoadEmbeddedAsset
 
 
 class FileNaming(Enum):
@@ -42,8 +45,8 @@ def unpack(
         Whether to make the manifest more human-readable (pretty-printed).
     gzipped : bool
         Whether the stream file is gzipped or not.
-    """
 
+    """
     strm = load_stream(stream_file, gzipped=gzipped)
 
     os.makedirs(output_dir, exist_ok=True)
@@ -60,7 +63,7 @@ def unpack(
         extra: dict[str, Any] = {}
 
         if sec.streamfunc == strfunc_func.sf_LoadEmbeddedAsset:
-            sec = cast(RW_sf_LoadEmbeddedAsset, sec)
+            sec = cast("RW_sf_LoadEmbeddedAsset", sec)
 
             base_file_name = loadEmbeddedAssets_to_file_name(sec)
 
@@ -86,7 +89,7 @@ def unpack(
                 "streamfunc": sec.streamfunc.name if sec.streamfunc else None,
                 **sec_dict,
                 **extra,
-            }
+            },
         )
 
     with open(MANIFEST_FILE, "w") as f:

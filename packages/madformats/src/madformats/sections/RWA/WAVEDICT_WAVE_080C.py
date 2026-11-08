@@ -3,14 +3,13 @@ from dataclasses import dataclass, field
 from typing import override
 
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import (
     RW_Section,
     RWHeader,
     expect_chunk_type_or_raise,
     write_u32,
 )
-
+from madformats.lib.rwConstants import RWSectionType
 from madformats.sections.RWA.WAVE_0802 import RWA_Wave
 
 
@@ -21,11 +20,12 @@ class RW_WaveDict_Wave(RW_Section):
     total_subsongs: int = 0
 
     streams: list[RWA_Wave] = field(default_factory=list)
-    
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_WaveDict_Wave":
+    def read(
+        cls, parser: Parser, parent: RW_Section | None = None
+    ) -> "RW_WaveDict_Wave":
         wave = cls()
         wave.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -37,7 +37,7 @@ class RW_WaveDict_Wave(RW_Section):
         wave.total_subsongs = parser.readUint32()
 
         wave.streams = []
-        for _i in range( wave.total_subsongs):
+        for _i in range(wave.total_subsongs):
             subsong = RWA_Wave.read(parser, parent=wave)
             wave.streams.append(subsong)
 

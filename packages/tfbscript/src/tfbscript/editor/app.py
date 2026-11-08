@@ -14,17 +14,17 @@ try:
     from PySide6.QtWidgets import (
         QApplication,
         QMainWindow,
+        QMessageBox,
         QStyleFactory,
         QTreeWidget,
         QVBoxLayout,
         QWidget,
-        QMessageBox,
     )
 except ModuleNotFoundError:
     print("WARN: PySide6 not installed, editor wont work")
 
 from .search import SearchBar, SearchEntry, TreeSearch
-from .style import build_palette, Win98TreeStyle
+from .style import Win98TreeStyle, build_palette
 from .widgets import populate_tree
 
 os.environ.setdefault("QT_ENABLE_HIGHDPI_SCALING", "0")
@@ -41,7 +41,7 @@ def editor_from_filepath(filepath: Path | str):
 
 
 def open_editor(script: ScriptFile):
-    app = cast(QApplication, QApplication.instance()) or QApplication([])
+    app = cast("QApplication", QApplication.instance()) or QApplication([])
 
     window = QMainWindow()
     window.setWindowTitle("TFBScript Editor")
@@ -60,7 +60,9 @@ def open_editor(script: ScriptFile):
             ) as f:
                 script.write(f)
         else:
-            QMessageBox.critical(None, "Save Failed", "FILE WAS OPENED WITHOUT A _file_path")
+            QMessageBox.critical(
+                None, "Save Failed", "FILE WAS OPENED WITHOUT A _file_path"
+            )
 
     def expand_all() -> None:
         tree.expandAll()
@@ -73,7 +75,7 @@ def open_editor(script: ScriptFile):
     expand_all_action = QAction("Expand All", other_menu)
 
     expand_all_action.setShortcut(
-        QKeySequence(Qt.KeyboardModifier.ControlModifier | Qt.Key.Key_E)
+        QKeySequence(Qt.KeyboardModifier.ControlModifier | Qt.Key.Key_E),
     )
     expand_all_action.triggered.connect(expand_all)
 
@@ -91,7 +93,7 @@ def open_editor(script: ScriptFile):
     tree.setItemsExpandable(True)
     tree.setIndentation(40)
     tree.itemClicked.connect(
-        lambda item, column: item.setExpanded(not item.isExpanded())
+        lambda item, column: item.setExpanded(not item.isExpanded()),
     )
 
     search_index: list[SearchEntry] = []

@@ -3,20 +3,19 @@ from dataclasses import dataclass, field
 from typing import BinaryIO, override
 
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import (
     RW_Section,
     RWHeader,
-    Vector3,
+    RwV3d,
     expect_chunk_type_or_raise,
 )
+from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.writer import write_u32
 from madformats.sections.ATOMICSECT_0009 import RW_AtomicSector
 from madformats.sections.COLLISIONPLG_011D import RW_CollisionPlugin
 from madformats.sections.EXTENSION_0003 import RW_Extension
 from madformats.sections.MATLIST_0008 import RW_MaterialList
 from madformats.sections.PLANESECT_000A import RW_PlaneSector
-
 from madformats.sections.shared.worldflags import RpWorldFlags
 
 
@@ -27,7 +26,7 @@ class RW_World_Struct(RW_Section):
     _struct_size: int = 0  # size of the struct in bytes (not including header)
 
     rootIsWorldSector: int = 0  # often 0, "is root sector atomic?"
-    inverseOrigin: Vector3 = field(default_factory=Vector3)  # often -0 -0 -0
+    inverseOrigin: RwV3d = field(default_factory=RwV3d)  # often -0 -0 -0
 
     numTriangles: int = 0  # uint32
     numVertices: int = 0  # uint32
@@ -36,12 +35,14 @@ class RW_World_Struct(RW_Section):
     colSectorSize: int = 0  # uint32
     worldFlags: RpWorldFlags = field(default_factory=RpWorldFlags)
 
-    boxMax: Vector3 = field(default_factory=Vector3)
-    boxMin: Vector3 = field(default_factory=Vector3)
+    boxMax: RwV3d = field(default_factory=RwV3d)
+    boxMin: RwV3d = field(default_factory=RwV3d)
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_World_Struct":
+    def read(
+        cls, parser: Parser, parent: RW_Section | None = None
+    ) -> "RW_World_Struct":
         world_s = cls()
         world_s.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -51,7 +52,7 @@ class RW_World_Struct(RW_Section):
         )
 
         world_s.rootIsWorldSector = parser.readUint32()
-        world_s.inverseOrigin = Vector3.read(parser)
+        world_s.inverseOrigin = RwV3d.read(parser)
 
         if world_s.header.size == 0x40:
             world_s.numTriangles = parser.readUint32()
@@ -60,11 +61,11 @@ class RW_World_Struct(RW_Section):
             world_s.numAtomicSectors = parser.readUint32()
             world_s.colSectorSize = parser.readUint32()
             world_s.worldFlags = RpWorldFlags.decode(parser.readUint32())
-            world_s.boxMax = Vector3.read(parser)
-            world_s.boxMin = Vector3.read(parser)
+            world_s.boxMax = RwV3d.read(parser)
+            world_s.boxMin = RwV3d.read(parser)
             world_s._struct_size = 0x40
         elif world_s.header.size == 0x30:
-            world_s.boxMax = Vector3.read(parser)
+            world_s.boxMax = RwV3d.read(parser)
             world_s.numTriangles = parser.readUint32()
             world_s.numVertices = parser.readUint32()
             world_s.numPlaneSectors = parser.readUint32()
@@ -74,11 +75,11 @@ class RW_World_Struct(RW_Section):
             world_s._struct_size = 0x30
         else:
             raise ValueError(
-                f"Unexpected RW_WorldStruct payload size: {world_s.header.size}"
+                f"Unexpected RW_WorldStruct payload size: {world_s.header.size}",
             )
 
         return world_s
- 
+
     @override
     def write(self, f: BinaryIO, stamp: int, parent: RW_Section | None = None):
         buf = io.BytesIO()
@@ -88,7 +89,7 @@ class RW_World_Struct(RW_Section):
 
         if self._struct_size not in (0x30, 0x40):
             raise ValueError(
-                f"Unexpected RW_WorldStruct payload size: {self._struct_size}. Could not determine to write a struct type A or B! For more information look into docs!"
+                f"Unexpected RW_WorldStruct payload size: {self._struct_size}. Could not determine to write a struct type A or B! For more information look into docs!",
             )
 
         if self._struct_size == 0x40:
@@ -152,15 +153,19 @@ class RW_World(RW_Section):
         peeked_root_sect_type = parser.peekUint32()
         if peeked_root_sect_type == RWSectionType.rwID_PLANESECT.value:
             world.root_sector = RW_PlaneSector.read(
-                parser, parent=world, worldFlags=world.struct.worldFlags
+                parser,
+                parent=world,
+                worldFlags=world.struct.worldFlags,
             )
         elif peeked_root_sect_type == RWSectionType.rwID_ATOMICSECT.value:
             world.root_sector = RW_AtomicSector.read(
-                parser, parent=world, worldFlags=world.struct.worldFlags
+                parser,
+                parent=world,
+                worldFlags=world.struct.worldFlags,
             )
         else:
             raise ValueError(
-                f"Unexpected root sector type: {peeked_root_sect_type}. Expected either rwID_PLANESECT or rwID_ATOMICSECT."
+                f"Unexpected root sector type: {peeked_root_sect_type}. Expected either rwID_PLANESECT or rwID_ATOMICSECT.",
             )
 
         world.extension = RW_Extension.read(parser, parent=world)
@@ -176,7 +181,9 @@ class RW_World(RW_Section):
         self.struct.write(buf, stamp, parent=self)
         self.material_list.write(buf, stamp, parent=self)
 
-        assert self.root_sector is not None, "Root sector is None. Cannot write RW_World without a root sector."
+        assert self.root_sector is not None, (
+            "Root sector is None. Cannot write RW_World without a root sector."
+        )
         self.root_sector.write(buf, stamp, parent=self)
 
         self.extension.write(buf, stamp, parent=self)
@@ -204,17 +211,17 @@ class RW_World(RW_Section):
     def build_collision(self) -> None:
         """Make collision on atomic sectors from their geometry."""
         atomic_sectors = self.collect_atomic_sectors()
-    
+
         for sec in atomic_sectors:
             sec.extension.children[:] = [
                 child
                 for child in sec.extension.children
                 if not isinstance(child, RW_CollisionPlugin)
             ]
-    
+
             sec.extension.children.append(
                 RW_CollisionPlugin.build_from_geo(
                     sec.struct.vertices,
                     sec.struct.triangles,
-                )
+                ),
             )

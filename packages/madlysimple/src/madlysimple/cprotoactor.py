@@ -29,15 +29,15 @@ def _targetGuid(target: RefTarget) -> uuid.UUID:
     return target.entityID
 
 
-def _targetName(target: RefTarget) -> str:
+def _targetName(target: RefTarget) -> str | None:
     if isinstance(target, RW_sf_LoadEmbeddedAsset):
         return target.name
     return target.tfbGetName()
 
+
 @dataclass
 class CProtoActor(RW_sf_CreateEntity):
-    """A placed actor, with its attributes as read/write properties.
-    """
+    """A placed actor, with its attributes as read/write properties."""
 
     @classmethod
     def from_entity(cls, entity: RW_sf_CreateEntity) -> "CProtoActor":
@@ -45,10 +45,10 @@ class CProtoActor(RW_sf_CreateEntity):
         # land on the very entity the stream holds.
         if entity.find_first_class(CLASS_NAME) is None:
             raise ValueError(
-                f"Entity {entity.tfbGetName()!r} has no {CLASS_NAME} attribute class"
+                f"Entity {entity.tfbGetName()!r} has no {CLASS_NAME} attribute class",
             )
         entity.__class__ = cls
-        return cast(CProtoActor, entity)
+        return cast("CProtoActor", entity)
 
     @property
     def params(self) -> CProtoActorParams:
@@ -66,7 +66,9 @@ class CProtoActor(RW_sf_CreateEntity):
         return attr.asTfbRef()
 
     def _setRef(
-        self, command: int, ref: RW_sf_CreateEntity_Attribute_TFBReference
+        self,
+        command: int,
+        ref: RW_sf_CreateEntity_Attribute_TFBReference,
     ) -> None:
         self.getAttributeOrCreate(CLASS_NAME, command).setTfbRef(ref)
 
@@ -80,17 +82,17 @@ class CProtoActor(RW_sf_CreateEntity):
         """
         if self.hasAttribute(CLASS_NAME, MODEL_COMMAND):
             return self.getAttribute(CLASS_NAME, MODEL_COMMAND).asTfbRef()
-        else:
-            return None
+        return None
 
     @modelRef.setter
     def modelRef(self, value: RW_sf_CreateEntity_Attribute_TFBReference) -> None:
         self._setRef(MODEL_COMMAND, value)
 
     def setModelRef(self, target: RefTarget) -> None:
-        """Draw this actor as `target`, filling in both its id and its name."""
         self.modelRef = RW_sf_CreateEntity_Attribute_TFBReference(
-            index=-1, guid=_targetGuid(target), name=_targetName(target)
+            slot=-1,
+            guid=_targetGuid(target),
+            name=_targetName(target),
         )
 
     @property
@@ -136,7 +138,9 @@ class CProtoActor(RW_sf_CreateEntity):
         shipped levels carries the GUID alone.
         """
         self.scriptRef = RW_sf_CreateEntity_Attribute_TFBReference(
-            index=-1, guid=_targetGuid(target), name=None
+            slot=-1,
+            guid=_targetGuid(target),
+            name=None,
         )
 
     @property
@@ -162,10 +166,9 @@ class CProtoActor(RW_sf_CreateEntity):
     def flagBytes(self, value: bytes) -> None:
         if len(value) != 4:
             raise ValueError(f"Expected 4 bytes, got {len(value)}")
-        self.getAttributeOrCreate(CLASS_NAME, 6, default_data=b"\xFF\xFF\xFF\xFF").data = bytes(value)
-
-
-
+        self.getAttributeOrCreate(
+            CLASS_NAME, 6, default_data=b"\xff\xff\xff\xff"
+        ).data = bytes(value)
 
     @override
     def duplicate(self) -> "CProtoActor":

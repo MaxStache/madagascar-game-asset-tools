@@ -22,8 +22,11 @@ def _find_closing_quote(text: str, quote: str, start: int) -> int:
             return j
         j += 1
 
+
 def truncate_repr_strings(
-    text: str, max_str_len: int = 150, max_total_len: int | None = None
+    text: str,
+    max_str_len: int = 150,
+    max_total_len: int | None = None,
 ) -> str:
     """Replace over-long quoted strings with a placeholder.
 
@@ -135,14 +138,13 @@ def format_repr(
 
                     lines.append(
                         " " * (indent * indent_size)
-                        + f"# ... Truncated, {skipped} more object{'s' if skipped != 1 else ''})"
+                        + f"# ... Truncated, {skipped} more object{'s' if skipped != 1 else ''})",
                     )
                     stack.pop()
                     list_stack.pop()
                     current = "]"
-                else:
-                    if stack:
-                        stack.pop()
+                elif stack:
+                    stack.pop()
 
             i += 1
             continue
@@ -171,7 +173,7 @@ def format_repr(
                         "items": 0,
                         "skipping": False,
                         "skipped": 0,
-                    }
+                    },
                 )
 
             # Empty brackets stay inline

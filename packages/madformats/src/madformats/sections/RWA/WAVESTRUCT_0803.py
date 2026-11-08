@@ -1,20 +1,20 @@
-from enum import Enum
 import io
-from typing import BinaryIO, override
 import uuid
 from dataclasses import dataclass, field
+from enum import Enum
+from typing import BinaryIO, override
 
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import (
     RW_Section,
     RWHeader,
     expect_chunk_type_or_raise,
+    write_bytes,
     write_u8,
     write_u16,
     write_u32,
-    write_bytes,
 )
+from madformats.lib.rwConstants import RWSectionType
 
 # ---------------------------------------------------------------------------
 # Layout reverse-engineered from Game.exe (Madagascar):
@@ -44,9 +44,10 @@ _NAME_ALIGNMENT = 16
 # Presence bits in the wave-struct `flags` field. Each set bit appends a block
 # AFTER the two format descriptors, in ascending bit order.
 FLAG_HAS_IDENTIFIER = 0x1  # 16-byte wave-instance GUID
-FLAG_HAS_NAME       = 0x2  # null-terminated name, padded to _NAME_ALIGNMENT
-FLAG_HAS_CODEC      = 0x4  # 16-byte codec/decoder class GUID
-FLAG_HAS_AUX        = 0x8  # 16-byte auxiliary class GUID
+FLAG_HAS_NAME = 0x2  # null-terminated name, padded to _NAME_ALIGNMENT
+FLAG_HAS_CODEC = 0x4  # 16-byte codec/decoder class GUID
+FLAG_HAS_AUX = 0x8  # 16-byte auxiliary class GUID
+
 
 # fmt: off
 class CodecUUID(Enum):
@@ -102,17 +103,21 @@ class RWA_WaveFormat:
     FUN_0050a2b0 / FUN_0050a290 in Game.exe.
     """
 
-    sample_rate: int = 0        # u32  +0x00
-    _format_ref: int = 0        # u32  +0x04  runtime ptr on disk; nonzero => codec GUID present
-    data_size: int = 0          # u32  +0x08  size of the sample data in bytes
-    bit_depth: int = 0          # u8   +0x0C  bits per sample
-    channels: int = 0           # u8   +0x0D
-    _pad0: int = 0              # u16  +0x0E
-    _aux_ref: int = 0           # u32  +0x10  runtime ptr on disk; nonzero => aux data present
-    aux_size: int = 0           # u32  +0x14  size of aux/codec data
+    sample_rate: int = 0  # u32  +0x00
+    format_ref: int = (
+        0  # u32  +0x04  runtime ptr on disk; nonzero => codec GUID present
+    )
+    data_size: int = 0  # u32  +0x08  size of the sample data in bytes
+    bit_depth: int = 0  # u8   +0x0C  bits per sample
+    channels: int = 0  # u8   +0x0D
+    _pad0: int = 0  # u16  +0x0E
+    _aux_ref: int = 0  # u32  +0x10  runtime ptr on disk; nonzero => aux data present
+    aux_size: int = 0  # u32  +0x14  size of aux/codec data
     _tail: bytes = b"\x00\x00\x00\x00"  # +0x18  (u8 flags, u8, u16 pad) kept verbatim
-    codec_uuid: uuid.UUID = field(default_factory=null_guid)        # +0x1C  16-byte GUID (present when _format_ref != 0)
-    aux_data: bytes = b""               # aux_size bytes (present when _aux_ref != 0)
+    codec_uuid: uuid.UUID = field(
+        default_factory=null_guid
+    )  # +0x1C  16-byte GUID (present when _format_ref != 0)
+    aux_data: bytes = b""  # aux_size bytes (present when _aux_ref != 0)
 
     @property
     def codec(self):
@@ -123,7 +128,7 @@ class RWA_WaveFormat:
     def read(parser: Parser) -> "RWA_WaveFormat":
         fmt = RWA_WaveFormat()
         fmt.sample_rate = parser.readUint32()
-        fmt._format_ref = parser.readUint32()
+        fmt.format_ref = parser.readUint32()
         fmt.data_size = parser.readUint32()
         fmt.bit_depth = parser.readUint8()
         fmt.channels = parser.readUint8()
@@ -132,7 +137,7 @@ class RWA_WaveFormat:
         fmt.aux_size = parser.readUint32()
         fmt._tail = parser.readBytes(4)
 
-        if fmt._format_ref != 0:
+        if fmt.format_ref != 0:
             fmt.codec_uuid = read_rwguid(parser)
         if fmt._aux_ref != 0:
             fmt.aux_data = parser.readBytes(fmt.aux_size)
@@ -141,7 +146,7 @@ class RWA_WaveFormat:
 
     def write(self, f: BinaryIO):
         write_u32(f, self.sample_rate)
-        write_u32(f, self._format_ref)
+        write_u32(f, self.format_ref)
         write_u32(f, self.data_size)
         write_u8(f, self.bit_depth)
         write_u8(f, self.channels)
@@ -150,15 +155,17 @@ class RWA_WaveFormat:
         write_u32(f, self.aux_size)
         write_bytes(f, self._tail)
 
-        if self._format_ref != 0:
+        if self.format_ref != 0:
             write_bytes(f, rwguid_bytes(self.codec_uuid))
         if self._aux_ref != 0:
             write_bytes(f, self.aux_data)
 
     @override
     def __repr__(self):
-        codec = self.codec.name if self.codec else (
-            str(self.codec_uuid) if self.codec_uuid else "None"
+        codec = (
+            self.codec.name
+            if self.codec
+            else (str(self.codec_uuid) if self.codec_uuid else "None")
         )
         return (
             f"RWA_WaveFormat(codec=<CodecUUID.{codec}>, sample_rate={self.sample_rate}, "
@@ -174,15 +181,21 @@ class RWA_WaveStruct(RW_Section):
     flags: int = 0  # u32 presence bitmask (see FLAG_HAS_*)
 
     source_format: RWA_WaveFormat = field(default_factory=RWA_WaveFormat)  # stored data
-    dest_format: RWA_WaveFormat = field(default_factory=RWA_WaveFormat)    # decoded PCM
+    dest_format: RWA_WaveFormat = field(default_factory=RWA_WaveFormat)  # decoded PCM
 
     loop_stream_flag: int = 0  # u32
 
-    identifier_uuid: uuid.UUID = field(default_factory=null_guid)  # flags & FLAG_HAS_IDENTIFIER (wave-instance GUID)
-    stream_name: str = ""              # flags & FLAG_HAS_NAME
-    _name_padding: bytes = b""         # padding after the name (kept for exact round-trip)
-    decoder_uuid: uuid.UUID = field(default_factory=null_guid)     # flags & FLAG_HAS_CODEC (codec/decoder class GUID)
-    aux_uuid: uuid.UUID = field(default_factory=null_guid)         # flags & FLAG_HAS_AUX (auxiliary class GUID)
+    identifier_uuid: uuid.UUID = field(
+        default_factory=null_guid
+    )  # flags & FLAG_HAS_IDENTIFIER (wave-instance GUID)
+    stream_name: str = ""  # flags & FLAG_HAS_NAME
+    _name_padding: bytes = b""  # padding after the name (kept for exact round-trip)
+    decoder_uuid: uuid.UUID = field(
+        default_factory=null_guid
+    )  # flags & FLAG_HAS_CODEC (codec/decoder class GUID)
+    aux_uuid: uuid.UUID = field(
+        default_factory=null_guid
+    )  # flags & FLAG_HAS_AUX (auxiliary class GUID)
 
     _trailing: bytes = b""  # any bytes after the parsed fields (normally empty)
 
@@ -222,7 +235,7 @@ class RWA_WaveStruct(RW_Section):
             "RWA_WaveStruct chunk type",
         )
 
-        #parser = Parser(orig_parser.read(wavestruct.header.size), endian="little")
+        # parser = Parser(orig_parser.read(wavestruct.header.size), endian="little")
 
         wavestruct.flags = parser.readUint32()
         wavestruct.source_format = RWA_WaveFormat.read(parser)
@@ -245,7 +258,7 @@ class RWA_WaveStruct(RW_Section):
         if wavestruct.flags & FLAG_HAS_AUX:
             wavestruct.aux_uuid = read_rwguid(parser)
 
-        #wavestruct._trailing = parser.readRemaining()
+        # wavestruct._trailing = parser.readRemaining()
 
         return wavestruct
 
@@ -293,8 +306,8 @@ class RWA_WaveStruct(RW_Section):
     def __repr__(self):
         return (
             f"RWA_WaveStruct(name={self.stream_name!r}, flags=0x{self.flags:X}, "
-            + f"source={self.source_format!r}, dest={self.dest_format!r}, "
-            + f"loop_stream_flag={self.loop_stream_flag}, "
-            + f"identifier=\"{self.identifier_uuid}\", decoder=\"{self.decoder_uuid}\", "
-            + f"aux=\"{self.aux_uuid}\")"
+            f"source={self.source_format!r}, dest={self.dest_format!r}, "
+            f"loop_stream_flag={self.loop_stream_flag}, "
+            f'identifier="{self.identifier_uuid}", decoder="{self.decoder_uuid}", '
+            f'aux="{self.aux_uuid}")'
         )

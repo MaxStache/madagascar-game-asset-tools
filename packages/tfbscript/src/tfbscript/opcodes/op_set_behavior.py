@@ -33,7 +33,7 @@ class OpSetBehavior(Opcode):
                     "type": "ref",
                     "ref": self.behavior,
                 },
-            ]
+            ],
         }
 
     @override

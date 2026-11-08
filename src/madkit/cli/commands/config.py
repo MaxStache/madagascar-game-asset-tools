@@ -14,6 +14,7 @@ def config(game_dir: Path | None = None, levels_dir: Path | None = None):
         Game install folder (the one containing Levels/).
     levels_dir : Path
         Folder with the stock .stream files that mods are built from.
+
     """
     settings = load_settings()
     if game_dir is not None:

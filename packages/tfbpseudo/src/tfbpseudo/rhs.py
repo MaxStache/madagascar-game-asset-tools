@@ -90,7 +90,8 @@ class _Cursor:
 
     def error(self, msg: str) -> CompileError:
         """A CompileError pointing at the current token, or at the last one when
-        the argument ran out."""
+        the argument ran out.
+        """
         token = self.peek() or self.tokens[-1]
         return CompileError(msg, token.line, token.col)
 
@@ -140,7 +141,8 @@ def takes_operator_tail(rhs: Rhs) -> bool:
 
 def with_operator_tail(rhs: Rhs) -> Rhs:
     """`rhs` with the tail the engine is going to read: `+ 0`, which leaves
-    the value it stands for alone."""
+    the value it stands for alone.
+    """
     return Rhs(
         TAG_REFERENCE,
         "expression",
@@ -191,7 +193,7 @@ def parse_rhs(tokens: list[Token], read_ref: ReadRefFn) -> Rhs:
     if left.kind != "reference":
         raise CompileError(
             f"only a reference can be the left side of {t_operator.value!r}, "
-            + f"{left.kind} values are stored on their own",
+            f"{left.kind} values are stored on their own",
             t_operator.line,
             t_operator.col,
         )
@@ -202,7 +204,7 @@ def parse_rhs(tokens: list[Token], read_ref: ReadRefFn) -> Rhs:
     if cursor.peek() is not None:
         raise cursor.error(
             "an expression is one reference, one operator and one value, "
-            + "there is no room for more"
+            "there is no room for more",
         )
 
     return Rhs(
@@ -215,7 +217,8 @@ def parse_rhs(tokens: list[Token], read_ref: ReadRefFn) -> Rhs:
 
 
 def parse_condition(
-    tokens: list[Token], read_ref: ReadRefFn
+    tokens: list[Token],
+    read_ref: ReadRefFn,
 ) -> tuple[TFBReference, RelOp, Rhs]:
     """`lhs <op> rhs` -- the value being checked, how, and against what."""
     if not tokens:
@@ -232,7 +235,7 @@ def parse_condition(
         anchor = t_operator or tokens[-1]
         raise CompileError(
             f"expected one of {' '.join(REL_OP_BY_TOKEN)} "
-            + "after the value being checked",
+            "after the value being checked",
             anchor.line,
             anchor.col,
         )
@@ -309,7 +312,9 @@ def _number_term(token: Token, negative: bool = False) -> Rhs:
 
     if not INT_MIN <= value <= INT_MAX:
         raise CompileError(
-            f"{value} does not fit the 32-bit int immediate", token.line, token.col
+            f"{value} does not fit the 32-bit int immediate",
+            token.line,
+            token.col,
         )
 
     return Rhs(TAG_INT, "int", value)
@@ -363,7 +368,11 @@ def _call_arguments(cursor: _Cursor, name: Token) -> list[Rhs]:
 
 
 def _int_arguments(
-    name: Token, arguments: list[Rhs], count: int, low: int, high: int
+    name: Token,
+    arguments: list[Rhs],
+    count: int,
+    low: int,
+    high: int,
 ) -> list[int]:
     if len(arguments) != count:
         raise CompileError(
@@ -384,7 +393,7 @@ def _int_arguments(
         if not low <= argument.value <= high:
             raise CompileError(
                 f"{name.value}() takes numbers from {low} to {high}, "
-                + f"got {argument.value}",
+                f"got {argument.value}",
                 name.line,
                 name.col,
             )
@@ -395,7 +404,9 @@ def _int_arguments(
 
 
 def rhs_tokens(
-    rhs: Rhs, ref_tokens: RefTokensFn, drop_filler: bool = False
+    rhs: Rhs,
+    ref_tokens: RefTokensFn,
+    drop_filler: bool = False,
 ) -> list[Token]:
     """The tokens parse_rhs would have read this Rhs from -- the inverse.
 
@@ -428,9 +439,9 @@ def _term_tokens(rhs: Rhs, ref_tokens: RefTokensFn) -> list[Token]:
 
     if rhs.kind in ("int", "float"):
         if rhs.kind == "int":
-            text = str(cast(int, rhs.value))
+            text = str(cast("int", rhs.value))
         else:
-            text = float_text(cast(float, rhs.value))
+            text = float_text(cast("float", rhs.value))
 
         number = synth_token("NUMBER", text)
 
@@ -438,15 +449,17 @@ def _term_tokens(rhs: Rhs, ref_tokens: RefTokensFn) -> list[Token]:
         return _call_tokens(RANDOM_CALL, [number]) if rhs.is_random else [number]
 
     if rhs.kind == "color":
-        channels = cast(tuple[int, int, int, int], rhs.value)
+        channels = cast("tuple[int, int, int, int]", rhs.value)
         return _call_tokens(
-            COLOR_CALL, [synth_token("NUMBER", str(c)) for c in channels]
+            COLOR_CALL,
+            [synth_token("NUMBER", str(c)) for c in channels],
         )
 
     if rhs.kind == "pair":
-        x, y = cast(tuple[int, int], rhs.value)
+        x, y = cast("tuple[int, int]", rhs.value)
         return _call_tokens(
-            PAIR_CALL, [synth_token("NUMBER", str(v)) for v in (x, y)]
+            PAIR_CALL,
+            [synth_token("NUMBER", str(v)) for v in (x, y)],
         )
 
     raise DecompileError(f"RHS kind {rhs.kind} has no TfbPseudo spelling")
@@ -474,7 +487,8 @@ def _call_tokens(name: str, arguments: list[Token]) -> list[Token]:
 
 def float_text(value: float) -> str:
     """A float literal that lexes back to the same value, i.e. one the NUMBER
-    rule matches and that `_number_term` reads as a float rather than an int."""
+    rule matches and that `_number_term` reads as a float rather than an int.
+    """
     if not math.isfinite(value):
         raise DecompileError(f"float {value!r} has no TfbPseudo spelling")
 

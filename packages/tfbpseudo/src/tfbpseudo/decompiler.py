@@ -26,9 +26,9 @@ from tfbpseudo.references import (
 )
 from tfbpseudo.rhs import condition_tokens, rhs_tokens
 from tfbscript import opcodes
-from tfbscript.reference import Reference as TFBReference
 from tfbscript.opcodes.enums import RelOp
 from tfbscript.reference import SCOPE_LABELS, ReferenceType
+from tfbscript.reference import Reference as TFBReference
 from tfbscript.rhs import Rhs
 from tfbscript.script import ScriptFile
 from tfbscript.string_table import StringTableEntry
@@ -51,14 +51,15 @@ def make_statement(
     block: Block | None = None,
 ) -> Statement:
     """Build the Statement for a call to `method_name`, checking it against the
-    method's compile-side spec so the two directions cannot drift apart."""
+    method's compile-side spec so the two directions cannot drift apart.
+    """
     spec = METHOD_OPCODE_TABLE.get(method_name)
     if spec is None:
         raise DecompileError(f"no compile handler registered for `{method_name}`")
 
     if not spec.accepts(len(arguments)):
         raise DecompileError(
-            f"`{method_name}` takes {spec.arity()} arguments, got {len(arguments)}"
+            f"`{method_name}` takes {spec.arity()} arguments, got {len(arguments)}",
         )
 
     return Statement(
@@ -70,17 +71,19 @@ def make_statement(
 
 def decompile_handler(opcode_type: type[opcodes.Opcode], method_name: str):
     """Register the handler that turns `opcode_type` instances back into a
-    statement calling the TfbPseudo method `method_name`."""
+    statement calling the TfbPseudo method `method_name`.
+    """
 
     def register(fn: DecompileFn) -> DecompileFn:
         if method_name not in METHOD_OPCODE_TABLE:
             raise DecompileError(
                 f"`{method_name}` has no compile handler to mirror, "
-                + "register one with @opcode_handler first"
+                "register one with @opcode_handler first",
             )
 
         OPCODE_DECOMPILE_TABLE[opcode_type] = DecompileSpec(
-            handler=fn, method_name=method_name
+            handler=fn,
+            method_name=method_name,
         )
         return fn
 
@@ -89,7 +92,8 @@ def decompile_handler(opcode_type: type[opcodes.Opcode], method_name: str):
 
 def flow_from_flags(flags: opcodes.InstructionFlags) -> Flow | None:
     """The trailing `flow` a block needs to compile back to these flags, or None
-    when the opcode just continues and the block can stay silent about it."""
+    when the opcode just continues and the block can stay silent about it.
+    """
     if flags.flow_control == FLOW_CONTINUE:
         return None
 
@@ -106,13 +110,16 @@ def render_token(token: Token) -> str:
 
 # Punctuation that takes no space in front of it, and punctuation that takes
 # none after: `color(255, 0, 0, 255)`, `@myself.waypoints#first:sub[0x01]`.
-GLUE_BEFORE = frozenset({"(", ")", ",", MEMBER_OP, SCOPE_OP, SUB_OP, INDEX_OPEN, INDEX_CLOSE})
+GLUE_BEFORE = frozenset(
+    {"(", ")", ",", MEMBER_OP, SCOPE_OP, SUB_OP, INDEX_OPEN, INDEX_CLOSE}
+)
 GLUE_AFTER = frozenset({"(", MEMBER_OP, SCOPE_OP, SUB_OP, INDEX_OPEN})
 
 
 def render_argument(tokens: list[Token]) -> str:
     """Join an argument's tokens back into source. Everything is space
-    separated, except the punctuation of a call or a reference chain."""
+    separated, except the punctuation of a call or a reference chain.
+    """
     out = ""
     previous = ""
 
@@ -142,7 +149,8 @@ def name_tokens(name: str) -> list[Token]:
 
 def field_tokens(type_name: str | None, index: int, index_word: str) -> list[Token]:
     """A field after a `.` or `:`, named when the type is known and the field
-    has a name, and given by index when it is not."""
+    has a name, and given by index when it is not.
+    """
     name = member_name(type_name, index) if type_name is not None else None
 
     if name is not None:
@@ -273,7 +281,7 @@ class Decompiler:
                         if child is not startup and child is not shutdown
                     ],
                     flow_from_flags(prescript.flags),
-                )
+                ),
             )
         self.indentation_level = 1
         self.add_line("}")
@@ -287,7 +295,7 @@ class Decompiler:
             if isinstance(i, opcodes.OpBehaviorImplementation):
                 if not i.behavior_entry:
                     raise DecompileError(
-                        "OpBehaviorImplementation doesnt have a behavior entry, no name can be resolved"
+                        "OpBehaviorImplementation doesnt have a behavior entry, no name can be resolved",
                     )
 
                 # The declaration names the behavior itself, so it is always
@@ -306,24 +314,23 @@ class Decompiler:
         return self.output
 
     def prescript_child(
-        self, prescript: opcodes.Opcode | None, opcode_type: type[opcodes.Opcode]
+        self,
+        prescript: opcodes.Opcode | None,
+        opcode_type: type[opcodes.Opcode],
     ) -> opcodes.Opcode | None:
         """The prescript's `startup` or `shutdown` block, if it has one."""
         if prescript is None:
             return None
 
         return next(
-            (
-                child
-                for child in prescript.children
-                if isinstance(child, opcode_type)
-            ),
+            (child for child in prescript.children if isinstance(child, opcode_type)),
             None,
         )
 
     def ref_tokens(self, ref: TFBReference) -> list[Token]:
         """The tokens a compile handler would have read `ref` from --
-        the inverse of Compiler.read_ref."""
+        the inverse of Compiler.read_ref.
+        """
         # Null first: its member/scope/sub bits are all ones by definition, so
         # it has no chain to walk.
         if ref.kind == ReferenceType.NULL:
@@ -334,7 +341,9 @@ class Decompiler:
         if ref.member:
             tokens.append(synth_token("OP", MEMBER_OP))
             tokens += field_tokens(
-                self.chain_type(ref, before_sub=False), ref.member, MEMBER_INDEX_WORD
+                self.chain_type(ref, before_sub=False),
+                ref.member,
+                MEMBER_INDEX_WORD,
             )
 
         if ref.scope:
@@ -343,7 +352,9 @@ class Decompiler:
         if ref.sub:
             tokens.append(synth_token("OP", SUB_OP))
             tokens += field_tokens(
-                self.chain_type(ref, before_sub=True), ref.sub, SUB_INDEX_WORD
+                self.chain_type(ref, before_sub=True),
+                ref.sub,
+                SUB_INDEX_WORD,
             )
 
         return tokens
@@ -357,7 +368,7 @@ class Decompiler:
             name = BUILTIN_TOKEN_BY_KIND.get(ref.builtin_kind)
             if name is None:
                 raise DecompileError(
-                    f"builtin {ref.builtin_kind.name} has no TfbPseudo spelling"
+                    f"builtin {ref.builtin_kind.name} has no TfbPseudo spelling",
                 )
 
             return [synth_token("BUILTIN", name)]
@@ -376,11 +387,12 @@ class Decompiler:
         local of the same name would be found first.
 
         Both sides go through find_entry, so this asks what the compiler would
-        do rather than guessing at the rule."""
+        do rather than guessing at the rule.
+        """
         if ref.entry is None:
             raise DecompileError(
                 f"{ref.kind.name.lower()} reference to slot {ref.slot} "
-                + "does not resolve to a variable"
+                "does not resolve to a variable",
             )
 
         for name in (ref.entry.name, ref.entry.string):
@@ -401,19 +413,21 @@ class Decompiler:
 
         raise DecompileError(
             f"no way to write {ref.entry.string!r} so that it reads back as "
-            + f"{ref.kind.name.lower()} slot {ref.slot}"
+            f"{ref.kind.name.lower()} slot {ref.slot}",
         )
 
     def variable_name(self, entry: StringTableEntry) -> str:
         """What to call `entry` where there is no reference to disambiguate
-        with, which is the `locals` section and a behavior's own block."""
+        with, which is the `locals` section and a behavior's own block.
+        """
         return entry.name
 
     def scope_tokens(self, ref: TFBReference) -> list[Token]:
         """`#first` when the scope picks out of a set, which is the only
         meaning that is understood, and the raw `#scope[2]` otherwise -- the
         shipped scripts scope plain values too, and what that does is an open
-        question (Reference.__str__ prints those as "@2")."""
+        question (Reference.__str__ prints those as "@2").
+        """
         label = SCOPE_LABELS.get(ref.scope)
 
         try:
@@ -433,7 +447,8 @@ class Decompiler:
 
     def chain_type(self, ref: TFBReference, before_sub: bool) -> str | None:
         """The type a field index is named against, or None when it cannot be
-        resolved -- mirrors Compiler._chain_type."""
+        resolved -- mirrors Compiler._chain_type.
+        """
         try:
             if before_sub:
                 return ref.resolve_type(apply_sub=False).type
@@ -444,16 +459,25 @@ class Decompiler:
 
     def rhs_tokens(self, rhs: Rhs) -> list[Token]:
         """The tokens a compile handler would have read `rhs` from --
-        the inverse of Compiler.get_rhs_by_tokens."""
+        the inverse of Compiler.get_rhs_by_tokens.
+        """
         return rhs_tokens(rhs, self.ref_tokens, self.drop_filler_tails)
 
     def condition_tokens(
-        self, lhs: TFBReference, rel_op: RelOp, rhs: Rhs
+        self,
+        lhs: TFBReference,
+        rel_op: RelOp,
+        rhs: Rhs,
     ) -> list[Token]:
         """The tokens a compile handler would have read this condition from --
-        the inverse of Compiler.get_condition_by_tokens."""
+        the inverse of Compiler.get_condition_by_tokens.
+        """
         return condition_tokens(
-            lhs, rel_op, rhs, self.ref_tokens, self.drop_filler_tails
+            lhs,
+            rel_op,
+            rhs,
+            self.ref_tokens,
+            self.drop_filler_tails,
         )
 
     def statement_from_opcode(self, opcode: opcodes.Opcode) -> Statement:
@@ -465,14 +489,15 @@ class Decompiler:
         spec = OPCODE_DECOMPILE_TABLE.get(type(opcode))
         if spec is None:
             raise DecompileError(
-                f"Unknown or Unimplemented opcode `{type(opcode).__name__}`!"
+                f"Unknown or Unimplemented opcode `{type(opcode).__name__}`!",
             )
 
         return spec.handler(opcode, self)
 
     def statement_from_if_else(self, opcode: opcodes.OpIfElse) -> Statement:
         """The check an if/else wraps, with the rest of the if/else's children
-        as its else branch -- the inverse of Compiler.wrap_if_else."""
+        as its else branch -- the inverse of Compiler.wrap_if_else.
+        """
         if not opcode.children:
             raise DecompileError("if/else has no condition to decide on")
 
@@ -483,7 +508,7 @@ class Decompiler:
             # else branches on one statement, and TfbPseudo has room for one.
             raise DecompileError(
                 "if/else wraps another if/else, which TfbPseudo cannot spell "
-                + "-- a statement carries a single else branch"
+                "-- a statement carries a single else branch",
             )
 
         # The condition is read from inside the if/else, so anything in the
@@ -504,7 +529,9 @@ class Decompiler:
             statement.block = self.block_from_opcode(condition)
 
         statement.else_block = self.block_from_children(
-            opcode, opcode.children[1:], flow_from_flags(opcode.flags)
+            opcode,
+            opcode.children[1:],
+            flow_from_flags(opcode.flags),
         )
 
         return statement
@@ -512,7 +539,9 @@ class Decompiler:
     def block_from_opcode(self, opcode: opcodes.Opcode) -> Block:
         """The Block of statements whose compilation are `opcode`'s children."""
         return self.block_from_children(
-            opcode, opcode.children, flow_from_flags(opcode.flags)
+            opcode,
+            opcode.children,
+            flow_from_flags(opcode.flags),
         )
 
     def block_from_children(
@@ -522,7 +551,8 @@ class Decompiler:
         flow: Flow | None,
     ) -> Block:
         """The Block `children` decompile to, read as the body of `owner`.
-        Only `update` passes anything but all of the owner's children."""
+        Only `update` passes anything but all of the owner's children.
+        """
         body: list[Statement | Token] = []
 
         # Stay "open" while the body is rendered, the protocol every traversal

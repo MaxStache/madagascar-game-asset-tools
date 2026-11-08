@@ -14,7 +14,7 @@ class RW_sf_PlacementNew(RW_StreamFunc):
 
     entry_count: int = 0
     entries: list[tuple[str, int]] = field(
-        default_factory=list
+        default_factory=list,
     )  # List of (behavior, instanceCount) tuples
 
     @classmethod
@@ -29,7 +29,8 @@ class RW_sf_PlacementNew(RW_StreamFunc):
         )
 
         subparser = Parser(
-            parser.readBytes(sf_PlacementNew.header.size), endian="little"
+            parser.readBytes(sf_PlacementNew.header.size),
+            endian="little",
         )
 
         sf_PlacementNew.entry_count = subparser.readUint32()
@@ -88,7 +89,7 @@ class RW_sf_PlacementNew(RW_StreamFunc):
 
         return cls(
             header=header,
-            entry_count=len(content.get("entries",[] )),
+            entry_count=len(content.get("entries", [])),
             entries=[
                 (entry.get("behavior", ""), entry.get("instance_count", 0))
                 for entry in content.get("entries", [])

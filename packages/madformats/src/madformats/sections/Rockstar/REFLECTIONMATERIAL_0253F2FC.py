@@ -2,10 +2,10 @@ import io
 from dataclasses import dataclass, field
 from typing import override
 
-from madformats.lib.writer import write_f32
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from madformats.lib.rwConstants import RWSectionType
+from madformats.lib.writer import write_f32
 
 
 @dataclass
@@ -16,23 +16,25 @@ class RW_Rockstar_ReflectionMaterial(RW_Section):
     environment_map_scale_y: float = field(default=0.0)  # f32 - Environment Map Scale Y
 
     environment_map_offset_x: float = field(
-        default=0.0
+        default=0.0,
     )  # f32 - Environment Map Offset X
     environment_map_offset_y: float = field(
-        default=0.0
+        default=0.0,
     )  # f32 - Environment Map Offset Y
 
     reflection_intensity: float = field(
-        default=0.0
+        default=0.0,
     )  # f32 - Reflection Intensity (Shininess, 0.0-1.0)
 
     environment_texture_ptr: bytes = field(
-        default=b""
+        default=b"",
     )  # 4b - Environment Texture Ptr, always 0 (zero)
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_Rockstar_ReflectionMaterial":
+    def read(
+        cls, parser: Parser, parent: RW_Section | None = None
+    ) -> "RW_Rockstar_ReflectionMaterial":
         refmat = cls()
         refmat.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(

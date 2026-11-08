@@ -5,22 +5,23 @@ from typing import BinaryIO, override
 from madformats.lib.parser import Parser
 from madformats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
 from madformats.lib.writer import write_u32
-       
+
 
 @dataclass
 class RW_TFB_TFBTextureExt1(RW_Section):
     header: RWHeader = field(default_factory=RWHeader)
 
-    version: int = field(default=0xf0f0f04)
+    version: int = field(default=0xF0F0F04)
 
     unknown1: int = field(default=0x00)
     unknown2: int = field(default=0x00)
 
-
     @classmethod
     @override
     def read(
-        cls, parser: Parser, parent: RW_Section | None = None
+        cls,
+        parser: Parser,
+        parent: RW_Section | None = None,
     ) -> "RW_TFB_TFBTextureExt1":
         tfbtexture1 = cls()
         tfbtexture1.header = RWHeader.read(parser)
@@ -34,7 +35,7 @@ class RW_TFB_TFBTextureExt1(RW_Section):
 
         tfbtexture1.unknown1 = parser.readUint32()
         tfbtexture1.unknown2 = parser.readUint32()
-       
+
         return tfbtexture1
 
     @override

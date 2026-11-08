@@ -38,5 +38,5 @@ class OpPlaySound(Opcode):
                     "name": "sound",
                     "ref": self.sound,
                 },
-            ]
+            ],
         }

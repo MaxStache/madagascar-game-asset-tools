@@ -31,7 +31,9 @@ def _is_editable(name: str) -> bool:
 def _require(executable: str) -> str:
     path = shutil.which(executable)
     if path is None:
-        raise SystemExit(f"madkit was installed with {executable}, but {executable} is not on PATH.")
+        raise SystemExit(
+            f"madkit was installed with {executable}, but {executable} is not on PATH."
+        )
     return path
 
 
@@ -45,11 +47,26 @@ def _upgrade_command(packages: list[str]) -> list[str]:
 
     # `pipx install`: same idea, pip runs inside the pipx venv.
     if (prefix / "pipx_metadata.json").is_file():
-        return [_require("pipx"), "runpip", prefix.name, "install", "--upgrade", *packages]
+        return [
+            _require("pipx"),
+            "runpip",
+            prefix.name,
+            "install",
+            "--upgrade",
+            *packages,
+        ]
 
     installer = (metadata.distribution("madkit").read_text("INSTALLER") or "").strip()
     if installer == "uv":
-        return [_require("uv"), "pip", "install", "--upgrade", "--python", sys.executable, *packages]
+        return [
+            _require("uv"),
+            "pip",
+            "install",
+            "--upgrade",
+            "--python",
+            sys.executable,
+            *packages,
+        ]
 
     return [sys.executable, "-m", "pip", "install", "--upgrade", *packages]
 
@@ -64,6 +81,7 @@ def upgrade(dry_run: bool = False, verbose: bool = False):
         Only print the command that would be run.
     verbose : bool
         Show the package manager's output.
+
     """
     before = _installed_versions()
 
@@ -71,7 +89,9 @@ def upgrade(dry_run: bool = False, verbose: bool = False):
     packages = [name for name in before if name not in editable]
 
     if editable:
-        print(f"Skipping editable installs (update them from source): {', '.join(editable)}")
+        print(
+            f"Skipping editable installs (update them from source): {', '.join(editable)}"
+        )
     if not packages:
         print("Nothing to upgrade.")
         return

@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Any, BinaryIO, override
 
-from tfbscript.ansi import comparison, keyword
 from madformats.lib.writer import write_u8
+from tfbscript.ansi import comparison, keyword
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.opcodes.enums import RelOp
 from tfbscript.payload import PayloadReader
@@ -33,7 +33,6 @@ class OpCheckValue(Opcode):
 
         return f"{keyword('check value (')} {condition} {keyword(')')}"
 
-
     @override
     def editor_repr(self) -> dict[str, Any]:
         return {
@@ -56,7 +55,7 @@ class OpCheckValue(Opcode):
                     "type": "rhs",
                     "rhs": self.rhs,
                 },
-            ]
+            ],
         }
 
     @override

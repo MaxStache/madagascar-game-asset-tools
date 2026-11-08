@@ -11,13 +11,14 @@ uuids purely for readability.
 
     python -m madkit.tools.nearest_gui [path-to-stream]
 """
+
 import sys
 import tkinter as tk
 from tkinter import filedialog, ttk
 
 import pymem
 
-from madkit.tools.livescan import IMAGE_BASE, ENTITY_LIST_HEAD, walk
+from madkit.tools.livescan import ENTITY_LIST_HEAD, IMAGE_BASE, walk
 from madkit.tools.nearest import (
     DEFAULT_CLASSES,
     OFF_POS,
@@ -167,7 +168,7 @@ class NearestViewer:
             stats, self.trusted = spatial_classes(self.groups)
             if not self.trusted:
                 raise RuntimeError(
-                    f"no class passed the transform test at +0x{OFF_POS:x}"
+                    f"no class passed the transform test at +0x{OFF_POS:x}",
                 )
 
             spatial = " ".join(
@@ -177,7 +178,7 @@ class NearestViewer:
             self.set_status(
                 f"{len(nodes)} nodes in {len(self.groups)} classes  |  "
                 f"+0x{OFF_POS:x} transform test passed by: {spatial}"
-                + (f"  |  {len(self.names)} names loaded" if self.names else "")
+                + (f"  |  {len(self.names)} names loaded" if self.names else ""),
             )
         except Exception as e:  # noqa: BLE001
             self.pm = None
@@ -231,7 +232,7 @@ class NearestViewer:
             if not wanted:
                 raise RuntimeError(
                     f"{', '.join(DEFAULT_CLASSES)} not present - "
-                    "tick 'all spatial classes'"
+                    "tick 'all spatial classes'",
                 )
 
             player = self.player.position
@@ -240,7 +241,7 @@ class NearestViewer:
 
             self.player_label.config(
                 text=f"player at ({player[0]:9.2f}, {player[1]:9.2f}, {player[2]:9.2f})"
-                f"   {len(rows)} {'/'.join(wanted)} entities"
+                f"   {len(rows)} {'/'.join(wanted)} entities",
             )
             self.fill(self.ranked)
 
@@ -255,9 +256,9 @@ class NearestViewer:
         while len(self.items) < len(ranked):
             self.items.append(self.tree.insert("", "end", values=()))
 
-        for item in self.items[len(ranked):]:
+        for item in self.items[len(ranked) :]:
             self.tree.delete(item)
-        del self.items[len(ranked):]
+        del self.items[len(ranked) :]
 
         for item, (dist, row) in zip(self.items, ranked):
             addr, raw, label, pos = row
@@ -279,7 +280,7 @@ class NearestViewer:
         for dist, (addr, raw, label, pos) in self.ranked:
             lines.append(
                 f"{dist:9.2f}  {describe(raw, self.names):<30} {label:<14} "
-                f"{pos[0]:9.1f} {pos[1]:9.1f} {pos[2]:9.1f}  0x{addr:08x}"
+                f"{pos[0]:9.1f} {pos[1]:9.1f} {pos[2]:9.1f}  0x{addr:08x}",
             )
 
         self.root.clipboard_clear()

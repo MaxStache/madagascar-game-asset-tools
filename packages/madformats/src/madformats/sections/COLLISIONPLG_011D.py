@@ -1,18 +1,18 @@
-from collections.abc import Sequence
 import io
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import BinaryIO, override
 
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import (
     RW_Section,
+    RW_Triangle,
     RWHeader,
+    RwV3d,
     expect_chunk_type_or_raise,
     library_id_unpack,
-    RW_Triangle,
-    Vector3,
 )
+from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.writer import write_u32
 from madformats.sections.COLLTREE_002C import RW_CollTree
 
@@ -28,7 +28,9 @@ class RW_CollisionPlugin(RW_Section):
     @classmethod
     @override
     def read(
-        cls, parser: Parser, parent: RW_Section | None = None
+        cls,
+        parser: Parser,
+        parent: RW_Section | None = None,
     ) -> "RW_CollisionPlugin":
         collplg = cls()
         collplg.header = RWHeader.read(parser)
@@ -41,10 +43,9 @@ class RW_CollisionPlugin(RW_Section):
         collplg.version = parser.readUint32()
         if collplg.version < 0x36001:
             raise NotImplementedError(
-                "Collision plugin reading not implemented for written BEFORE version 0x36001"
+                "Collision plugin reading not implemented for written BEFORE version 0x36001",
             )
-        else:
-            collplg.colltree = RW_CollTree.read(parser, collplg)
+        collplg.colltree = RW_CollTree.read(parser, collplg)
 
         return collplg
 
@@ -53,7 +54,7 @@ class RW_CollisionPlugin(RW_Section):
         version = library_id_unpack(stamp)[0]
         if version < 0x36001:
             raise NotImplementedError(
-                "Collision plugin writing not implemented for version BEFORE 0x36001"
+                "Collision plugin writing not implemented for version BEFORE 0x36001",
             )
 
         buf = io.BytesIO()
@@ -76,7 +77,7 @@ class RW_CollisionPlugin(RW_Section):
     @classmethod
     def build_from_geo(
         cls,
-        vertices: Sequence[Vector3],
+        vertices: Sequence[RwV3d],
         triangles: Sequence[RW_Triangle],
         sort_triangles: bool = True,
     ):

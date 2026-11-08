@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from typing import cast
 
 from tfbpseudo.arguments import (
     Argument,
@@ -47,17 +48,19 @@ def declare(
     verify: Verify | None = None,
 ) -> None:
     """Register `name` as a TfbPseudo method for `opcode_type`, in both
-    directions, from one list of arguments."""
+    directions, from one list of arguments.
+    """
     spec = arguments or []
 
     optional_from = next(
-        (i for i, argument in enumerate(spec) if argument.optional), len(spec)
+        (i for i, argument in enumerate(spec) if argument.optional),
+        len(spec),
     )
     for argument in spec[optional_from:]:
         if not argument.optional:
             raise ValueError(
                 f"{name}: `{argument.name}` is required but follows an optional "
-                + "argument, which no caller could leave out"
+                "argument, which no caller could leave out",
             )
 
     @opcode_handler(
@@ -68,7 +71,9 @@ def declare(
         arguments=tuple(spec),
     )
     def compile_method(
-        opcode_index: int, statement: Statement, compiler: Compiler
+        opcode_index: int,
+        statement: Statement,
+        compiler: Compiler,
     ) -> Opcode:
         instruction = opcode_type(opcode_index)
         instruction.context = compiler.context
@@ -151,7 +156,7 @@ declare(
             rel_op_name="rel_op",
             rhs_name="value",
             optional=True,
-            present_if=lambda op: op._is_extended,  # pyright: ignore[reportAttributeAccessIssue]
+            present_if=lambda op: cast("opcodes.OpCheckMessage", op)._is_extended,  # pyright: ignore[reportPrivateUsage]
         ),
     ],
     finalize=_finalize_check_message,
@@ -203,7 +208,7 @@ declare(
             enum=ControlRequirement,
             optional=True,
             default=ControlRequirement.Allow,
-            present_if=lambda op: op._has_script_control,  # pyright: ignore[reportAttributeAccessIssue]
+            present_if=lambda op: cast("opcodes.OpControl", op)._has_script_control,  # pyright: ignore[reportPrivateUsage]
         ),
     ],
     finalize=_finalize_control,
@@ -253,10 +258,10 @@ declare(
 
 
 def _verify_slide_value(instruction: Opcode) -> None:
-    if instruction._trailing:  # pyright: ignore[reportAttributeAccessIssue]
+    if cast("opcodes.OpSlideValue", instruction)._trailing:  # pyright: ignore[reportPrivateUsage]
         raise DecompileError(
             "slide value kept raw trailing bytes because its right-hand sides "
-            + "could not be read back exactly, so its easing is unreliable"
+            "could not be read back exactly, so its easing is unreliable",
         )
 
 
@@ -401,7 +406,10 @@ declare(
 )
 
 declare(
-    "playSound", opcodes.OpPlaySound, op_name="play sound", arguments=[Ref("sound", expects="sound")]
+    "playSound",
+    opcodes.OpPlaySound,
+    op_name="play sound",
+    arguments=[Ref("sound", expects="sound")],
 )
 
 declare(

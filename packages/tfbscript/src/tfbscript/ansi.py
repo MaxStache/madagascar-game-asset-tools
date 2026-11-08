@@ -39,7 +39,7 @@ if sys.platform == "win32":
                 kernel32.SetConsoleMode(
                     handle,
                     mode.value | ENABLE_VIRTUAL_TERMINAL_PROCESSING,
-                )
+                ),
             )
         except Exception:  # noqa: BLE001
             return False
@@ -101,7 +101,7 @@ class Color(Enum):
 
     # Operators
     OPERATOR = "#56B6C2"  # cyan
-    COMPARISON = "#56B6C2"  # cyan
+    COMPARISON = "#56B6C2"  # cyan  # noqa: PIE796
 
     # Language keywords
     KEYWORD = "#C678DD"  # purple
@@ -111,15 +111,15 @@ class Color(Enum):
     STRING = "#98C379"  # green
     NUMBER = "#D19A66"  # orange
     TYPE = "#E5C07B"  # yellow
-    BUILTIN = "#E5C07B"  # yellow
+    BUILTIN = "#E5C07B"  # yellow  # noqa: PIE796
 
     # Identifiers
-    VARIABLE = "#E06C75"  # red
+    VARIABLE = "#E06C75"  # red  # noqa: PIE796
     VARIABLE_GLOBAL = "#61AFEF"  # blue
-    METHOD = "#61AFEF"  # blue
+    METHOD = "#61AFEF"  # blue  # noqa: PIE796
 
     # Comments
-    COMMENT = "#5C6370"  # muted gray
+    COMMENT = "#5C6370"  # muted gray  # noqa: PIE796
 
     INLINE_FUNC_OP = "#6458EC"
 

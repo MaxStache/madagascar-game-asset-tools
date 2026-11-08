@@ -70,7 +70,7 @@ class SearchBar(QWidget):
         self.status = QLabel("")
         self.status.setMinimumWidth(90)
         self.status.setAlignment(
-            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
         )
 
         self.prev_button = QPushButton("Previous")
@@ -110,7 +110,8 @@ class TreeSearch:
         bar.close_button.clicked.connect(self.close)
 
         shift_return = QShortcut(
-            QKeySequence(Qt.KeyboardModifier.ShiftModifier | Qt.Key.Key_Return), bar.edit
+            QKeySequence(Qt.KeyboardModifier.ShiftModifier | Qt.Key.Key_Return),
+            bar.edit,
         )
         shift_return.setContext(Qt.ShortcutContext.WidgetShortcut)
         shift_return.activated.connect(self.previous_match)
@@ -176,7 +177,7 @@ class TreeSearch:
         for position, index in enumerate(self.matches):
             color = CURRENT_MATCH_BG if position == self.current else MATCH_BG
             self.entries[index].content.setStyleSheet(
-                f"#{ROW_OBJECT_NAME} {{ background-color: {color}; }}"
+                f"#{ROW_OBJECT_NAME} {{ background-color: {color}; }}",
             )
 
     def _reveal_current(self) -> None:
@@ -190,7 +191,8 @@ class TreeSearch:
             parent = parent.parent()
 
         self.tree.scrollToItem(
-            item, QAbstractItemView.ScrollHint.PositionAtCenter
+            item,
+            QAbstractItemView.ScrollHint.PositionAtCenter,
         )
 
     def _update_status(self) -> None:

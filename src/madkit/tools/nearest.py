@@ -20,18 +20,20 @@ the process finds no name string), so rows are identified by uuid unless you pas
 
     python -m madkit.tools.nearest [-n 20] [--all-classes] [--stream FILE] [--watch]
 """
+
 import argparse
+import contextlib
 import math
 import struct
 import time
 
 import pymem
 
-from madkit.tools.livescan import IMAGE_BASE, ENTITY_LIST_HEAD, walk
+from madkit.tools.livescan import ENTITY_LIST_HEAD, IMAGE_BASE, walk
 
 OFF_VTABLE = 0x00
 OFF_MATRIX = 0x148
-OFF_POS = OFF_MATRIX + 0x30   # 0x178, row 4 of the matrix
+OFF_POS = OFF_MATRIX + 0x30  # 0x178, row 4 of the matrix
 
 # Only for labelling - membership is decided by the matrix test, not this table.
 KNOWN_VTABLES = {
@@ -54,17 +56,17 @@ KNOWN_VTABLES = {
 
 DEFAULT_CLASSES = ("CProtoActor",)
 
-ROW_LENGTH_TOLERANCE = 0.1    # how far a matrix row may stray from unit length
+ROW_LENGTH_TOLERANCE = 0.1  # how far a matrix row may stray from unit length
 ORTHOGONALITY_TOLERANCE = 0.05
 MAX_COORDINATE = 1e6
-MIN_SPATIAL_RATIO = 0.8       # share of a class's nodes that must pass the test
-MIN_DISTINCT_POSITIONS = 2    # a class parked entirely at the origin is not spatial
+MIN_SPATIAL_RATIO = 0.8  # share of a class's nodes that must pass the test
+MIN_DISTINCT_POSITIONS = 2  # a class parked entirely at the origin is not spatial
 
 
 def read_matrix(pm, addr):
     try:
         return struct.unpack("<16f", pm.read_bytes(addr + OFF_MATRIX, 64))
-    except Exception:
+    except (pymem.exception.MemoryReadError, struct.error):
         return None
 
 
@@ -104,7 +106,7 @@ def group_by_class(pm, nodes, base):
     for addr, raw in nodes:
         try:
             vtable = pm.read_uint(addr + OFF_VTABLE)
-        except Exception:
+        except pymem.exception.MemoryReadError:
             continue
         label = label_for(vtable - base + IMAGE_BASE)
         groups.setdefault(label, []).append((addr, raw, read_matrix(pm, addr)))
@@ -116,9 +118,9 @@ def spatial_classes(groups):
     stats, trusted = {}, set()
     for label, members in groups.items():
         passed = [m for m in members if is_transform(m[2])]
-        positions = {
-            tuple(round(c, 1) for c in translation(m[2])) for m in passed
-        } - {(0.0, 0.0, 0.0)}
+        positions = {tuple(round(c, 1) for c in translation(m[2])) for m in passed} - {
+            (0.0, 0.0, 0.0)
+        }
         stats[label] = (len(passed), len(members))
         if (
             len(passed) >= MIN_SPATIAL_RATIO * len(members)
@@ -157,10 +159,8 @@ def load_names(stream_path):
     lvl = load_stream(stream_path)
     names = {}
     for entity in lvl.entities():
-        try:
+        with contextlib.suppress(AttributeError):
             names[entity.entityID.bytes_le] = entity.tfbGetName()
-        except Exception:
-            pass
     return names
 
 
@@ -168,29 +168,38 @@ def describe(raw, names):
     import uuid as _uuid
 
     name = names.get(raw)
-    return name if name else str(_uuid.UUID(bytes_le=raw))[:13]
+    return name or str(_uuid.UUID(bytes_le=raw))[:13]
 
 
 def report(ranked, player, names, total):
     px, py, pz = player
-    print(f"  player at ({px:.1f}, {py:.1f}, {pz:.1f})   "
-          f"{total} entities with a position, showing {len(ranked)}")
-    print(f"  {'dist':>9}  {'entity':<30} {'class':<14} "
-          f"{'x':>9} {'y':>9} {'z':>9}  {'address':>10}")
+    print(
+        f"  player at ({px:.1f}, {py:.1f}, {pz:.1f})   "
+        f"{total} entities with a position, showing {len(ranked)}"
+    )
+    print(
+        f"  {'dist':>9}  {'entity':<30} {'class':<14} "
+        f"{'x':>9} {'y':>9} {'z':>9}  {'address':>10}"
+    )
     for dist, (addr, raw, label, (x, y, z)) in ranked:
-        print(f"  {dist:9.2f}  {describe(raw, names)[:30]:<30} {label[:14]:<14} "
-              f"{x:9.1f} {y:9.1f} {z:9.1f}  0x{addr:08x}")
+        print(
+            f"  {dist:9.2f}  {describe(raw, names)[:30]:<30} {label[:14]:<14} "
+            f"{x:9.1f} {y:9.1f} {z:9.1f}  0x{addr:08x}"
+        )
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("-n", "--count", type=int, default=20)
-    ap.add_argument("--all-classes", action="store_true",
-                    help="report every class that passes the transform test, "
-                         "not just CProtoActor")
+    ap.add_argument(
+        "--all-classes",
+        action="store_true",
+        help="report every class that passes the transform test, not just CProtoActor",
+    )
     ap.add_argument("--stream", help="optional level file, used only to show names")
-    ap.add_argument("--watch", action="store_true",
-                    help="refresh continuously until Ctrl+C")
+    ap.add_argument(
+        "--watch", action="store_true", help="refresh continuously until Ctrl+C"
+    )
     ap.add_argument("--interval", type=float, default=0.5)
     args = ap.parse_args()
 
@@ -217,14 +226,21 @@ def main():
         verdict = "spatial" if label in trusted else "no transform"
         print(f"    {passed:4d}/{total:<4d} {label:<16} {verdict}")
 
-    wanted = sorted(trusted) if args.all_classes else \
-        [c for c in DEFAULT_CLASSES if c in trusted]
+    wanted = (
+        sorted(trusted)
+        if args.all_classes
+        else [c for c in DEFAULT_CLASSES if c in trusted]
+    )
     if not wanted:
-        print("\n  !! nothing to report - "
-              + ("no class passed the transform test"
-                 if not trusted
-                 else f"none of {', '.join(DEFAULT_CLASSES)} did; "
-                      f"try --all-classes ({', '.join(sorted(trusted))})"))
+        print(
+            "\n  !! nothing to report - "
+            + (
+                "no class passed the transform test"
+                if not trusted
+                else f"none of {', '.join(DEFAULT_CLASSES)} did; "
+                f"try --all-classes ({', '.join(sorted(trusted))})"
+            )
+        )
         return
     print(f"\n  reporting: {', '.join(wanted)}\n")
 

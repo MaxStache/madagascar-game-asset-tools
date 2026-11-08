@@ -1,13 +1,14 @@
 import io
 import struct
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Union
-from enum import Enum
-from lib.parser import Parser
-import wave
 import tkinter as tk
+import wave
+from dataclasses import dataclass, field
+from enum import Enum
+from pathlib import Path
 from tkinter import ttk
+from typing import Union
+
+from lib.parser import Parser
 
 __version__ = "1.0.0"
 
@@ -422,8 +423,8 @@ def _import_wav_getData(filepath: Union[str, Path]) -> tuple[bytes, int, int, in
         if bit_depth != 16:
             raise ValueError("Only 16-bit PCM can be downmixed to mono")
 
-        from array import array
         import sys
+        from array import array
 
         samples = array("h")
         samples.frombytes(audio_data)
@@ -615,7 +616,7 @@ def load_2057(filepath: Union[str, Path]) -> AudioStream_2057:
         for i in range(rws.file_data.total_subsongs):
             try:
                 streams.append(_2057_read_stream_chunk(parser))
-            except Exception as e:
+            except Exception as e: # noqa: BLE001
                 print(f"Error reading stream {i}: {e}")
                 raise e
 

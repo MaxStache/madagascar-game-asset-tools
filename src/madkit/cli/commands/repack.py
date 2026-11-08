@@ -1,18 +1,25 @@
-from ..cli import app
-from ..utils import ValidatedDir, ValidatedFile, progress
-from madformats.lib.rwConstants import strfunc_func
-import json
 import io
+import json
 from pathlib import Path
 from typing import cast
-from madformats.streamfuncs.stringfuncs.sf_LoadEmbeddedAsset import RW_sf_LoadEmbeddedAsset
+
+from madformats.lib.rw_basics import RW_StreamFunc_NotImplemented
+from madformats.lib.rwConstants import strfunc_func
 from madformats.stream import RW_StreamFile
 from madformats.streamfuncs import STRFUNC_REGISTRY
-from madformats.lib.rw_basics import RW_StreamFunc_NotImplemented
+from madformats.streamfuncs.stringfuncs.sf_LoadEmbeddedAsset import (
+    RW_sf_LoadEmbeddedAsset,
+)
+
+from ..cli import app
+from ..utils import ValidatedDir, ValidatedFile, progress
+
 
 @app.command
 def repack(
-    input_dir: ValidatedDir, out_stream_file_dir: ValidatedFile, gzipped: bool = False
+    input_dir: ValidatedDir,
+    out_stream_file_dir: ValidatedFile,
+    gzipped: bool = False,
 ):
     """Repack a stream from a directory (including a manifest).
 
@@ -24,11 +31,11 @@ def repack(
         File to repack into.
     gzipped : bool
         Whether the output stream file should be gzipped or not.
-    """
 
+    """
     MANIFEST_FILE = Path(input_dir, "manifest.json")
 
-    with open(MANIFEST_FILE, "r") as f:
+    with open(MANIFEST_FILE) as f:
         manifest_contents = json.load(f)
 
     strm = RW_StreamFile()
@@ -42,13 +49,14 @@ def repack(
         )
 
         streamfunc_class = STRFUNC_REGISTRY.get(
-            streamfunc.value, RW_StreamFunc_NotImplemented
+            streamfunc.value,
+            RW_StreamFunc_NotImplemented,
         )
 
         streamfunc_inst = streamfunc_class.from_dict(sec_dict)
 
         if streamfunc == strfunc_func.sf_LoadEmbeddedAsset:
-            sec = cast(RW_sf_LoadEmbeddedAsset, streamfunc_inst)
+            sec = cast("RW_sf_LoadEmbeddedAsset", streamfunc_inst)
             assert file_name is not None, (
                 "Manifest entry is missing 'file_name' for sf_LoadEmbeddedAsset."
             )
@@ -69,4 +77,3 @@ def repack(
     else:
         with open(out_stream_file_dir, "wb") as f:
             f.write(buf.getvalue())
-

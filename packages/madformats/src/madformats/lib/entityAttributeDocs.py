@@ -12,11 +12,12 @@
 
 # RWS_MESSAGE(x, s, t, a, b, d)
 
+from typing import Any
+
 from madformats.lib.entityAtributeDocs.CFXPartSpray import CFXPARTSPRAY_ATTRIBUTES
 from madformats.lib.entityAtributeDocs.CProtoActor import CPROTOACTOR_ATTRIBUTES
 
-
-CREATE_ENTITY_ATTRIBUTE_COMMANDS = {
+CREATE_ENTITY_ATTRIBUTE_COMMANDS: dict[str, dict[int, dict[str, Any]]] = {
     "CSystemCommands": {
         0: {
             "source": "RWS",
@@ -78,7 +79,7 @@ CREATE_ENTITY_ATTRIBUTE_COMMANDS = {
                 "msg_direction": "TRANSMIT",
                 "default": "iMsgDoRender",
             },
-        }
+        },
     },
     "CTFBCommand": {
         0: {
@@ -86,7 +87,7 @@ CREATE_ENTITY_ATTRIBUTE_COMMANDS = {
             "name": "Script Object Name",
             "description": "Name of the object that can be used in scripts to refer to this instance",
             "data": {"type": "RwChar", "default": "", "read": "CString"},
-        }
+        },
     },
     "AudioGlobalMixer": {
         0: {

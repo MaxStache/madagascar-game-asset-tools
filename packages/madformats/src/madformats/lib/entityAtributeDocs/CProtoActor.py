@@ -1,5 +1,6 @@
 import math
 import struct
+
 BASE_OFFSET = 0x1AC  # object-relative offset of byte 0 of the copied block
 HEADER_SKIP = 0
 
@@ -64,17 +65,9 @@ CPROTOACTOR_FIELDS_NOT_IN_ATTR1 = {
 }
 
 
-def parse_CProtoActor_attribute1(data: bytes) -> dict[str, int | None | bool]:
-    """
-    Decode CProtoActor's stream "attribute 1" payload -- i.e.
-    RW_strfunc_CreateEntity_Attribute.data for command==1 under class
-    "CProtoActor" -- into named actor-stat fields.
-
-    Returns a dict of field name -> decoded value (float / int / bool),
-    or None for any field whose offset falls outside the given data.
-    """
+def parse_CProtoActor_attribute1(data: bytes) -> dict[str, int | None | bool | float]:
     payload = data[HEADER_SKIP:]
-    result: dict[str, int | None | bool] = {}
+    result: dict[str, int | bool | float | None] = {}
     flags = None
 
     for name, spec in CPROTOACTOR_ATTR1_FIELDS.items():

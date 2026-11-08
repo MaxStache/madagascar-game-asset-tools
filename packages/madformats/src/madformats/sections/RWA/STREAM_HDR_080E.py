@@ -4,16 +4,16 @@ from dataclasses import dataclass, field
 from typing import BinaryIO, override
 
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import (
     RW_Section,
     RWHeader,
     expect_chunk_type_or_raise,
     write_bytes,
+    write_u8,
     write_u16,
     write_u32,
-    write_u8,
 )
+from madformats.lib.rwConstants import RWSectionType
 from madformats.sections.RWA.WAVESTRUCT_0803 import (
     CodecUUID,
     null_guid,
@@ -82,6 +82,7 @@ def _read_padded_string(parser: Parser) -> tuple[str, bytes]:
     Returns:
         (text, padding) -- the padding is returned so it can be written back
         verbatim; real files leave garbage there.
+
     """
     text = parser.readCString()
     consumed = len(text.encode("latin-1")) + 1  # characters + null terminator
@@ -107,8 +108,8 @@ class RWA_StreamSegmentInfo:
     """Where one segment's audio sits inside the data chunk (0x20 bytes)."""
 
     _unk: bytes = b"\x00" * 0x18  # +0x00  runtime pointers / config
-    layers_size: int = 0          # +0x18  sum of every layer's size, padding included
-    segment_offset: int = 0       # +0x1C  byte offset into the data chunk
+    layers_size: int = 0  # +0x18  sum of every layer's size, padding included
+    segment_offset: int = 0  # +0x1C  byte offset into the data chunk
 
     @staticmethod
     def read(parser: Parser) -> "RWA_StreamSegmentInfo":
@@ -140,17 +141,17 @@ class RWA_StreamLayerInfo:
     starts `layer_start` bytes into every segment.
     """
 
-    _unk00: int = 0            # +0x00  runtime pointer
-    _unk04: int = 0            # +0x04  runtime pointer
-    _unk08: int = 0            # +0x08  null
+    _unk00: int = 0  # +0x00  runtime pointer
+    _unk04: int = 0  # +0x04  runtime pointer
+    _unk08: int = 0  # +0x08  null
     samples_per_frame: int = 0  # +0x0C
     block_size_padded: int = 0  # +0x10  super-block size including inter-layer padding
-    _unk14: int = 0            # +0x14  runtime pointer
-    interleave: int = 0        # +0x18  u16
-    frame_size: int = 0        # +0x1A  u16, codec frame size per channel
-    _unk1C: int = 0            # +0x1C  codec related?
-    block_size: int = 0        # +0x20  usable bytes per super-block
-    layer_start: int = 0       # +0x24  this layer's offset within a segment
+    _unk14: int = 0  # +0x14  runtime pointer
+    interleave: int = 0  # +0x18  u16
+    frame_size: int = 0  # +0x1A  u16, codec frame size per channel
+    _unk1C: int = 0  # +0x1C  codec related?
+    block_size: int = 0  # +0x20  usable bytes per super-block
+    layer_start: int = 0  # +0x24  this layer's offset within a segment
 
     @staticmethod
     def read(parser: Parser) -> "RWA_StreamLayerInfo":
@@ -194,11 +195,11 @@ class RWA_StreamLayerInfo:
 class RWA_StreamLayerConfig:
     """One layer's audio format (0x2C bytes, plus a DSP block, plus padding)."""
 
-    sample_rate: int = 0     # +0x00
-    _unk04: int = 0          # +0x04  runtime pointer
-    layer_size: int = 0      # +0x08  at or near the layer's usable size
-    bit_depth: int = 0       # +0x0C  u8, bits per sample
-    channels: int = 0        # +0x0D  u8
+    sample_rate: int = 0  # +0x00
+    _unk04: int = 0  # +0x04  runtime pointer
+    layer_size: int = 0  # +0x08  at or near the layer's usable size
+    bit_depth: int = 0  # +0x0C  u8, bits per sample
+    channels: int = 0  # +0x0D  u8
     _unk0E: bytes = b"\x00" * 0x0E  # +0x0E
     codec_uuid: uuid.UUID = field(default_factory=null_guid)  # +0x1C
 
@@ -271,22 +272,22 @@ class RWA_Stream_Header(RW_Section):
     header: RWHeader = field(default_factory=RWHeader)
 
     # -- base header (see the layout comment above) --
-    used_size: int = 0        # +0x00
-    _unk04: int = 20          # +0x04
-    _unk08: int = 16          # +0x08
-    _unk0C: int = 36          # +0x0C
-    _name_length: int = 0     # +0x10  re-derived from file_name on write
-    _unk14: int = 0           # +0x14
-    _unk18: int = 0           # +0x18
-    _unk1C: int = 0           # +0x1C
-    _segments_ptr: int = 0    # +0x24
-    _layers_ptr: int = 0      # +0x2C
-    block_alignment: int = 0x800   # +0x30
-    block_layers_size: int = 0     # +0x34
-    data_offset: int = 0           # +0x38
-    _unk3C: int = 0                # +0x3C
+    used_size: int = 0  # +0x00
+    _unk04: int = 20  # +0x04
+    _unk08: int = 16  # +0x08
+    _unk0C: int = 36  # +0x0C
+    _name_length: int = 0  # +0x10  re-derived from file_name on write
+    _unk14: int = 0  # +0x14
+    _unk18: int = 0  # +0x18
+    _unk1C: int = 0  # +0x1C
+    _segments_ptr: int = 0  # +0x24
+    _layers_ptr: int = 0  # +0x2C
+    block_alignment: int = 0x800  # +0x30
+    block_layers_size: int = 0  # +0x34
+    data_offset: int = 0  # +0x38
+    _unk3C: int = 0  # +0x3C
     file_uuid: uuid.UUID = field(default_factory=null_guid)  # +0x40
-    file_name: str = ""            # +0x50
+    file_name: str = ""  # +0x50
     _file_name_pad: bytes = b""
 
     # -- per-segment tables (all `total_segments` long) --
@@ -321,7 +322,9 @@ class RWA_Stream_Header(RW_Section):
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RWA_Stream_Header":
+    def read(
+        cls, parser: Parser, parent: RW_Section | None = None
+    ) -> "RWA_Stream_Header":
         stream_header = cls()
         stream_header.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -433,7 +436,9 @@ class RWA_Stream_Header(RW_Section):
             write_bytes(buf, rwguid_bytes(guid))
 
         for i, name in enumerate(self.segment_names):
-            pad = self._segment_name_pads[i] if i < len(self._segment_name_pads) else b""
+            pad = (
+                self._segment_name_pads[i] if i < len(self._segment_name_pads) else b""
+            )
             _write_padded_string(buf, name, pad)
 
         for info in self.layer_infos:

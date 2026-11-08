@@ -1,13 +1,15 @@
-"""
-anm.py — RenderWare AnimAnimation (.ANM) Library
+"""anm.py — RenderWare AnimAnimation (.ANM) Library
 ========================================================
 
 Read and write Renderware ANM files.
 
 """
+
 from pathlib import Path
+
 from madformats.lib.parser import Parser
 from madformats.sections import RW_AnimAnimation
+
 
 def load_anm(filepath: str | Path) -> RW_AnimAnimation:
     """Load a ANM file from disk
@@ -17,12 +19,13 @@ def load_anm(filepath: str | Path) -> RW_AnimAnimation:
 
     Returns:
         Parsed RW_AnimAnimation.
-    """
 
+    """
     with open(filepath, "rb") as f:
         parser = Parser(f.read(), endian="little")
 
     return RW_AnimAnimation.read(parser, parent=None)
+
 
 def loads_anm(data: bytes) -> RW_AnimAnimation:
     """Load a ANM from stream
@@ -32,8 +35,8 @@ def loads_anm(data: bytes) -> RW_AnimAnimation:
 
     Returns:
         Parsed RW_AnimAnimation.
-    """
 
+    """
     parser = Parser(data, endian="little")
 
     return RW_AnimAnimation.read(parser, parent=None)

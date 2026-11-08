@@ -63,7 +63,7 @@ class RpWorldFlags:
         if self.sectorsOverlap:
             v |= 0x40000000
         return v
-    
+
     def print(self):
         print("RpWorldFlags:")
         print(f"  triStrip: {self.triStrip}")

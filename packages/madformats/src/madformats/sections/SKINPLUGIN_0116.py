@@ -2,18 +2,24 @@ import io
 from dataclasses import dataclass, field
 from typing import cast, override
 
-from madformats.lib.writer import write_u8, write_f32, write_u32
 from madformats.lib.parser import Parser
+from madformats.lib.rw_basics import (
+    RW_Section,
+    RWHeader,
+    RwMatrix,
+    expect_chunk_type_or_raise,
+    library_id_unpack,
+)
 from madformats.lib.rwConstants import RWSectionType
-from madformats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise, RW_Matrix4x4, library_id_unpack
+from madformats.lib.writer import write_f32, write_u8, write_u32
 from madformats.sections.GEOMETRY_000F import RW_Geometry
 
 
 @dataclass
 class RW_SkinPlugin_Bone:
     unused: int = 0  # u32 - Only stored if version < 0x37000 && maxVertexWeights == 0
-    transform: RW_Matrix4x4 = field(
-        default_factory=RW_Matrix4x4
+    transform: RwMatrix = field(
+        default_factory=RwMatrix,
     )  # f32[4][4] - Skin-to-Bone transform.
 
 
@@ -43,24 +49,24 @@ class RW_SkinPlugin(RW_Section):
         # It then takes the largest number from the results.
     )
     _padding: bytes = field(
-        default_factory=lambda: b"\x00"
+        default_factory=lambda: b"\x00",
     )  # Padding byte to align the structure to 4 bytes.
 
     # The number of vertices is obtained from the parent geometry section.
     affected_bone_indices: list[int] = field(
-        default_factory=list
+        default_factory=list,
     )  # u8 each, length = usedBones  - A list of bone indices, that are affected by the skin.
 
     vertex_bone_mappings: list[tuple[int, int, int, int]] = field(
-        default_factory=list
+        default_factory=list,
     )  # (u8,u8,u8,u8) each, length = parent.struct.numVertices   - A list that maps all vertices to (up to) four bones of the skeleton.
 
     vertex_bone_mapping_weights: list[tuple[float, float, float, float]] = field(
-        default_factory=list
+        default_factory=list,
     )  # (f32,f32,f32,f32) each, length = parent.struct.numVertices   - A list that weights each vertex-bone mapping.
 
     bone_transform_matrices: list[RW_SkinPlugin_Bone] = field(
-        default_factory=list
+        default_factory=list,
     )  # f32[4][3] each, length = numBones   - A list of transformation matrices for each bone in the skeleton.
 
     # --- Bone Group Remapping ---
@@ -71,13 +77,13 @@ class RW_SkinPlugin(RW_Section):
     numRemaps: int = 0  # u32 - the number of bone remappings.
 
     boneRemapIndices: list[int] = field(
-        default_factory=list
+        default_factory=list,
     )  # u8 each, length = numBones - an array of all bone indices where each element identifies a bone of the skeleton
     boneGroups: list[RW_SkinPlugin_BoneGroup] = field(
-        default_factory=list
+        default_factory=list,
     )  # RW_SkinPlugin_BoneGroup each, length = numGroups
     boneRemaps: list[RW_SkinPlugin_BoneRemap] = field(
-        default_factory=list
+        default_factory=list,
     )  # RW_SkinPlugin_BoneRemap each, length = numRemaps
 
     @classmethod
@@ -103,10 +109,10 @@ class RW_SkinPlugin(RW_Section):
         if parent.header.type != RWSectionType.rwID_GEOMETRY.value:
             raise ValueError(
                 "RW_SkinPlugin must be a child of RW_Geometry, but parent is "
-                + RWSectionType(parent.header.type).name
+                + RWSectionType(parent.header.type).name,
             )
 
-        pNumVertices = cast(RW_Geometry, parent).struct.numVertices
+        pNumVertices = cast("RW_Geometry", parent).struct.numVertices
 
         skinplg.vertex_bone_mappings = []
         for _ in range(pNumVertices):
@@ -137,7 +143,7 @@ class RW_SkinPlugin(RW_Section):
                 )  # Only stored if version < 0x37000 && maxVertexWeights == 0
 
             skinplg.bone_transform_matrices.append(
-                RW_SkinPlugin_Bone(unused, RW_Matrix4x4.read(parser))
+                RW_SkinPlugin_Bone(unused, RwMatrix.read(parser)),
             )
 
         skinplg.boneLimit = parser.readUint32()
@@ -167,16 +173,16 @@ class RW_SkinPlugin(RW_Section):
         write_u8(buf, len(self.bone_transform_matrices))
         write_u8(buf, len(self.affected_bone_indices))
         write_u8(buf, self.maxVertexWeights)
-        write_u8(buf, 0) # padding to align to 4 bytes
+        write_u8(buf, 0)  # padding to align to 4 bytes
 
         for bone_index in self.affected_bone_indices:
             write_u8(buf, bone_index)
 
         for m in self.vertex_bone_mappings:
-             write_u8(buf, m[0])
-             write_u8(buf, m[1])
-             write_u8(buf, m[2])
-             write_u8(buf, m[3])
+            write_u8(buf, m[0])
+            write_u8(buf, m[1])
+            write_u8(buf, m[2])
+            write_u8(buf, m[3])
 
         for w in self.vertex_bone_mapping_weights:
             write_f32(buf, w[0])
@@ -186,7 +192,9 @@ class RW_SkinPlugin(RW_Section):
 
         for bone in self.bone_transform_matrices:
             if library_id_unpack(stamp)[0] < 0x37000 and self.maxVertexWeights == 0:
-                write_u32(buf, bone.unused) # Only stored if version < 0x37000 && maxVertexWeights == 0
+                write_u32(
+                    buf, bone.unused
+                )  # Only stored if version < 0x37000 && maxVertexWeights == 0
 
             bone.transform.write(buf)
 

@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Any, BinaryIO, override
 
-from tfbscript.ansi import keyword
 from madformats.lib.writer import write_u8
+from tfbscript.ansi import keyword
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.payload import PayloadReader
 from tfbscript.reference import Reference
@@ -35,13 +35,11 @@ class OpSpawnActor(Opcode):
             )
         return cls(clone_ref=clone_ref, at_ref=at_ref, facing_rhs=facing_rhs)
 
-
     @override
     def source_line(self, inline: bool = False) -> str:
         if self.remaining is not None:
             return f"{keyword(f'spawn actor ({self.clone_ref}, at: {self.at_ref}, facing: {self.facing_rhs}, unknown: {self.remaining})')};"
-        else:
-            return f"{keyword(f'spawn actor ({self.clone_ref}, at: {self.at_ref}, facing: {self.facing_rhs})')};"
+        return f"{keyword(f'spawn actor ({self.clone_ref}, at: {self.at_ref}, facing: {self.facing_rhs})')};"
 
     @override
     def editor_repr(self) -> dict[str, Any]:
@@ -82,7 +80,7 @@ class OpSpawnActor(Opcode):
                     "type": "label",
                     "content": "degrees",
                 },
-            ]
+            ],
         }
 
     @override

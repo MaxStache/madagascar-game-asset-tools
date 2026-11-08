@@ -12,7 +12,7 @@ class OpPrescript(BlockOpcode):
 
     @override
     def write_payload(self, f: BinaryIO) -> None:
-        pass # Prescript has no payload
+        pass  # Prescript has no payload
 
     @override
     def editor_repr(self) -> dict[str, Any]:
@@ -22,5 +22,5 @@ class OpPrescript(BlockOpcode):
                     "type": "block-label",
                     "value": "PRESCRIPT",
                 },
-            ]
+            ],
         }

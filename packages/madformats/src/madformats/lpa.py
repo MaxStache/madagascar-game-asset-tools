@@ -1,7 +1,9 @@
 import io
 from dataclasses import dataclass, field
+from enum import IntEnum
 from pathlib import Path
 from typing import BinaryIO, Self, cast, override
+
 from madformats.lib.parser import Parser
 from madformats.lib.writer import (
     write_f32,
@@ -10,7 +12,6 @@ from madformats.lib.writer import (
     write_u8,
     write_u32,
 )
-from enum import IntEnum
 
 
 class TFB_KeyType(IntEnum):
@@ -61,13 +62,13 @@ class RW_TFB_KFSet_Key:
         if self.key_type == TFB_KeyType.BOOL:
             write_u8(f, int(bool(self.value)))
         elif self.key_type == TFB_KeyType.BYTE:
-            write_u8(f, int(cast(int, self.value)) & 0xFF)
+            write_u8(f, int(cast("int", self.value)) & 0xFF)
         elif self.key_type == TFB_KeyType.INT:
-            write_s32(f, int(cast(int, self.value)))
+            write_s32(f, int(cast("int", self.value)))
         elif self.key_type == TFB_KeyType.FLOAT:
-            write_f32(f, float(cast(float, self.value)))
+            write_f32(f, float(cast("float", self.value)))
         elif self.key_type == TFB_KeyType.COLOR:
-            for component in cast(list[float], self.value):
+            for component in cast("list[float]", self.value):
                 write_f32(f, component)
 
 
@@ -153,7 +154,7 @@ class RW_TFB_LipAnimation(RW_TFB_KFSet):
     @classmethod
     @override
     def read(cls, parser: Parser) -> Self:
-        return cast(Self, super().read(parser))
+        return cast("Self", super().read(parser))
 
     @property
     def visemes(self) -> list[TFB_VisemeKey]:
@@ -172,7 +173,6 @@ class RW_TFB_LipAnimation(RW_TFB_KFSet):
         property returns them, so `from_visemes(anim.visemes, anim.duration)`
         round-trips a file.
         """
-
         if duration <= 0:
             raise ValueError("duration must be positive")
 
@@ -196,8 +196,8 @@ def loads_lpa(data: bytes) -> RW_TFB_LipAnimation:
 
     Returns:
         Parsed RW_TFB_LipAnimation.
-    """
 
+    """
     parser = Parser(data, endian="little")
 
     return RW_TFB_LipAnimation.read(parser)
@@ -211,8 +211,8 @@ def load_lpa(filepath: str | Path) -> RW_TFB_LipAnimation:
 
     Returns:
         Parsed RW_TFB_LipAnimation
-    """
 
+    """
     with open(filepath, "rb") as f:
         return loads_lpa(f.read())
 
@@ -225,8 +225,8 @@ def dumps_lpa(lipanim: RW_TFB_LipAnimation) -> bytes:
 
     Returns:
         Bytes of the .lpa.
-    """
 
+    """
     buffer = io.BytesIO()
     lipanim.write(buffer)
 
@@ -239,7 +239,7 @@ def save_lpa(lipanim: RW_TFB_LipAnimation, filepath: str | Path) -> None:
     Args:
         lipanim: The lip animation to write.
         filepath: Path to the .lpa file.
-    """
 
+    """
     with open(filepath, "wb") as f:
         lipanim.write(f)

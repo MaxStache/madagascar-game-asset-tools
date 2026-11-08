@@ -1,13 +1,13 @@
 import io
 import struct
+from dataclasses import dataclass
 from typing import cast
+
+from madformats.lib.parser import Parser
 
 # from madformats.lib.parser import Parser
 from madformats.lib.writer import write_alignedString, write_u32
-from madformats.lib.parser import Parser
 from madformats.streamfuncs import RW_sf_CreateEntity
-from dataclasses import dataclass
-
 from madformats.streamfuncs.stringfuncs.sf_CreateEntity import (
     RW_sf_CreateEntity_Attribute,
 )
@@ -20,7 +20,7 @@ class LevelHub(RW_sf_CreateEntity):
     @classmethod
     def from_entity(cls, entity: RW_sf_CreateEntity) -> "LevelHub":
         entity.__class__ = cls
-        camd = cast(LevelHub, entity)
+        camd = cast("LevelHub", entity)
         return camd
 
     def getGlobalVariableAttributes(self) -> list[RW_sf_CreateEntity_Attribute]:
@@ -94,7 +94,7 @@ class LevelHub(RW_sf_CreateEntity):
         var = self.addGlobalVariableSoft(value, tag, name)
         if var is None:
             raise ValueError(
-                "Error while adding a variable to LevelHub entity, there already is a variable with the same name"
+                "Error while adding a variable to LevelHub entity, there already is a variable with the same name",
             )
 
         return var
@@ -113,20 +113,20 @@ class LevelHub(RW_sf_CreateEntity):
         ):
             if var[2] != name:
                 continue
-    
+
             buf = io.BytesIO()
-    
+
             if isinstance(value, float):
                 buf.write(struct.pack("<f", value))
             else:
                 buf.write(value.to_bytes(4, "little"))
-    
+
             write_u32(buf, tag)
             write_alignedString(buf, name)
-    
+
             attr.data = buf.getvalue()
             return attr
-    
+
         return None
 
     def setGlobalVariable(
@@ -140,7 +140,7 @@ class LevelHub(RW_sf_CreateEntity):
 
         if var is None:
             raise ValueError(
-                f"Error while setting LevelHub variable, variable {name!r} does not exist"
+                f"Error while setting LevelHub variable, variable {name!r} does not exist",
             )
 
         return var
@@ -153,8 +153,8 @@ class LevelHub(RW_sf_CreateEntity):
     ) -> RW_sf_CreateEntity_Attribute:
         """Sets an existing variable or creates it if it does not exist."""
         var = self.setGlobalVariableSoft(value, tag, name)
-    
+
         if var is not None:
             return var
-    
+
         return self.addGlobalVariable(value, tag, name)

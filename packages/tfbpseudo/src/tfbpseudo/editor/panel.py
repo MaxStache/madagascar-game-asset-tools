@@ -138,7 +138,10 @@ def mentioned(name: str, text: str) -> bool:
 def warned(variable, message: str) -> Problem:
     """A warning about `variable`, written the way an error writes itself."""
     return Problem(
-        f"[Ln {variable.line}] {message}", variable.line, 1, warning=True
+        f"[Ln {variable.line}] {message}",
+        variable.line,
+        1,
+        warning=True,
     )
 
 
@@ -176,7 +179,7 @@ def warnings(source: str) -> list[Problem]:
 
         if not mentioned(variable.name, body):
             found.append(
-                warned(variable, f"{variable.name} is declared but never used")
+                warned(variable, f"{variable.name} is declared but never used"),
             )
         elif (
             variable.scope == "local"
@@ -188,7 +191,7 @@ def warnings(source: str) -> list[Problem]:
                     variable,
                     f"{variable.name} is a user variable that nothing creates, "
                     "add createVariable for it",
-                )
+                ),
             )
 
     return found
@@ -252,13 +255,19 @@ def describe(script: ScriptFile) -> list[str]:
     ]
 
     lines = [
-        f"{len(instructions)} instructions, "
-        f"{len(script.opcode_table.entries)} opcodes in the table, "
-        f"{written_size(script)} bytes",
-        f"{len(script.global_refs.entries)} globals: "
-        f"{kinds(script.global_refs.entries) or 'none'}",
-        f"{len(script.local_refs.entries)} locals: "
-        f"{kinds(script.local_refs.entries) or 'none'}",
+        (
+            f"{len(instructions)} instructions, "
+            f"{len(script.opcode_table.entries)} opcodes in the table, "
+            f"{written_size(script)} bytes"
+        ),
+        (
+            f"{len(script.global_refs.entries)} globals: "
+            f"{kinds(script.global_refs.entries) or 'none'}"
+        ),
+        (
+            f"{len(script.local_refs.entries)} locals: "
+            f"{kinds(script.local_refs.entries) or 'none'}"
+        ),
     ]
 
     if behaviors:
@@ -267,7 +276,7 @@ def describe(script: ScriptFile) -> list[str]:
     if counted:
         lines.append(
             "most of: "
-            + ", ".join(f"{name} x{count}" for name, count in counted.most_common(TOP))
+            + ", ".join(f"{name} x{count}" for name, count in counted.most_common(TOP)),
         )
 
     return lines
@@ -367,9 +376,7 @@ class Panel(QTabWidget):
         # stops a compile is tinted -- a warning is not worth colouring a line
         # you are working on.
         self.editor.mark_errors(
-            problem.line
-            for problem in found
-            if problem.line and not problem.warning
+            problem.line for problem in found if problem.line and not problem.warning
         )
 
     def jump(self, item: QListWidgetItem) -> None:

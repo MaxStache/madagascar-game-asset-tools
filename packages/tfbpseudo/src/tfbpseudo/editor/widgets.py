@@ -54,7 +54,8 @@ FOLDED_MARK = " …"  # what stands in for the lines a fold took away
 
 class LineNumbers(QWidget):
     """The gutter down the left of the editor: line numbers, and the fold
-    arrow beside every line that opens a block."""
+    arrow beside every line that opens a block.
+    """
 
     def __init__(self, editor: "CodeEditor"):
         super().__init__(editor)
@@ -107,7 +108,7 @@ class LineNumbers(QWidget):
         self.setCursor(
             Qt.CursorShape.ArrowCursor
             if line is None
-            else Qt.CursorShape.PointingHandCursor
+            else Qt.CursorShape.PointingHandCursor,
         )
         self.update()
 
@@ -130,7 +131,7 @@ class CodeEditor(QPlainTextEdit):
 
         # Set by the completer when one is attached, since typing is what
         # drives it and every key comes through here first.
-        self.completer: "Completer | None" = None
+        self.completer: Completer | None = None
 
         # Owned by the find box, kept here because every repaint of the
         # extra selections has to put them back.
@@ -162,7 +163,8 @@ class CodeEditor(QPlainTextEdit):
 
     def set_font_size(self, points: int) -> None:
         """Set the size of the text, and of everything measured against it:
-        the indent Tab moves by, and how wide the gutter has to be."""
+        the indent Tab moves by, and how wide the gutter has to be.
+        """
         self.font_size = points
 
         font = self.font()
@@ -219,7 +221,7 @@ class CodeEditor(QPlainTextEdit):
         super().resizeEvent(event)
         area = self.contentsRect()
         self.gutter.setGeometry(
-            QRect(area.left(), area.top(), self.gutter_width(), area.height())
+            QRect(area.left(), area.top(), self.gutter_width(), area.height()),
         )
 
     def paint_gutter(self, event) -> None:
@@ -238,8 +240,8 @@ class CodeEditor(QPlainTextEdit):
                     QColor(
                         self.theme.gutter_current
                         if block.blockNumber() == current
-                        else self.theme.gutter_text
-                    )
+                        else self.theme.gutter_text,
+                    ),
                 )
                 painter.drawText(
                     0,
@@ -268,7 +270,8 @@ class CodeEditor(QPlainTextEdit):
         folded = self.is_folded(line)
 
         centre = QPointF(
-            self.gutter.width() - column / 2, top + self.fontMetrics().height() / 2
+            self.gutter.width() - column / 2,
+            top + self.fontMetrics().height() / 2,
         )
 
         # Roughly as wide as it is tall, so neither way round reads as a slot.
@@ -332,7 +335,8 @@ class CodeEditor(QPlainTextEdit):
 
     def folds(self) -> dict[int, int]:
         """Every line that opens a block and the line that closes it, worked
-        out from the text and kept until the text changes."""
+        out from the text and kept until the text changes.
+        """
         revision = self.document().revision()
 
         if revision != self._folds_revision:
@@ -499,7 +503,8 @@ class CodeEditor(QPlainTextEdit):
 
         if start.isValid() and end.isValid():
             document.markContentsDirty(
-                start.position(), end.position() + end.length() - start.position()
+                start.position(),
+                end.position() + end.length() - start.position(),
             )
 
         layout = document.documentLayout()
@@ -538,7 +543,8 @@ class CodeEditor(QPlainTextEdit):
 
     def block_at(self, y: int):
         """The block drawn at `y` in the viewport, or None above or below the
-        text. Folded-away blocks take up no height, so they are never hit."""
+        text. Folded-away blocks take up no height, so they are never hit.
+        """
         block = self.firstVisibleBlock()
         top = self.blockBoundingGeometry(block).translated(self.contentOffset()).top()
 
@@ -555,7 +561,8 @@ class CodeEditor(QPlainTextEdit):
 
     def paint_fold_marks(self, event) -> None:
         """A mark after a folded line, so it does not read as a line that
-        simply ends there."""
+        simply ends there.
+        """
         if not self._anything_folded:
             return
 
@@ -708,7 +715,8 @@ class CodeEditor(QPlainTextEdit):
         cursor.beginEditBlock()
         cursor.setPosition(start.position())
         cursor.setPosition(
-            end.position() + end.length() - 1, QTextCursor.MoveMode.KeepAnchor
+            end.position() + end.length() - 1,
+            QTextCursor.MoveMode.KeepAnchor,
         )
         cursor.insertText("\n".join(lines))
         cursor.endEditBlock()
@@ -719,7 +727,8 @@ class CodeEditor(QPlainTextEdit):
 
         cursor = QTextCursor(document.findBlockByNumber(first))
         cursor.setPosition(
-            end.position() + end.length() - 1, QTextCursor.MoveMode.KeepAnchor
+            end.position() + end.length() - 1,
+            QTextCursor.MoveMode.KeepAnchor,
         )
         self.setTextCursor(cursor)
 
@@ -861,7 +870,8 @@ class CodeEditor(QPlainTextEdit):
             selection = QTextEdit.ExtraSelection()
             selection.format.setBackground(QColor(self.theme.current_line))
             selection.format.setProperty(
-                QTextFormat.Property.FullWidthSelection, True
+                QTextFormat.Property.FullWidthSelection,
+                True,
             )
             selection.cursor = self.textCursor()
             selection.cursor.clearSelection()
@@ -892,7 +902,8 @@ class CodeEditor(QPlainTextEdit):
         return selection
 
     def set_search_selections(
-        self, selections: list[QTextEdit.ExtraSelection]
+        self,
+        selections: list[QTextEdit.ExtraSelection],
     ) -> None:
         """Replace the find box's highlights. Pass an empty list to drop them."""
         self.search_selections = list(selections)
@@ -914,7 +925,8 @@ class CodeEditor(QPlainTextEdit):
 
     def go_to_line(self, line: int, col: int = 1) -> bool:
         """Put the cursor on a line and bring it into view, saying if it is
-        there at all."""
+        there at all.
+        """
         block = self.document().findBlockByNumber(max(0, line - 1))
         if not block.isValid():
             return False
@@ -967,7 +979,8 @@ def opens_fold(line: str) -> bool:
 
 def code_of(line: str) -> str:
     """`line` up to the `//` that comments the rest of it out, if any. A `//`
-    inside a string is text, not the start of a comment."""
+    inside a string is text, not the start of a comment.
+    """
     in_string = False
     escaped = False
 
@@ -1043,7 +1056,7 @@ def uncomment(line: str) -> str:
         return line
 
     rest = rest[2:]
-    return indent + (rest[1:] if rest.startswith(" ") else rest)
+    return indent + rest.removeprefix(" ")
 
 
 def dedent(line: str) -> str:

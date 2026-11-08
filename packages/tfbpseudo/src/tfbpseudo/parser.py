@@ -82,7 +82,7 @@ class Parser:
                 t = self.expect("COMMENT")
             else:
                 raise SyntaxError(
-                    f"Expected IDENT or COMMENT, got {self.peek().kind} ( {self.peek()!s} )"
+                    f"Expected IDENT or COMMENT, got {self.peek().kind} ( {self.peek()!s} )",
                 )
 
             if t.kind == "COMMENT":
@@ -114,7 +114,9 @@ class Parser:
 
                 else:
                     raise ParseError(
-                        f"unknown top-level construct {t.value!r}", t.line, t.col
+                        f"unknown top-level construct {t.value!r}",
+                        t.line,
+                        t.col,
                     )
 
         return script
@@ -127,7 +129,9 @@ class Parser:
             t = self.expect("IDENT")
             if t.value not in ("startup", "update", "shutdown"):
                 raise ParseError(
-                    f"unknown prescript sub-block {t.value!r}", t.line, t.col
+                    f"unknown prescript sub-block {t.value!r}",
+                    t.line,
+                    t.col,
                 )
             if t.value in subblocks:
                 raise ParseError(f"duplicate sub-block {t.value!r}", t.line, t.col)
@@ -220,7 +224,8 @@ class Parser:
 
     def parse_flow(self) -> Flow:
         """`flow end`, `flow continue` or `flow break N` (N counts the levels to
-        skip, default 1). The trailing semicolon is optional."""
+        skip, default 1). The trailing semicolon is optional.
+        """
         keyword = self.expect("IDENT", "flow")
         mode = self.expect("IDENT")
 
@@ -247,7 +252,7 @@ class Parser:
                 if levels < 1:
                     raise ParseError(
                         "flow break skips at least 1 level, "
-                        + "write `flow continue` to just carry on",
+                        "write `flow continue` to just carry on",
                         t_levels.line,
                         t_levels.col,
                     )
@@ -257,7 +262,7 @@ class Parser:
         else:
             raise ParseError(
                 f"unknown flow control {mode.value!r}, "
-                + "expected `end`, `continue` or `break`",
+                "expected `end`, `continue` or `break`",
                 mode.line,
                 mode.col,
             )
@@ -265,7 +270,7 @@ class Parser:
         if value > FLOW_MAX:
             raise ParseError(
                 f"flow break {value - FLOW_BREAK_BASE} does not fit the 3-bit "
-                + f"flow-control field, at most `flow break {FLOW_MAX - FLOW_BREAK_BASE}`",
+                f"flow-control field, at most `flow break {FLOW_MAX - FLOW_BREAK_BASE}`",
                 keyword.line,
                 keyword.col,
             )
@@ -289,7 +294,9 @@ class Parser:
         while not self.check("OP", "}"):
             if self.check("EOF"):
                 raise ParseError(
-                    "unterminated block", opening.line, opening.col
+                    "unterminated block",
+                    opening.line,
+                    opening.col,
                 )
 
             # Comments and empty statements carry no code, but comments are kept
@@ -320,7 +327,7 @@ class Parser:
                     t = self.peek()
                     raise ParseError(
                         "`flow` has to be the last thing in its block, "
-                        + "and a block can only have one",
+                        "and a block can only have one",
                         t.line,
                         t.col,
                     )

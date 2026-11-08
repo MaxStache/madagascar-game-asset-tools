@@ -18,7 +18,6 @@ class OpSetReference(Opcode):
     def parse_payload(cls, reader: PayloadReader) -> "OpSetReference":
         return cls(dest_ref=reader.readRef(), src_ref=reader.readRef())
 
-
     @override
     def write_payload(self, f: BinaryIO) -> None:
         self.dest_ref.write(f)
@@ -48,5 +47,5 @@ class OpSetReference(Opcode):
                     "type": "ref",
                     "ref": self.src_ref,
                 },
-            ]
+            ],
         }

@@ -1,18 +1,16 @@
-from enum import Enum
 import io
-from dataclasses import dataclass, field
-from pathlib import Path
 import struct
+from dataclasses import dataclass, field
+from enum import Enum
+from pathlib import Path
 from typing import BinaryIO, override
 
-from madformats.lib.writer import write_u8, write_u32, write_u16, write_fixedString
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
-
+from madformats.lib.rwConstants import RWSectionType
+from madformats.lib.writer import write_fixedString, write_u8, write_u16, write_u32
 from madformats.sections.EXTENSION_0003 import RW_Extension
 from madformats.sections.STRING_0002 import RW_String
-
 
 try:
     from PIL import Image
@@ -28,7 +26,7 @@ except ImportError:
 def _require_pillow():
     if Image is None:
         raise ImportError(
-            "Pillow is required for PNG import/export. Install it with: pip install Pillow"
+            "Pillow is required for PNG import/export. Install it with: pip install Pillow",
         )
 
 
@@ -100,16 +98,15 @@ def is_power_of_two(value: int) -> bool:
 
 def validate_texture_name(name: str, field_name: str = "name"):
     """Raise if a texture name will not survive the fixed 32 byte field."""
-
     if len(name) > MAX_TEXTURE_NAME_LENGTH:
         raise ValueError(
             f"Texture {field_name} {name!r} is {len(name)} characters, "
-            f"max is {MAX_TEXTURE_NAME_LENGTH}"
+            f"max is {MAX_TEXTURE_NAME_LENGTH}",
         )
 
     if not name.isascii():
         raise ValueError(
-            f"Texture {field_name} {name!r} must be ASCII"
+            f"Texture {field_name} {name!r} must be ASCII",
         )
 
 
@@ -120,18 +117,17 @@ def validate_texture_size(width: int, height: int):
     so anything else drops pixels silently instead of failing — a 48x48 image
     loses about a fifth of them. Both edges have to be powers of two.
     """
-
     for edge, value in (("width", width), ("height", height)):
         if not is_power_of_two(value):
             raise ValueError(
                 f"Texture {edge} {value} must be a power of two "
-                f"(the Xbox swizzler corrupts anything else)"
+                "(the Xbox swizzler corrupts anything else)",
             )
 
         if value > MAX_TEXTURE_DIMENSION:
             raise ValueError(
                 f"Texture {edge} {value} does not fit the u16 field "
-                f"(max {MAX_TEXTURE_DIMENSION})"
+                f"(max {MAX_TEXTURE_DIMENSION})",
             )
 
 
@@ -283,27 +279,28 @@ class RW_TextureNative_Struct(RW_Section):
     header: RWHeader = field(default_factory=RWHeader)
 
     platform_id: RW_TextureNative_PlatformId = field(
-        default=RW_TextureNative_PlatformId.XBOX
+        default=RW_TextureNative_PlatformId.XBOX,
     )
 
     filter_mode: RW_TextureNative_FilterMode = field(
-        default=RW_TextureNative_FilterMode.NONE
+        default=RW_TextureNative_FilterMode.NONE,
     )
 
     addressing_modes: tuple[
-        RW_TextureNative_AddressingMode, RW_TextureNative_AddressingMode
+        RW_TextureNative_AddressingMode,
+        RW_TextureNative_AddressingMode,
     ] = field(
         default=(
             RW_TextureNative_AddressingMode.NONE,
             RW_TextureNative_AddressingMode.NONE,
-        )
+        ),
     )
 
     name: str = field(default="")
     mask_name: str = field(default="")
 
     raster_format: RWTextureRasterFormat = field(
-        default_factory=lambda: RWTextureRasterFormat(RWTextureFormat.DEFAULT)
+        default_factory=lambda: RWTextureRasterFormat(RWTextureFormat.DEFAULT),
     )
 
     has_alpha: bool = field(default=False)
@@ -339,7 +336,9 @@ class RW_TextureNative_Struct(RW_Section):
     @classmethod
     @override
     def read(
-        cls, parser: Parser, parent: RW_Section | None = None
+        cls,
+        parser: Parser,
+        parent: RW_Section | None = None,
     ) -> "RW_TextureNative_Struct":
         texnative_s = cls()
         texnative_s.header = RWHeader.read(parser)
@@ -360,7 +359,7 @@ class RW_TextureNative_Struct(RW_Section):
             RW_TextureNative_PlatformId.D3D9,
         ):
             raise NotImplementedError(
-                "Direct3D 8/9 texture parsing not implemented yet"
+                "Direct3D 8/9 texture parsing not implemented yet",
             )
         elif texnative_s.platform_id in (
             RW_TextureNative_PlatformId.PS2,
@@ -369,7 +368,7 @@ class RW_TextureNative_Struct(RW_Section):
             texnative_s._read_PS2(parser)
         else:
             raise NotImplementedError(
-                f"Texture parsing for platform {texnative_s.platform_id} not implemented yet"
+                f"Texture parsing for platform {texnative_s.platform_id} not implemented yet",
             )
 
         return texnative_s
@@ -382,7 +381,7 @@ class RW_TextureNative_Struct(RW_Section):
         adressing_modes = parser.readUint8()
         adressing_mode_u = RW_TextureNative_AddressingMode(adressing_modes & 0x0F)
         adressing_mode_v = RW_TextureNative_AddressingMode(
-            (adressing_modes >> 4) & 0x0F
+            (adressing_modes >> 4) & 0x0F,
         )
         self.addressing_modes = (adressing_mode_u, adressing_mode_v)
 
@@ -450,14 +449,14 @@ class RW_TextureNative_Struct(RW_Section):
         texel_region = parser.read(self.texel_data_size)
 
         for mip_level, texels in enumerate(
-            _ps2_iter_transfer_blocks(texel_region, mip_count)
+            _ps2_iter_transfer_blocks(texel_region, mip_count),
         ):
             _, w, h = self._ps2_calc_mipmap(mip_level)
             self.mipmaps.append(MipmapLevel(w, h, len(texels), texels))
 
         # Palette
         palette_blob = b"".join(
-            _ps2_iter_transfer_blocks(parser.read(self.pallette_data_size), 1)
+            _ps2_iter_transfer_blocks(parser.read(self.pallette_data_size), 1),
         )
         pal_entries = len(palette_blob) // 4
 
@@ -473,10 +472,8 @@ class RW_TextureNative_Struct(RW_Section):
         # rather than recomputing the trailing padding ourselves.
         parser.seek(rfmt_end)
 
-
     def _ps2_calc_mipmap(self, mip_level: int) -> tuple[int, int, int]:
         """Return (data_size, width, height) for a PS2 mip level."""
-
         if mip_level < 0:
             raise ValueError(f"Invalid mip level: {mip_level}")
 
@@ -516,7 +513,7 @@ class RW_TextureNative_Struct(RW_Section):
         adressing_modes = parser.readUint8()
         adressing_mode_u = RW_TextureNative_AddressingMode(adressing_modes & 0x0F)
         adressing_mode_v = RW_TextureNative_AddressingMode(
-            (adressing_modes >> 4) & 0x0F
+            (adressing_modes >> 4) & 0x0F,
         )
         self.addressing_modes = (adressing_mode_u, adressing_mode_v)
 
@@ -566,12 +563,11 @@ class RW_TextureNative_Struct(RW_Section):
 
             self.mipmaps.append(MipmapLevel(w, h, data_size, parser.read(data_size)))
 
-        padding = ((texel_data_size + 3) & ~3) - texel_data_size # pad to 4b
+        padding = ((texel_data_size + 3) & ~3) - texel_data_size  # pad to 4b
         parser.skip(padding)
 
     def _xbox_calc_mipmap(self, mip_level: int) -> tuple[int, int, int]:
         """Return the byte size of a specific mip level."""
-
         if mip_level < 0:  # or mip_level >= self.mipmap_count:
             raise ValueError(f"Invalid mip level: {mip_level}")
 
@@ -601,7 +597,7 @@ class RW_TextureNative_Struct(RW_Section):
             # DXT3/DXT5 are a byte per pixel, which `w * h` already is. Any
             # other value would silently declare a wrong texel_data_size.
             raise ValueError(
-                f"Unknown Xbox compression code 0x{self.dxt_compression:02X}"
+                f"Unknown Xbox compression code 0x{self.dxt_compression:02X}",
             )
 
         # Final mip is padded to a 4-byte boundary
@@ -617,7 +613,6 @@ class RW_TextureNative_Struct(RW_Section):
         power of two rule the swizzler depends on. Called from write(), so a
         texture assembled by hand cannot reach the file in a broken state.
         """
-
         validate_texture_name(self.name)
         validate_texture_name(self.mask_name, "mask_name")
 
@@ -630,13 +625,13 @@ class RW_TextureNative_Struct(RW_Section):
 
         if not 0 <= self.mipmap_count <= 0xFF:
             raise ValueError(
-                f"mipmap_count {self.mipmap_count} does not fit in a byte"
+                f"mipmap_count {self.mipmap_count} does not fit in a byte",
             )
 
         if self.mipmap_count != len(self.mipmaps):
             raise ValueError(
                 f"mipmap_count is {self.mipmap_count} but {len(self.mipmaps)} "
-                f"mipmap levels are present"
+                "mipmap levels are present",
             )
 
         if self.dxt_compression == XBOX_COMPRESSION_NONE and self.bitdeph not in (
@@ -645,19 +640,19 @@ class RW_TextureNative_Struct(RW_Section):
             32,
         ):
             raise ValueError(
-                f"Uncompressed textures need a bit depth of 8, 16 or 32, "
-                f"got {self.bitdeph}"
+                "Uncompressed textures need a bit depth of 8, 16 or 32, "
+                f"got {self.bitdeph}",
             )
 
         if self.raster_format.pal8 and len(self.palette) != 256:
             raise ValueError(
-                f"pal8 rasters carry 256 palette entries, got {len(self.palette)}"
+                f"pal8 rasters carry 256 palette entries, got {len(self.palette)}",
             )
 
         if self.raster_format.pal4 and len(self.palette) != 32:
             raise ValueError(
-                f"pal4 rasters carry 32 palette entries (Xbox D3DPALETTESIZE_32), "
-                f"got {len(self.palette)}"
+                "pal4 rasters carry 32 palette entries (Xbox D3DPALETTESIZE_32), "
+                f"got {len(self.palette)}",
             )
 
     @override
@@ -668,7 +663,7 @@ class RW_TextureNative_Struct(RW_Section):
 
         if self.platform_id != RW_TextureNative_PlatformId.XBOX:
             raise NotImplementedError(
-                f"Writing textures for platform {self.platform_id} not implemented yet"
+                f"Writing textures for platform {self.platform_id} not implemented yet",
             )
 
         self.validate()
@@ -738,7 +733,9 @@ class RW_TextureNative(RW_Section):
     @classmethod
     @override
     def read(
-        cls, parser: Parser, parent: RW_Section | None = None
+        cls,
+        parser: Parser,
+        parent: RW_Section | None = None,
     ) -> "RW_TextureNative":
         texnative = cls()
         texnative.header = RWHeader.read(parser)
@@ -779,6 +776,7 @@ class RW_TextureNative(RW_Section):
 
         Returns:
             RGBA pixel data as bytes, length = width * height * 4.
+
         """
         mip = self.struct.mipmaps[mipmap_index]
         w, h = mip.width, mip.height
@@ -802,7 +800,7 @@ class RW_TextureNative(RW_Section):
                     rgba[i * 4 : i * 4 + 4] = bytes((p.r, p.g, p.b, a))
             return bytes(rgba)
 
-        elif self.struct.dxt_compression == 0 and not self.struct.palette:
+        if self.struct.dxt_compression == 0 and not self.struct.palette:
             if self.struct.bitdeph == 32:
                 raw = mip.texels if is_ps2 else unswizzle(mip.texels, w, h, bpp=4)
                 rgba = bytearray(w * h * 4)
@@ -814,7 +812,7 @@ class RW_TextureNative(RW_Section):
                     rgba[off + 3] = raw[off + 3]  # A
                 return bytes(rgba)
 
-            elif self.struct.bitdeph == 16:
+            if self.struct.bitdeph == 16:
                 raw = mip.texels if is_ps2 else unswizzle(mip.texels, w, h, bpp=2)
                 rgba = bytearray(w * h * 4)
                 fmt = self.struct.raster_format.format
@@ -851,7 +849,7 @@ class RW_TextureNative(RW_Section):
 
         raise ValueError(
             f"Unsupported format: bitdepth={self.struct.bitdeph}, "
-            + f"dxt={self.struct.dxt_compression}, palette_length={len(self.struct.palette)}"
+            f"dxt={self.struct.dxt_compression}, palette_length={len(self.struct.palette)}",
         )
 
     def export_png(
@@ -868,6 +866,7 @@ class RW_TextureNative(RW_Section):
                 all_mipmaps is set.
             all_mipmaps: Lay every mipmap level out side by side in a single
                 image, largest first, top aligned.
+
         """
         _require_pillow()
 
@@ -876,7 +875,7 @@ class RW_TextureNative(RW_Section):
         )  # Should never run actually
 
         if all_mipmaps:
-            self._mipmap_sheet().save(filepath, format="PNG") # type: ignore
+            self._mipmap_sheet().save(filepath, format="PNG")  # type: ignore
             return
 
         mip = self.struct.mipmaps[mipmap_index]
@@ -887,7 +886,7 @@ class RW_TextureNative(RW_Section):
 
         img.save(filepath, format="PNG")
 
-    def _mipmap_sheet(self, gap: int = 0) -> "Image.Image": # type: ignore
+    def _mipmap_sheet(self, gap: int = 0) -> "Image.Image":  # type: ignore
         """Compose every mipmap level into one image, largest first.
 
         Args:
@@ -895,12 +894,15 @@ class RW_TextureNative(RW_Section):
 
         Returns:
             An RGBA image with the levels laid out left to right, top aligned.
+
         """
         assert Image is not None
 
         levels = [
             Image.frombytes(
-                "RGBA", (mip.width, mip.height), bytes(self.decode(index))
+                "RGBA",
+                (mip.width, mip.height),
+                bytes(self.decode(index)),
             )
             for index, mip in enumerate(self.struct.mipmaps)
         ]
@@ -934,6 +936,7 @@ class RW_TextureNative(RW_Section):
 
         Returns:
             NativeTexture ready to add to a TextureDictionary.
+
         """
         _require_pillow()
 
@@ -952,7 +955,12 @@ class RW_TextureNative(RW_Section):
             rgba = img_rgba.tobytes()
 
         return create_texture(
-            name, bytes(rgba), width, height, depth=depth, platform=platform
+            name,
+            bytes(rgba),
+            width,
+            height,
+            depth=depth,
+            platform=platform,
         )
 
 
@@ -985,6 +993,7 @@ def unswizzle(data: bytes, width: int, height: int, bpp: int = 1) -> bytearray:
 
     Returns:
         Linear (scanline-order) texel data.
+
     """
     out = bytearray(width * height * bpp)
 
@@ -1030,6 +1039,7 @@ def swizzle(data: bytes, width: int, height: int, bpp: int = 1) -> bytearray:
     Raises:
         ValueError: If the dimensions are not powers of two, which would make
             the Morton mapping drop pixels.
+
     """
     validate_texture_size(width, height)
 
@@ -1089,6 +1099,7 @@ def _ps2_iter_transfer_blocks(region: bytes, max_blocks: int):
 
     Yields:
         The payload bytes of each block, in stream order.
+
     """
     offset = 0
 
@@ -1097,7 +1108,9 @@ def _ps2_iter_transfer_blocks(region: bytes, max_blocks: int):
             return
 
         image_giftag = struct.unpack_from(
-            "<Q", region, offset + _PS2_IMAGE_GIFTAG_OFFSET
+            "<Q",
+            region,
+            offset + _PS2_IMAGE_GIFTAG_OFFSET,
         )[0]
         payload_size = (image_giftag & 0x7FFF) * 16  # NLOOP quadwords
 
@@ -1136,6 +1149,7 @@ def ps2_unswizzle_clut(palette: list[PaletteEntry]) -> list[PaletteEntry]:
 
     Returns:
         Palette entries in linear index order.
+
     """
     if len(palette) < 256:
         return palette
@@ -1164,6 +1178,7 @@ def ps2_unswizzle_indices(data: bytes, width: int, height: int, bpp: int) -> byt
 
     Returns:
         One byte per pixel, each holding the raw palette index.
+
     """
     min_w, min_h = (32, 4) if bpp == 4 else (16, 4)
     padded_w = max(width, min_w)
@@ -1333,7 +1348,7 @@ def encode_dxt1(rgba: bytes, width: int, height: int) -> bytes:
                     y = min(by + py, height - 1)
                     off = (y * width + x) * 4
                     block_pixels.append(
-                        (rgba[off], rgba[off + 1], rgba[off + 2], rgba[off + 3])
+                        (rgba[off], rgba[off + 1], rgba[off + 2], rgba[off + 3]),
                     )
 
             # Find min/max colors as endpoints
@@ -1414,6 +1429,7 @@ def create_texture(
 
     Returns:
         Configured NativeTexture ready to add to a TextureDictionary.
+
     """
     if len(rgba) != width * height * 4:
         raise ValueError(f"RGBA data length {len(rgba)} != {width}x{height}x4")
@@ -1447,11 +1463,15 @@ def create_texture(
         if dxt not in _XBOX_COMPRESSION_BY_DXT_LEVEL:
             raise ValueError(
                 f"Unsupported DXT level: {dxt} "
-                f"(supported: {sorted(_XBOX_COMPRESSION_BY_DXT_LEVEL)})"
+                f"(supported: {sorted(_XBOX_COMPRESSION_BY_DXT_LEVEL)})",
             )
         tex.struct.dxt_compression = _XBOX_COMPRESSION_BY_DXT_LEVEL[dxt]
         tex.struct.raster_format = RWTextureRasterFormat(
-            RWTextureFormat.FORMAT_8888, False, False, False, True
+            RWTextureFormat.FORMAT_8888,
+            False,
+            False,
+            False,
+            True,
         )
         tex.struct.bitdeph = 16  # DXT block depth
 
@@ -1469,7 +1489,11 @@ def create_texture(
     elif depth == 8:
         # Palettized PAL8
         tex.struct.raster_format = RWTextureRasterFormat(
-            RWTextureFormat.FORMAT_8888, False, True, False, True
+            RWTextureFormat.FORMAT_8888,
+            False,
+            True,
+            False,
+            True,
         )
         palette, indices = _quantize_to_palette(rgba, width, height, 256)
         tex.struct.palette = palette
@@ -1481,7 +1505,7 @@ def create_texture(
             swizzled = bytes(indices)
 
         tex.struct.mipmaps.append(
-            MipmapLevel(width, height, len(swizzled), bytes(swizzled))
+            MipmapLevel(width, height, len(swizzled), bytes(swizzled)),
         )
 
         if generate_mipmaps:
@@ -1497,13 +1521,17 @@ def create_texture(
                 else:
                     mip_swiz = bytes(mip_indices)
                 tex.struct.mipmaps.append(
-                    MipmapLevel(w, h, len(mip_swiz), bytes(mip_swiz))
+                    MipmapLevel(w, h, len(mip_swiz), bytes(mip_swiz)),
                 )
 
     elif depth == 32:
         # Uncompressed 32-bit BGRA
         tex.struct.raster_format = RWTextureRasterFormat(
-            RWTextureFormat.FORMAT_8888, False, False, False, True
+            RWTextureFormat.FORMAT_8888,
+            False,
+            False,
+            False,
+            True,
         )
         bgra = _rgba_to_bgra(rgba)
         if platform == RW_TextureNative_PlatformId.XBOX:
@@ -1511,7 +1539,7 @@ def create_texture(
         else:
             swizzled = bgra
         tex.struct.mipmaps.append(
-            MipmapLevel(width, height, len(swizzled), bytes(swizzled))
+            MipmapLevel(width, height, len(swizzled), bytes(swizzled)),
         )
 
         if generate_mipmaps:
@@ -1530,7 +1558,11 @@ def create_texture(
 
     elif depth == 16:
         tex.struct.raster_format = RWTextureRasterFormat(
-            RWTextureFormat.FORMAT_1555, False, False, False, True
+            RWTextureFormat.FORMAT_1555,
+            False,
+            False,
+            False,
+            True,
         )
         packed = _rgba_to_1555(rgba, width, height)
         if platform == RW_TextureNative_PlatformId.XBOX:
@@ -1538,7 +1570,7 @@ def create_texture(
         else:
             swizzled = packed
         tex.struct.mipmaps.append(
-            MipmapLevel(width, height, len(swizzled), bytes(swizzled))
+            MipmapLevel(width, height, len(swizzled), bytes(swizzled)),
         )
 
         if generate_mipmaps:
@@ -1633,7 +1665,10 @@ def _rgba_to_1555(rgba: bytes, w: int, h: int) -> bytes:
 
 
 def _quantize_to_palette(
-    rgba: bytes, w: int, h: int, max_colors: int
+    rgba: bytes,
+    w: int,
+    h: int,
+    max_colors: int,
 ) -> tuple[list[PaletteEntry], bytearray]:
     """Simple median-cut-ish palette quantization. Returns (palette, indices)."""
     # Collect unique colors
@@ -1681,7 +1716,10 @@ def pixels_to_idx(
 
 
 def _quantize_with_palette(
-    rgba: bytes, w: int, h: int, palette: list[PaletteEntry]
+    rgba: bytes,
+    w: int,
+    h: int,
+    palette: list[PaletteEntry],
 ) -> bytearray:
     """Map RGBA pixels to nearest palette index."""
     pixel_count = w * h

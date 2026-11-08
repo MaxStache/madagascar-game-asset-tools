@@ -1,13 +1,13 @@
 import struct
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import cast, overload, override
 
 from madformats.lib.parser import Parser
 from madformats.streamfuncs import RW_sf_CreateEntity
-from dataclasses import dataclass
 
 
-def _packVector3(value: Sequence[float]) -> bytes:
+def _packRwV3d(value: Sequence[float]) -> bytes:
     values = tuple(value)
     if len(values) != 3:
         raise ValueError(f"Expected 3 offsets, got {len(values)}")
@@ -56,7 +56,7 @@ class CameraDataOffset(Sequence[float]):
     def __setitem__(self, index: int, value: float) -> None:
         values = list(self._values())
         values[index] = float(value)  # IndexError on out of range, as with a list
-        self._owner.setAttribute("CameraData", self._command, _packVector3(values))
+        self._owner.setAttribute("CameraData", self._command, _packRwV3d(values))
 
     @property
     def horizontal(self) -> float:
@@ -87,7 +87,7 @@ class CameraDataOffset(Sequence[float]):
         if isinstance(other, CameraDataOffset):
             return self._values() == other._values()
         if isinstance(other, (tuple, list)):
-            values = cast(Sequence[object], other)
+            values = cast("Sequence[object]", other)
             return len(values) == 3 and self._values() == tuple(values)
         return NotImplemented
 
@@ -110,23 +110,29 @@ class CameraDataOffsetAttribute:
 
     @overload
     def __get__(
-        self, instance: None, owner: type | None = None
+        self,
+        instance: None,
+        owner: type | None = None,
     ) -> "CameraDataOffsetAttribute": ...
 
     @overload
     def __get__(
-        self, instance: "CameraData", owner: type | None = None
+        self,
+        instance: "CameraData",
+        owner: type | None = None,
     ) -> CameraDataOffset: ...
 
     def __get__(
-        self, instance: "CameraData | None", owner: type | None = None
+        self,
+        instance: "CameraData | None",
+        owner: type | None = None,
     ) -> "CameraDataOffset | CameraDataOffsetAttribute":
         if instance is None:
             return self
         return CameraDataOffset(instance, self._command)
 
     def __set__(self, instance: "CameraData", value: Sequence[float]) -> None:
-        instance.setAttribute("CameraData", self._command, _packVector3(value))
+        instance.setAttribute("CameraData", self._command, _packRwV3d(value))
 
 
 @dataclass
@@ -136,7 +142,7 @@ class CameraData(RW_sf_CreateEntity):
         # Re-tag in place instead of copying, so writes through the properties
         # land on the very entity the stream holds.
         entity.__class__ = cls
-        camd = cast(CameraData, entity)
+        camd = cast("CameraData", entity)
         return camd
 
     def _setString(self, command: int, value: str) -> None:
@@ -164,7 +170,9 @@ class CameraData(RW_sf_CreateEntity):
     def lookFromTarget(self, value: str) -> None:
         self._setString(1, value)
 
-    lookFromOffset = CameraDataOffsetAttribute(2, "(horizontal,vertical,heading) offsets")
+    lookFromOffset = CameraDataOffsetAttribute(
+        2, "(horizontal,vertical,heading) offsets"
+    )
 
     @property
     def lookFromHeadingRelative(self) -> bool:

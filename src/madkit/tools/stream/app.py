@@ -1,50 +1,57 @@
 """Tkinter GUI that renders a RenderWare file as a browsable chunk tree."""
 
+import ctypes as ct
 import os
 import sys
-import uuid
 import tkinter as tk
-from tkinter import ttk
 import traceback
+import uuid
+from collections.abc import Callable
+from tkinter import ttk
+from tkinter.messagebox import showerror
+from typing import Any
 
+import madformats.lib.rwConstants as rw_constants
+from madformats import stream
+from madformats.lib import parser
+from madformats.lib.game_memory import PlayerPosition
+from madformats.lib.rw_basics import (
+    RW_StreamFunc,
+    RW_StreamFunc_NotImplemented,
+    RwMatrix,
+)
+from madformats.lib.rwConstants import strfunc_func
 from madformats.streamfuncs import (
     RW_sf_CreateEntity,
     RW_sf_LoadEmbeddedAsset,
     RW_sf_PlacementNew,
 )
-
-from madformats.lib.rw_basics import RW_Matrix4x4, RW_StreamFunc_NotImplemented
-import madformats.lib.rwConstants as rw_constants
-from madformats.lib.rwConstants import strfunc_func
-import madformats.lib.parser as parser
-from madformats.lib.game_memory import PlayerPosition
-
-from tkinter.messagebox import showerror
-
-import madformats.stream as stream
-from madformats.streamfuncs.stringfuncs.sf_SetDirectorsCameraMatrix import RW_sf_SetDirectorsCameraMatrix
+from madformats.streamfuncs.stringfuncs.sf_CreateEntity import (
+    RW_sf_CreateEntity_Attribute,
+)
+from madformats.streamfuncs.stringfuncs.sf_SetDirectorsCameraMatrix import (
+    RW_sf_SetDirectorsCameraMatrix,
+)
 from madkit.tools.stream.syntax import configure_tags
 
 from .theme import COLORS, configure_style, make_icons
 
-import ctypes as ct
-
 RWSectionType = rw_constants.RWSectionType
 Parser = parser.Parser
 
-from madformats.lib.entityAttributeDocs import CREATE_ENTITY_ATTRIBUTE_COMMANDS
 from madformats.lib.entityAtributeDocs.CProtoActor import parse_CProtoActor_attribute1
+from madformats.lib.entityAttributeDocs import CREATE_ENTITY_ATTRIBUTE_COMMANDS
 
-STR_FUNCS = {}
-SELECTED = None
+STR_FUNCS: dict[str, RW_StreamFunc] = {}
+SELECTED: str | None = None
 
-def set_dark_titlebar(window):
-    if sys.platform != "win32":
-        return
-    """
-    MORE INFO:
+
+def set_dark_titlebar(window: tk.Misc) -> None:
+    """MORE INFO:
     https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/ne-dwmapi-dwmwindowattribute
     """
+    if sys.platform != "win32":
+        return
     window.update()
     DWMWA_USE_IMMERSIVE_DARK_MODE = 20
     set_window_attribute = ct.windll.dwmapi.DwmSetWindowAttribute
@@ -56,7 +63,13 @@ def set_dark_titlebar(window):
     set_window_attribute(hwnd, rendering_policy, ct.byref(value), ct.sizeof(value))
 
 
-def run(file_path):
+def data_type_of(docs: dict[str, Any]) -> str | None:
+    """The documented data type of an attribute (``docs["data"]["type"]``), if any."""
+    data_docs: dict[str, Any] = docs.get("data") or {}
+    return data_docs.get("type")
+
+
+def run(file_path: str) -> None:
     """Open ``file_path`` and launch the window."""
     root = tk.Tk()
     root.title("RW Stream")
@@ -78,7 +91,9 @@ def run(file_path):
 
     ttk.Label(header, text="RW Stream", style="AppTitle.TLabel").pack(side="left")
     ttk.Label(
-        header, text=os.path.basename(file_path), style="FileName.TLabel"
+        header,
+        text=os.path.basename(file_path),
+        style="FileName.TLabel",
     ).pack(side="left", padx=(10, 0))
 
     # --- main horizontal split ---
@@ -98,11 +113,11 @@ def run(file_path):
     left.columnconfigure(0, weight=1)
     left.rowconfigure(5, weight=1)
 
-    TREE_ORDER = []
-    SEARCH_TEXT = {}
-    ITEM_BEHAVIOUR = {}
+    TREE_ORDER: list[str] = []
+    SEARCH_TEXT: dict[str, str] = {}
+    ITEM_BEHAVIOUR: dict[str, str] = {}
 
-    def apply_filter(*_args):
+    def apply_filter(*_args: object) -> None:
         query = search_var.get().strip().lower()
         behaviour = behaviour_var.get()
         shown = 0
@@ -129,13 +144,17 @@ def run(file_path):
     behaviour_var.trace_add("write", apply_filter)
 
     ttk.Label(left, text="SEARCH", style="Section.TLabel").grid(
-        row=0, column=0, sticky="w"
+        row=0,
+        column=0,
+        sticky="w",
     )
     search_entry = ttk.Entry(left, textvariable=search_var, style="Search.TEntry")
     search_entry.grid(row=1, column=0, sticky="ew", pady=(2, 8))
 
     ttk.Label(left, text="BEHAVIOUR", style="Section.TLabel").grid(
-        row=2, column=0, sticky="w"
+        row=2,
+        column=0,
+        sticky="w",
     )
     behaviour_combo = ttk.Combobox(
         left,
@@ -146,11 +165,15 @@ def run(file_path):
     )
     behaviour_combo.grid(row=3, column=0, sticky="ew", pady=(2, 8))
     behaviour_combo.bind(
-        "<<ComboboxSelected>>", lambda _e: behaviour_combo.selection_clear()
+        "<<ComboboxSelected>>",
+        lambda _e: behaviour_combo.selection_clear(),
     )
 
     ttk.Label(left, text="CHUNKS", style="Section.TLabel").grid(
-        row=4, column=0, sticky="w", pady=(0, 2)
+        row=4,
+        column=0,
+        sticky="w",
+        pady=(0, 2),
     )
 
     tree_wrap = ttk.Frame(left)
@@ -176,11 +199,15 @@ def run(file_path):
     insp_header.grid(row=0, column=0, sticky="ew", pady=(0, 6))
 
     insp_title = ttk.Label(
-        insp_header, text="No selection", style="InspectorTitle.TLabel"
+        insp_header,
+        text="No selection",
+        style="InspectorTitle.TLabel",
     )
     insp_title.pack(side="left")
     insp_hint = ttk.Label(
-        insp_header, text="Select a chunk on the left", style="InspectorHint.TLabel"
+        insp_header,
+        text="Select a chunk on the left",
+        style="InspectorHint.TLabel",
     )
     insp_hint.pack(side="left", padx=(8, 0))
 
@@ -193,7 +220,10 @@ def run(file_path):
     struct_frame.rowconfigure(1, weight=1)
 
     ttk.Label(struct_frame, text="STRUCTURE", style="Section.TLabel").grid(
-        row=0, column=0, sticky="w", pady=(0, 2)
+        row=0,
+        column=0,
+        sticky="w",
+        pady=(0, 2),
     )
 
     details_tree_wrap = ttk.Frame(struct_frame)
@@ -202,10 +232,15 @@ def run(file_path):
     details_tree_wrap.columnconfigure(0, weight=1)
 
     details_tree = ttk.Treeview(
-        details_tree_wrap, show="tree", selectmode="browse", style="Details.Treeview"
+        details_tree_wrap,
+        show="tree",
+        selectmode="browse",
+        style="Details.Treeview",
     )
     hvsb = ttk.Scrollbar(
-        details_tree_wrap, orient="vertical", command=details_tree.yview
+        details_tree_wrap,
+        orient="vertical",
+        command=details_tree.yview,
     )
     details_tree.configure(yscrollcommand=hvsb.set)
 
@@ -218,7 +253,10 @@ def run(file_path):
     details_frame.rowconfigure(1, weight=1)
 
     ttk.Label(details_frame, text="DATA", style="Section.TLabel").grid(
-        row=0, column=0, sticky="w", pady=(4, 2)
+        row=0,
+        column=0,
+        sticky="w",
+        pady=(4, 2),
     )
 
     details_text_wrap = ttk.Frame(details_frame)
@@ -243,7 +281,9 @@ def run(file_path):
         details_label.tag_configure(_tag, foreground=COLORS[_tag])
 
     dlsb = ttk.Scrollbar(
-        details_text_wrap, orient="vertical", command=details_label.yview
+        details_text_wrap,
+        orient="vertical",
+        command=details_label.yview,
     )
     details_label.configure(yscrollcommand=dlsb.set)
 
@@ -264,9 +304,9 @@ def run(file_path):
     vpaned.sashpos(0, 280)
 
     # maps structure-tree item ids to their (class_name, attribute)
-    ATTR_NODES = {}
+    ATTR_NODES: dict[str, tuple[str, RW_sf_CreateEntity_Attribute]] = {}
 
-    def show_data_pane(show):
+    def show_data_pane(show: bool) -> None:
         attached = str(details_frame) in vpaned.panes()
         if show and not attached:
             vpaned.add(details_frame, weight=1)
@@ -278,7 +318,7 @@ def run(file_path):
         elif not show and attached:
             vpaned.forget(details_frame)
 
-    def set_data_text(write_content):
+    def set_data_text(write_content: Callable[[], object]) -> None:
         """Unlock the data panel, let `write_content` fill it, lock it again."""
         details_label.config(state="normal")
         details_label.delete("1.0", "end")
@@ -287,7 +327,7 @@ def run(file_path):
 
     HEX_DUMP_LIMIT = 64 * 1024
 
-    def insert_hex_dump(data, width=16):
+    def insert_hex_dump(data: bytes, width: int = 16) -> None:
         shown = data[:HEX_DUMP_LIMIT]
         for off in range(0, len(shown), width):
             chunk = shown[off : off + width]
@@ -305,13 +345,15 @@ def run(file_path):
         if not data:
             details_label.insert("end", "(no data)\n", "comment")
 
-    def decode_attr_value(docs, data: bytes):
+    def decode_attr_value(docs: dict[str, Any] | None, data: bytes) -> list[str] | None:
         """Decode attribute bytes per the documented data type.
 
         Returns display lines, or None when the type is unknown/undocumented.
         """
-        dtype = (docs.get("data") or {}).get("type") if docs else None
-        if not dtype or not data:
+        if not docs or not data:
+            return None
+        dtype = data_type_of(docs)
+        if not dtype:
             return None
 
         try:
@@ -348,23 +390,23 @@ def run(file_path):
                 return [f"RGBA({c['r']}, {c['g']}, {c['b']}, {c['a']})"]
 
             if dtype == "Matrix4x4":
-                m = RW_Matrix4x4.read(Parser(data, endian="little"))
-                t = m.get_translation()
+                m = RwMatrix.read(Parser(data, endian="little"))
+                t = m.getTranslation()
                 return [
-                    f"({row.x}, {row.y}, {row.z}, {row.w})"
-                    for row in (m.row1, m.row2, m.row3, m.row4)
+                    f"({row.x}, {row.y}, {row.z})"
+                    for row in (m.right, m.up, m.at, m.pos)
                 ] + [f"Translation: ({t.x}, {t.y}, {t.z})"]
 
             if dtype == "CProtoActorStatsBlock":
                 fields = parse_CProtoActor_attribute1(data)
                 return [f"{k} = {v}" for k, v in fields.items()]
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - malformed data must not crash the viewer
             return [f"<failed to decode as {dtype}: {e}>"]
 
         return None
 
-    def show_attribute(cls_name, attr):
+    def show_attribute(cls_name: str, attr: RW_sf_CreateEntity_Attribute) -> None:
         docs = CREATE_ENTITY_ATTRIBUTE_COMMANDS.get(cls_name, {}).get(attr.command)
 
         def write():
@@ -373,7 +415,7 @@ def run(file_path):
                 header.append(f"# {docs.get('name')}")
                 if docs.get("description"):
                     header.append(f"# {docs['description']}")
-                dtype = (docs.get("data") or {}).get("type")
+                dtype = data_type_of(docs)
                 if dtype:
                     header.append(f"# Type: {dtype}")
             header.append(f"# {len(attr.data)} bytes")
@@ -387,7 +429,7 @@ def run(file_path):
 
         set_data_text(write)
 
-    def show_data_hint(text):
+    def show_data_hint(text: str) -> None:
         set_data_text(lambda: details_label.insert("end", text + "\n", "comment"))
 
     # nothing is selected yet, so start with just the structure pane
@@ -402,28 +444,30 @@ def run(file_path):
         if not isinstance(sf, RW_sf_CreateEntity):
             return
 
-        entity_matrix_class = sf.find_first_class_with_command("CSystemCommands", 1)
-        if not entity_matrix_class or entity_matrix_class is None:
+        entity_matrix_attr = sf.getAttributeSoft("CSystemCommands", 1)
+        if entity_matrix_attr is None:
             showerror("Error", "Selected entity has no valid matrix (position).")
             return
 
-        entity_matrix_data = entity_matrix_class.find_first_attribute(1).data
+        entity_matrix_parser = Parser(entity_matrix_attr.data, endian="little")
+        entity_matrix = RwMatrix.read(entity_matrix_parser)
 
-        entity_matrix_parser = Parser(entity_matrix_data, endian="little")
-        entity_matrix = RW_Matrix4x4.read(entity_matrix_parser)
-
-        entity_translation = entity_matrix.get_translation()
+        entity_translation = entity_matrix.getTranslation()
 
         print(f"Teleporting to position: {entity_translation}")
 
         try:
             pos = PlayerPosition()
-            pos.set_position(entity_translation.x, entity_translation.y, entity_translation.z)
-        except Exception as e:
+            pos.set_position(
+                entity_translation.x, entity_translation.y, entity_translation.z
+            )
+        except Exception as e:  # noqa: BLE001 - any game/process failure is reported to the user
             print(f"Error teleporting: {e}")
             traceback.print_exc()
-            showerror("Could not teleport", "Teleport to entity failed, is game open, are you in a level and no cutscene playing?")
-
+            showerror(
+                "Could not teleport",
+                "Teleport to entity failed, is game open, are you in a level and no cutscene playing?",
+            )
 
     # contextual action, shown in the inspector header for entities
     tp_to_entity = ttk.Button(
@@ -448,17 +492,19 @@ def run(file_path):
         }
 
         for sf in strm.contents:
-            color = SF_TO_COLOR.get(sf.streamfunc, dot_gray)
+            func = sf.streamfunc
+            func_name = func.name if func is not None else "Unknown"
+            color = SF_TO_COLOR.get(func, dot_gray) if func is not None else dot_gray
             label = ""
             name = ""
             behaviour = ""
             guid = ""
-            if sf.streamfunc == strfunc_func.sf_CreateEntity:
+            if isinstance(sf, RW_sf_CreateEntity):
                 name = sf.tfbGetName() or "Unnamed"
                 label = f" - {name}"
                 behaviour = sf.behaviour or ""
 
-            if sf.streamfunc == strfunc_func.sf_LoadEmbeddedAsset:
+            if isinstance(sf, RW_sf_LoadEmbeddedAsset):
                 name = sf.name
                 label = f" - {name}"
                 # braced form so a pasted "{...}" guid matches as well as a bare one
@@ -467,15 +513,15 @@ def run(file_path):
             iid = tree.insert(
                 "",
                 "end",
-                text=sf.streamfunc.name + label,
+                text=func_name + label,
                 values=(sf.header.type, sf.header.size),
                 image=color,
             )
 
             STR_FUNCS[iid] = sf
             TREE_ORDER.append(iid)
-            SEARCH_TEXT[iid] = f"{sf.streamfunc.name} {name} {behaviour} {guid}".lower()
-            if sf.streamfunc == strfunc_func.sf_CreateEntity and behaviour:
+            SEARCH_TEXT[iid] = f"{func_name} {name} {behaviour} {guid}".lower()
+            if isinstance(sf, RW_sf_CreateEntity) and behaviour:
                 ITEM_BEHAVIOUR[iid] = behaviour
 
         behaviours = sorted(set(ITEM_BEHAVIOUR.values()))
@@ -483,13 +529,10 @@ def run(file_path):
         if behaviour_var.get() not in behaviour_combo["values"]:
             behaviour_var.set("All")
 
-    with open(file_path, "rb") as f:
-        strm = stream.load_stream(file_path)
+    populate(stream.load_stream(file_path))
+    apply_filter()
 
-        populate(strm)
-        apply_filter()
-
-    def on_select(event):
+    def on_select(_event: object = None) -> None:
         global SELECTED
 
         sel = tree.selection()
@@ -513,19 +556,25 @@ def run(file_path):
             tp_to_entity.pack(side="right")
 
             details_tree.insert("", "end", text=f"Behaviour: {sf.behaviour}", open=True)
-            details_tree.insert("", "end", text=f"Entity ID: {{{sf.entityID}}}", open=True)
+            details_tree.insert(
+                "", "end", text=f"Entity ID: {{{sf.entityID}}}", open=True
+            )
             details_tree.insert("", "end", text=f"Is Global: {sf.isGlobal}", open=True)
             for cls in sf.classes:
                 cls_iid = details_tree.insert(
-                    "", "end", text=f"Class: {cls.class_name}", open=True
+                    "",
+                    "end",
+                    text=f"Class: {cls.class_name}",
+                    open=True,
                 )
                 for attr in cls.attributes:
                     commands = CREATE_ENTITY_ATTRIBUTE_COMMANDS.get(cls.class_name, {})
-                    if commands.get(attr.command):
+                    attr_docs = commands.get(attr.command)
+                    if attr_docs:
                         attr_iid = details_tree.insert(
                             cls_iid,
                             "end",
-                            text=f"{attr.command} - {commands.get(attr.command).get("name")}, Data Size: {len(attr.data)} bytes"
+                            text=f"{attr.command} - {attr_docs.get('name')}, Data Size: {len(attr.data)} bytes",
                         )
                     else:
                         attr_iid = details_tree.insert(
@@ -544,15 +593,22 @@ def run(file_path):
             details_tree.insert("", "end", text=f"Type: {sf.type}")
             details_tree.insert("", "end", text=f"File Path: {sf.filePath}")
             details_tree.insert(
-                "", "end", text=f"Deps: {sf.deps if sf.deps else '(none)'}"
+                "",
+                "end",
+                text=f"Deps: {sf.deps or '(none)'}",
             )
             details_tree.insert(
-                "", "end", text=f"Data Size: {len(sf.data)} bytes"
+                "",
+                "end",
+                text=f"Data Size: {len(sf.data)} bytes",
             )
 
         elif isinstance(sf, RW_sf_PlacementNew):
             entries_iid = details_tree.insert(
-                "", "end", text=f"Entries: {sf.entry_count}", open=True
+                "",
+                "end",
+                text=f"Entries: {sf.entry_count}",
+                open=True,
             )
             for behaviour, instance_count in sf.entries:
                 details_tree.insert(
@@ -563,10 +619,10 @@ def run(file_path):
 
         elif isinstance(sf, RW_sf_SetDirectorsCameraMatrix):
             mtrx = details_tree.insert("", "end", text="Matrix (4x4)")
-            details_tree.insert(mtrx, "end", text=f"Row 1: {sf.matrix.row1}")
-            details_tree.insert(mtrx, "end", text=f"Row 2: {sf.matrix.row2}")
-            details_tree.insert(mtrx, "end", text=f"Row 3: {sf.matrix.row3}")
-            details_tree.insert(mtrx, "end", text=f"Row 4: {sf.matrix.row4}")
+            details_tree.insert(mtrx, "end", text=f"Row 1: {sf.matrix.right}")
+            details_tree.insert(mtrx, "end", text=f"Row 2: {sf.matrix.up}")
+            details_tree.insert(mtrx, "end", text=f"Row 3: {sf.matrix.at}")
+            details_tree.insert(mtrx, "end", text=f"Row 4: {sf.matrix.pos}")
 
             details_tree.insert("", "end", text=f"FOV: {sf.fov}")
 
@@ -575,14 +631,15 @@ def run(file_path):
             details_tree.insert("", "end", text=f"Data: {sf.raw_data.hex()}")
 
         else:
-            details_tree.insert("", "end", text=f"No details available for {sf.streamfunc.name}")
+            func_name = sf.streamfunc.name if sf.streamfunc else type(sf).__name__
+            details_tree.insert("", "end", text=f"No details available for {func_name}")
 
         if not isinstance(sf, RW_sf_CreateEntity):
             show_data_pane(False)
 
     tree.bind("<<TreeviewSelect>>", on_select)
 
-    def on_attr_select(_event):
+    def on_attr_select(_event: object) -> None:
         sel = details_tree.selection()
         if not sel:
             return
@@ -590,7 +647,7 @@ def run(file_path):
         if node is None:
             if ATTR_NODES:  # entity is shown, but a non-attribute row is selected
                 show_data_hint(
-                    "# Select an attribute in Structure to inspect its data"
+                    "# Select an attribute in Structure to inspect its data",
                 )
             return
         show_attribute(*node)
@@ -616,11 +673,14 @@ def run(file_path):
         SELECTED = None
 
     reopen_btn = ttk.Button(
-        header, text="⟳ Re-open", style="Header.TButton", command=reopen_file
+        header,
+        text="⟳ Re-open",
+        style="Header.TButton",
+        command=reopen_file,
     )
     reopen_btn.pack(side="right")
 
-    def focus_search(_event=None):
+    def focus_search(_event: object = None) -> str:
         search_entry.focus_set()
         search_entry.select_range(0, "end")
         return "break"

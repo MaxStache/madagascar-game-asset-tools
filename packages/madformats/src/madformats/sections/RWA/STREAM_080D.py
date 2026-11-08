@@ -9,8 +9,8 @@ from typing import override
 
 from madformats.lib import ima_adpcm
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from madformats.lib.rwConstants import RWSectionType
 from madformats.sections.RWA.STREAM_DATA_080F import RWA_Stream_Data
 from madformats.sections.RWA.STREAM_HDR_080E import (
     RWA_Stream_Header,
@@ -113,6 +113,7 @@ class RWA_StreamSegment:
 
         Raises:
             NotImplementedError: The layer uses a codec with no decoder here.
+
         """
         config = self.layer_config(layer)
         info = self.layer_info(layer)
@@ -131,7 +132,7 @@ class RWA_StreamSegment:
 
         label = codec.name if codec else str(config.codec_uuid)
         raise NotImplementedError(
-            f"No decoder for codec {label}; cannot export {self.name!r} to WAV."
+            f"No decoder for codec {label}; cannot export {self.name!r} to WAV.",
         )
 
     def export_wav(self, filepath: str | Path, layer: int = 0) -> None:
@@ -148,8 +149,10 @@ class RWA_StreamSegment:
     @override
     def __repr__(self):
         config = self.layer_config() if self.stream.stream_header.layer_infos else None
-        codec = "?" if config is None else (
-            config.codec.name if config.codec else str(config.codec_uuid)
+        codec = (
+            "?"
+            if config is None
+            else (config.codec.name if config.codec else str(config.codec_uuid))
         )
         rate = 0 if config is None else config.sample_rate
         return (
@@ -222,8 +225,7 @@ class RWA_Stream(RW_Section):
     def segments(self) -> list[RWA_StreamSegment]:
         """Every segment in the file, in header order."""
         return [
-            RWA_StreamSegment(self, i)
-            for i in range(self.stream_header.total_segments)
+            RWA_StreamSegment(self, i) for i in range(self.stream_header.total_segments)
         ]
 
     @property
@@ -245,6 +247,7 @@ class RWA_Stream(RW_Section):
 
         Args:
             key: Segment index, or segment name.
+
         """
         names = self.stream_header.segment_names
         count = len(names)
@@ -257,7 +260,7 @@ class RWA_Stream(RW_Section):
                 return RWA_StreamSegment(self, key % count)
             return None
 
-        if isinstance(key, str):
+        if isinstance(key, str):  # type: ignore
             for i, name in enumerate(names):
                 if name == key:
                     return RWA_StreamSegment(self, i)
@@ -269,7 +272,7 @@ class RWA_Stream(RW_Section):
             return None
 
         raise TypeError(
-            f"find_segment() expects an index or a name, got {type(key).__name__}"
+            f"find_segment() expects an index or a name, got {type(key).__name__}",
         )
 
     def get_segment(self, key: int | str) -> RWA_StreamSegment:
@@ -281,6 +284,7 @@ class RWA_Stream(RW_Section):
         Raises:
             IndexError: `key` is an out-of-range index.
             KeyError: `key` is a name that is not in the file.
+
         """
         found = self.find_segment(key)
         if found is not None:
@@ -289,7 +293,7 @@ class RWA_Stream(RW_Section):
         if isinstance(key, int):
             raise IndexError(
                 f"segment index {key} out of range "
-                f"({self.stream_header.total_segments} segments)"
+                f"({self.stream_header.total_segments} segments)",
             )
         raise KeyError(f"no segment named {key!r} in {self.name!r}")
 
@@ -318,6 +322,7 @@ class RWA_Stream(RW_Section):
             key: Segment index, or segment name.
             filepath: Destination .wav path.
             layer: Which layer to take; files with music stems have several.
+
         """
         self.get_segment(key).export_wav(filepath, layer=layer)
 
@@ -342,12 +347,15 @@ class RWA_Stream(RW_Section):
 
         Returns:
             The paths written.
+
         """
         out = Path(output_dir)
         out.mkdir(parents=True, exist_ok=True)
 
         layers = (
-            [layer] if layer is not None else list(range(self.stream_header.total_layers))
+            [layer]
+            if layer is not None
+            else list(range(self.stream_header.total_layers))
         )
         multi_layer = len(layers) > 1
 

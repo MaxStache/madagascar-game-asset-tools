@@ -1,16 +1,17 @@
-"""
-rwDFF.py — RenderWare Model (.DFF) Library
+"""rwDFF.py — RenderWare Model (.DFF) Library
 ========================================================
 
 Read, write, export, and import Renderware DFF files.
 
 """
+
 from pathlib import Path
-from typing import Union
+
 from madformats.lib.parser import Parser
 from madformats.sections import RW_Clump
 
-def load_dff(filepath: Union[str, Path]) -> RW_Clump:
+
+def load_dff(filepath: str | Path) -> RW_Clump:
     """Load a DFF file from disk
 
     Args:
@@ -18,12 +19,13 @@ def load_dff(filepath: Union[str, Path]) -> RW_Clump:
 
     Returns:
         Parsed DFF.
-    """
 
+    """
     with open(filepath, "rb") as f:
         parser = Parser(f.read(), endian="little")
 
     return RW_Clump.read(parser, parent=None)
+
 
 def loads_dff(data: bytes) -> RW_Clump:
     """Load a DFF from stream
@@ -33,8 +35,8 @@ def loads_dff(data: bytes) -> RW_Clump:
 
     Returns:
         Parsed RW_Clump.
-    """
 
+    """
     parser = Parser(data, endian="little")
 
     return RW_Clump.read(parser, parent=None)

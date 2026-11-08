@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import Any, BinaryIO, override
 
-from tfbscript.ansi import comment
 from madformats.lib.writer import write_u8
+from tfbscript.ansi import comment
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.payload import PayloadReader
 
@@ -34,9 +34,9 @@ class OpComment(Opcode):
                     "type": "string",
                     "value": self.content,
                 },
-            ]
+            ],
         }
-    
+
     @override
     def write_payload(self, f: BinaryIO) -> None:
         write_u8(f, len(self.content))

@@ -1,4 +1,3 @@
-
 # pyright: basic
 import json
 from pathlib import Path
@@ -26,7 +25,7 @@ def recent() -> list[str]:
     if isinstance(kept, str):
         return [kept]
 
-    return [str(path) for path in kept] if kept else []
+    return [str(path) for path in kept] if isinstance(kept, list) else []
 
 
 def remember_opened(path: Path | str) -> list[str]:
@@ -50,9 +49,13 @@ def builds() -> dict[str, str]:
     Kept as one JSON string rather than a key each, because a Windows path is
     full of the separators QSettings reads as its own.
     """
+    raw = store().value(BUILDS)
+    if not isinstance(raw, str) or not raw:
+        return {}
+
     try:
-        kept = json.loads(store().value(BUILDS, "{}") or "{}")
-    except (TypeError, ValueError):
+        kept = json.loads(raw)
+    except ValueError:
         return {}
 
     return kept if isinstance(kept, dict) else {}

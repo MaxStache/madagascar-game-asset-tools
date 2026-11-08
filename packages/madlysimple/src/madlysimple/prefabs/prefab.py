@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import cast
 
+from colorama import Fore, init
+
 from madformats.lib.parser import Parser
 from madformats.lib.rw_basics import RW_StreamFunc
 from madformats.stream import RW_StreamFile
@@ -8,10 +10,10 @@ from madformats.streamfuncs.stringfuncs.sf_CreateEntity import RW_sf_CreateEntit
 from madformats.streamfuncs.stringfuncs.sf_LoadEmbeddedAsset import (
     RW_sf_LoadEmbeddedAsset,
 )
-from ..levelhub import LevelHub
-from ..cprotoactor import CProtoActor
 from tfbscript import ScriptFile
-from colorama import init, Fore
+
+from ..cprotoactor import CProtoActor
+from ..levelhub import LevelHub
 
 init(autoreset=True)
 
@@ -24,24 +26,21 @@ KNOWN_TFBSCRIPT_BUILTIN_GLOBALS = [
     "no controller::controller",
     "Script Time::value",
     "Next Level Auto Load::value",
-
     "hit actor::message",
     "hit wall::message",
     "hit ground::message",
-
     "Current Level::value",
     "Cut-scene Active::value",
     "Design Build::value",
-
     "inactive::set::actor",
     "active::set::sprite",
-
     "Hardware Metrics::value",
-
     "message senders::set::actor",
 ]
 
-_PLACEMENT_COUNT = 0 # keeps track of how many things were addded in the current place()
+_PLACEMENT_COUNT = (
+    0  # keeps track of how many things were addded in the current place()
+)
 
 
 def find_unique_name(level: RW_StreamFile, name: str) -> str:
@@ -54,10 +53,11 @@ def find_unique_name(level: RW_StreamFile, name: str) -> str:
 
 
 def add_actor_from_level_to_level(
-    actor: CProtoActor, context: RW_StreamFile, level: RW_StreamFile
+    actor: CProtoActor,
+    context: RW_StreamFile,
+    level: RW_StreamFile,
 ) -> CProtoActor | None:
     """Walks actor and adds it to level, also adds all needed / referenced assets"""
-
     global _PLACEMENT_COUNT
 
     # ====== Queue the referenced assets ======
@@ -71,8 +71,9 @@ def add_actor_from_level_to_level(
             # so the model's assets are queued ahead of the model entity.
 
             # Animations
-            for attr in cast(RW_sf_CreateEntity, resolved).getAttributes(
-                "CTFBModel", 3
+            for attr in cast("RW_sf_CreateEntity", resolved).getAttributes(
+                "CTFBModel",
+                3,
             ):
                 resolved_anim_asset = attr.asTfbRef().resolveSoft(context)
                 if resolved_anim_asset is None:
@@ -81,12 +82,13 @@ def add_actor_from_level_to_level(
                 SF_REQUIREMENT_QUEUE.append(resolved_anim_asset)
 
             # Attached resources (e.g. the .dff mesh and default .anm)
-            for attr in cast(RW_sf_CreateEntity, resolved).getAttributes(
-                "CSystemCommands", 0
+            for attr in cast("RW_sf_CreateEntity", resolved).getAttributes(
+                "CSystemCommands",
+                0,
             ):
                 resource_guid = Parser(attr.data).readGUID()
                 resolved_resource = context.assetByIDSoft(
-                    resource_guid
+                    resource_guid,
                 ) or context.entityByIDSoft(resource_guid)
                 if resolved_resource is None:
                     continue
@@ -120,7 +122,7 @@ def add_actor_from_level_to_level(
         else:
             print(req.__class__.__name__)
             raise TypeError(
-                "We queued a stream func which isnt handled, this should NOT happen, huh"
+                "We queued a stream func which isnt handled, this should NOT happen, huh",
             )
 
     # ==========================================
@@ -150,24 +152,36 @@ def add_actor_from_level_to_level(
 
                 # ===== Things on LevelHub =====
                 if entry.type == "message":
-                    print(Fore.RED + f"[PREFAB SYSTEM ERROR] UNHANDLED {entry.name} ({entry.type}), this might be missing from the target level now")
+                    print(
+                        Fore.RED
+                        + f"[PREFAB SYSTEM ERROR] UNHANDLED {entry.name} ({entry.type}), this might be missing from the target level now",
+                    )
 
                 elif entry.type == "value":
-                    print(Fore.RED + f"[PREFAB SYSTEM ERROR] UNHANDLED {entry.name} ({entry.type}), this might be missing from the target level now")
+                    print(
+                        Fore.RED
+                        + f"[PREFAB SYSTEM ERROR] UNHANDLED {entry.name} ({entry.type}), this might be missing from the target level now",
+                    )
                     continue
                     source_level_hub_entity = context.levelHub()
                     if not source_level_hub_entity:
-                        print(Fore.RED + "[PREFAB SYSTEM ERROR] There is no LevelHub in source level but we need one")
+                        print(
+                            Fore.RED
+                            + "[PREFAB SYSTEM ERROR] There is no LevelHub in source level but we need one",
+                        )
                         continue
 
                     source_level_hub = LevelHub.from_entity(source_level_hub_entity)
 
                     dest_level_hub_entity = level.levelHub()
                     if not dest_level_hub_entity:
-                        print(Fore.RED + "[PREFAB SYSTEM ERROR] There is no LevelHub in destination level but we need one")
+                        print(
+                            Fore.RED
+                            + "[PREFAB SYSTEM ERROR] There is no LevelHub in destination level but we need one",
+                        )
                         continue
 
-                    dest_level_hub = LevelHub.from_entity(dest_level_hub_entity)
+                    dest_level_hub = LevelHub.from_entity(dest_level_hub_entity)  # noqa: F841
 
                     # ---
 
@@ -175,49 +189,58 @@ def add_actor_from_level_to_level(
                         if var_attr.asTfbVariableCommand()[2] == entry.name:
                             print(var_attr.asTfbVariableCommand())
                         print(var_attr.asTfbVariableCommand())
-                    
-                    #var_attr_to_copy = next(iter(), None)
 
-                    #if any(req.entityID == e.entityID for e in level.entities()):
-                    
-                elif entry.category == "set": # This has to be a global variable
-                    print(Fore.RED + f"[PREFAB SYSTEM ERROR] UNHANDLED {entry.name} (set of {entry.type}), this might be missing from the target level now")
+                    # var_attr_to_copy = next(iter(), None)
+
+                    # if any(req.entityID == e.entityID for e in level.entities()):
+
+                elif entry.category == "set":  # This has to be a global variable
+                    print(
+                        Fore.RED
+                        + f"[PREFAB SYSTEM ERROR] UNHANDLED {entry.name} (set of {entry.type}), this might be missing from the target level now",
+                    )
 
                 # ===== Entities and their Assets =====
                 elif entry.type == "actor":
                     resolved_actor = context.entityByNameAndBehaviorSoft(
-                        entry.name, "CProtoActor"
+                        entry.name,
+                        "CProtoActor",
                     )
                     if resolved_actor is None:
                         print(
                             "[PREFAB SYSTEM] Skipping actor reference: a script referenced by this prefab placement points to an actor that could not be resolved. Reference: "
-                            + entry.string
+                            + entry.string,
                         )
                         continue
 
                     if level.entityByIDSoft(resolved_actor.entityID):
-                        continue # SUPER SUPER SUPER RARE CASE
+                        continue  # SUPER SUPER SUPER RARE CASE
 
                     add_actor_from_level_to_level(
-                        CProtoActor.from_entity(resolved_actor), context, level
+                        CProtoActor.from_entity(resolved_actor),
+                        context,
+                        level,
                     )
 
                 elif entry.type == "camera":
                     resolved_camera = context.entityByNameAndBehaviorSoft(
-                        entry.name, "CameraData"
+                        entry.name,
+                        "CameraData",
                     )
                     if resolved_camera is None:
                         print(
                             "[PREFAB SYSTEM] Skipping camera reference: a script referenced by this prefab placement points to a camera that could not be resolved. Reference: "
-                            + entry.string
+                            + entry.string,
                         )
                         continue
 
                     if level.entityByIDSoft(resolved_camera.entityID):
-                        continue # SUPER SUPER SUPER RARE CASE
+                        continue  # SUPER SUPER SUPER RARE CASE
 
-                    if level.entityByNameAndBehaviorSoft(
-                        resolved_camera.tfbGetName(), "CameraData"
+                    resolved_cam_name = resolved_camera.tfbGetName()
+                    if resolved_cam_name and level.entityByNameAndBehaviorSoft(
+                        resolved_cam_name,
+                        "CameraData",
                     ):
                         # PRAY THEY ARE SIMILAR ENOUGH LMAO
                         # TODO: Maybe not pray (:
@@ -234,20 +257,23 @@ def add_actor_from_level_to_level(
 
                 elif entry.type == "sound":
                     resolved_sound = context.entityByNameAndBehaviorSoft(
-                        entry.name, "CTFBSound"
+                        entry.name,
+                        "CTFBSound",
                     )
                     if resolved_sound is None:
                         print(
                             "[PREFAB SYSTEM] Skipping sound reference: a script referenced by this prefab placement points to a sound that could not be resolved. Reference: "
-                            + entry.string
+                            + entry.string,
                         )
                         continue
 
                     if level.entityByIDSoft(resolved_sound.entityID):
-                        continue # SUPER SUPER SUPER RARE CASE
+                        continue  # SUPER SUPER SUPER RARE CASE
 
-                    if level.entityByNameAndBehaviorSoft(
-                        resolved_sound.tfbGetName(), "CTFBSound"
+                    resolved_sound_name = resolved_sound.tfbGetName()
+                    if resolved_sound_name and level.entityByNameAndBehaviorSoft(
+                        resolved_sound_name,
+                        "CTFBSound",
                     ):
                         # PRAY THEY ARE SIMILAR ENOUGH LMAO
                         # TODO: Maybe not pray
@@ -258,20 +284,23 @@ def add_actor_from_level_to_level(
 
                 elif entry.type == "sprite":
                     resolved_sprite = context.entityByNameAndBehaviorSoft(
-                        entry.name, "SpriteObject"
+                        entry.name,
+                        "SpriteObject",
                     )
                     if resolved_sprite is None:
                         print(
                             "[PREFAB SYSTEM] Skipping sprite reference: a script referenced by this prefab placement points to a sprite that could not be resolved. Reference: "
-                            + entry.string
+                            + entry.string,
                         )
                         continue
 
                     if level.entityByIDSoft(resolved_sprite.entityID):
-                        continue # SUPER SUPER SUPER RARE CASE
+                        continue  # SUPER SUPER SUPER RARE CASE
 
-                    if level.entityByNameAndBehaviorSoft(
-                        resolved_sprite.tfbGetName(), "SpriteObject"
+                    resolved_sprite_name = resolved_sprite.tfbGetName()
+                    if resolved_sprite_name and level.entityByNameAndBehaviorSoft(
+                        resolved_sprite_name,
+                        "SpriteObject",
                     ):
                         # PRAY THEY ARE SIMILAR ENOUGH LMAO
                         # TODO: Maybe not pray (:
@@ -285,8 +314,7 @@ def add_actor_from_level_to_level(
 
 @dataclass
 class Prefab:
-    """
-    ## Prefabs
+    """## Prefabs
     ### What is a prefab?
     A prefab is generated from an existing entity and basically acts like a template.
     You can create a prefab and place multiple instances.
@@ -325,7 +353,9 @@ class Prefab:
 
     @classmethod
     def create(
-        cls, actor: CProtoActor | RW_sf_CreateEntity, level: RW_StreamFile
+        cls,
+        actor: CProtoActor | RW_sf_CreateEntity,
+        level: RW_StreamFile,
     ) -> "Prefab":
         """## Creating A Prefab
         Arguments:
@@ -339,13 +369,13 @@ class Prefab:
             - ´ValueError´: Tried to create a prefab with a non CProtoActor entity
 
         For more info hover over the `Prefab` class
-        """
 
+        """
         if actor.behaviour != "CProtoActor":
             raise ValueError(
                 "Trying to create a prefab with a non CProtoActor is not possible, you passed an entity with the behavior: "
                 + actor.behaviour
-                + "\nThis can happen when you fetch an entity by its name but there are multiple entites with that name, try finding by name and behavior"
+                + "\nThis can happen when you fetch an entity by its name but there are multiple entites with that name, try finding by name and behavior",
             )
 
         return cls(actor=CProtoActor.from_entity(actor), context=level)
@@ -362,8 +392,8 @@ class Prefab:
             - `TypeError`: Invalid stream func when handleing a referenced queued sf, probably not your error, please report if you encounter
 
         For more info hover over the `Prefab` class
-        """
 
+        """
         global _PLACEMENT_COUNT
         _PLACEMENT_COUNT = 0
 
@@ -372,11 +402,14 @@ class Prefab:
         # === Create a new identity for the copy ===
         new_actor.setRandomEntityId()
 
-        new_name = find_unique_name(level, new_actor.tfbGetName())
+        original_name = new_actor.tfbGetName()
+        if not original_name:
+            raise ValueError("Original entity does now own a CTFBCommand name")
+        new_name = find_unique_name(level, original_name)
         new_actor.tfbSetName(new_name)
         # ========================================
 
         add_actor_from_level_to_level(new_actor, self.context, level)
 
-        #print(f"[PREFAB SYSTEM] Added {_PLACEMENT_COUNT} streamfuncs to the level while placing a prefab")
+        # print(f"[PREFAB SYSTEM] Added {_PLACEMENT_COUNT} streamfuncs to the level while placing a prefab")
         return new_actor

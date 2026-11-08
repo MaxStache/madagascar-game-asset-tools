@@ -77,7 +77,9 @@ class BuiltinScope:
 
     def message(self, token: str) -> str:
         bodies = " or ".join(f"`{method}(...)`" for method in self.methods)
-        return f"{token} is {self.stands_for}, so it only means anything inside {bodies}"
+        return (
+            f"{token} is {self.stands_for}, so it only means anything inside {bodies}"
+        )
 
 
 BUILTIN_SCOPES: dict[BuiltinType, BuiltinScope] = {
@@ -110,7 +112,8 @@ BUILTIN_SCOPES: dict[BuiltinType, BuiltinScope] = {
 
 
 def builtin_out_of_scope(
-    kind: BuiltinType, context: ParserContext | None
+    kind: BuiltinType,
+    context: ParserContext | None,
 ) -> BuiltinScope | None:
     """The scope a use of `kind` is outside of, or None when the use is fine.
 
@@ -159,6 +162,7 @@ def find_entry(
 
     return None
 
+
 MEMBER_OP = "."
 SCOPE_OP = "#"
 SUB_OP = ":"
@@ -177,9 +181,7 @@ SUB_INDEX_WORD = "sub"
 SCOPE_INDEX_WORD = "scope"
 
 # `#first` / `#last` / `#random`, the element a scope picks out of a set.
-SCOPE_BY_NAME: dict[str, int] = {
-    label: value for value, label in SCOPE_LABELS.items()
-}
+SCOPE_BY_NAME: dict[str, int] = {label: value for value, label in SCOPE_LABELS.items()}
 
 # member and sub are 6-bit fields, and 0 means "not used".
 FIELD_MIN, FIELD_MAX = 0x01, 0x3F
@@ -194,7 +196,8 @@ BARE_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*(?: [A-Za-z0-9_]+)*")
 
 def member_index(type_name: str, name: str) -> int | None:
     """The index of the field `type_name` calls `name`, matching the BINDINGS
-    label exactly or, failing that, ignoring case."""
+    label exactly or, failing that, ignoring case.
+    """
     bindings = BINDINGS.get(type_name)
     if bindings is None:
         return None
@@ -220,7 +223,8 @@ def member_name(type_name: str | None, index: int) -> str | None:
 
 def member_is_set(type_name: str | None, index: int) -> bool | None:
     """Whether field `index` of `type_name` holds a set, or None when the
-    script has nothing to say about that field."""
+    script has nothing to say about that field.
+    """
     field = member_field(type_name, index)
     return field.get("type") == "set" if field is not None else None
 

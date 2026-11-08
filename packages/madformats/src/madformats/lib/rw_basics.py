@@ -1,7 +1,7 @@
-from enum import IntEnum
 import io
 import struct
 from dataclasses import dataclass, field
+from enum import IntEnum
 from typing import Any, BinaryIO, override
 
 from madformats.lib.parser import Parser
@@ -51,6 +51,48 @@ def _write_header(f: BinaryIO, chunk_type: int, size: int, stamp: int):  # type:
     f.write(struct.pack("<III", chunk_type, size, stamp))
 
 
+class RwBool:
+    """A 32-bit RenderWare boolean: 0 is false, anything else is true.
+
+    Keeps the raw value so it is written back unchanged, e.g. global.stream
+    stores true as 0xFFFFFFFF. Comparisons only look at true/false, use `.raw`
+    to compare the stored value. Treat instances as immutable.
+    """
+
+    __slots__ = ("raw",)
+
+    raw: int
+
+    def __init__(self, value: "int | bool | RwBool" = 0) -> None:
+        self.raw = int(value) & 0xFFFFFFFF
+
+    def __bool__(self) -> bool:
+        return self.raw != 0
+
+    def __index__(self) -> int:
+        return self.raw
+
+    @override
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, (bool, RwBool)):
+            return bool(self) == bool(other)
+        return NotImplemented
+
+    @override
+    def __hash__(self) -> int:
+        return hash(bool(self))
+
+    @override
+    def __repr__(self) -> str:
+        if self.raw in (0, 1):
+            return str(bool(self))
+        return f"{bool(self)} ({self.raw:#010x})"
+
+    def to_json(self) -> bool | int:
+        """A plain bool for 0 and 1, otherwise the raw value so it isn't lost."""
+        return bool(self) if self.raw in (0, 1) else self.raw
+
+
 @dataclass
 class RW_Triangle:
     vertex1: int = 0  # uint16
@@ -68,8 +110,7 @@ class RW_GeometryTriangle:
 
 
 def library_id_unpack(libid: int) -> tuple[int, int]:
-    """
-    Unpack a RenderWare library ID stamp.
+    """Unpack a RenderWare library ID stamp.
 
     Returns:
         (version, build)
@@ -85,7 +126,6 @@ def library_id_unpack(libid: int) -> tuple[int, int]:
         -> For example, 0x36003 would be version 3.6.0.03 when V.J.N.BB
 
     """
-
     # if libid is None:
     #    return 0, 0
 
@@ -196,12 +236,11 @@ class RWHeader:
 
     @override
     def __repr__(self):
-        return f"RWHeader(type={hex(self.type)}, size={self.size}, library_id_stamp={hex(self.library_id_stamp if self.library_id_stamp else 0)}, version={hex(self.version)}, build={self.build})"
+        return f"RWHeader(type={hex(self.type)}, size={self.size}, library_id_stamp={hex(self.library_id_stamp or 0)}, version={hex(self.version)}, build={self.build})"
 
 
 class RW_Axis_Type(IntEnum):
-    """
-    These specific numbers aren't arbitrary,
+    """These specific numbers aren't arbitrary,
     they're byte offsets into an RwV3d struct,
     which is just three consecutive floats {x, y, z} at offsets 0, 4, and 8.
     So the engine can use type directly to index the relevant coordinate of a point
@@ -217,14 +256,14 @@ class RW_Axis_Type(IntEnum):
     rwPLANE_Z = 8
 
 
-@dataclass(frozen=True, slots=True)
-class Vector3:
+@dataclass(slots=True)
+class RwV3d:
     x: float = 0.0
     y: float = 0.0
     z: float = 0.0
 
     @classmethod
-    def read(cls, parser: Parser) -> "Vector3":
+    def read(cls, parser: Parser) -> "RwV3d":
         return cls(
             x=parser.readFloat(),
             y=parser.readFloat(),
@@ -236,16 +275,19 @@ class Vector3:
         write_f32(f, self.y)
         write_f32(f, self.z)
 
+    def __iter__(self):
+        return iter((self.x, self.y, self.z))
+
 
 @dataclass(slots=True)
-class Vector4:
+class RwV4d:
     x: float = field(default=0.0)
     y: float = field(default=0.0)
     z: float = field(default=0.0)
     w: float = field(default=0.0)
 
     @classmethod
-    def read(cls, parser: Parser) -> "Vector4":
+    def read(cls, parser: Parser) -> "RwV4d":
         return cls(
             x=parser.readFloat(),
             y=parser.readFloat(),
@@ -288,12 +330,12 @@ class RWColor32:
 
 @dataclass()
 class RWSphere:
-    location: Vector3 = field(default_factory=Vector3)
+    location: RwV3d = field(default_factory=RwV3d)
     radius: float = 0.0
 
     @staticmethod
     def read(parser: Parser) -> "RWSphere":
-        return RWSphere(location=Vector3.read(parser), radius=parser.readFloat())
+        return RWSphere(location=RwV3d.read(parser), radius=parser.readFloat())
 
     def write(self, f: BinaryIO):
         self.location.write(f)
@@ -313,174 +355,211 @@ class RW_Vector2:
 
 @dataclass
 class RW_Matrix2x3:
-    row1: Vector3 = field(default_factory=Vector3)
-    row2: Vector3 = field(default_factory=Vector3)
+    right: RwV3d = field(default_factory=RwV3d)
+    up: RwV3d = field(default_factory=RwV3d)
 
     def write(self, f: BinaryIO):
-        self.row1.write(f)
-        self.row2.write(f)
+        self.right.write(f)
+        self.up.write(f)
 
     @classmethod
     def read(cls, parser: Parser) -> "RW_Matrix2x3":
         return cls(
-            row1=Vector3.read(parser),
-            row2=Vector3.read(parser),
+            right=RwV3d.read(parser),
+            up=RwV3d.read(parser),
         )
 
 
 @dataclass
 class RW_Matrix3x3:
-    row1: Vector3 = field(default_factory=Vector3)
-    row2: Vector3 = field(default_factory=Vector3)
-    row3: Vector3 = field(default_factory=Vector3)
+    right: RwV3d = field(default_factory=RwV3d)
+    up: RwV3d = field(default_factory=RwV3d)
+    at: RwV3d = field(default_factory=RwV3d)
 
     def write(self, f: BinaryIO):
-        self.row1.write(f)
-        self.row2.write(f)
-        self.row3.write(f)
+        self.right.write(f)
+        self.up.write(f)
+        self.at.write(f)
 
     @classmethod
     def read(cls, parser: Parser) -> "RW_Matrix3x3":
         return cls(
-            row1=Vector3.read(parser),
-            row2=Vector3.read(parser),
-            row3=Vector3.read(parser),
+            right=RwV3d.read(parser),
+            up=RwV3d.read(parser),
+            at=RwV3d.read(parser),
         )
 
     @override
     def __repr__(self):
-        return f"RW_Matrix3x3({self.row1}, {self.row2}, {self.row3})"
+        return f"RW_Matrix3x3({self.right}, {self.up}, {self.at})"
 
 
 @dataclass
-class RW_Matrix4x4:
-    row1: Vector4 = field(default_factory=Vector4)
-    row2: Vector4 = field(default_factory=Vector4)
-    row3: Vector4 = field(default_factory=Vector4)
-    row4: Vector4 = field(default_factory=Vector4)
+class RwMatrixFlags:
+    rwMATRIXTYPENORMAL: bool = False  # 0x1: axes are unit length (no scale)
+    rwMATRIXTYPEORTHOGONAL: bool = False  # 0x2: axes are perpendicular
+    rwMATRIXINTERNALIDENTITY: bool = False  # 0x20000: matrix is exactly identity
 
-    def write(self, f: BinaryIO):
-        self.row1.write(f)
-        self.row2.write(f)
-        self.row3.write(f)
-        self.row4.write(f)
+    @property
+    def rwMATRIXTYPEORTHONORMAL(self) -> bool:
+        return self.rwMATRIXTYPENORMAL and self.rwMATRIXTYPEORTHOGONAL
+
+    @rwMATRIXTYPEORTHONORMAL.setter
+    def rwMATRIXTYPEORTHONORMAL(self, value: bool) -> None:
+        self.rwMATRIXTYPENORMAL = value
+        self.rwMATRIXTYPEORTHOGONAL = value
 
     @classmethod
-    def read(cls, parser: Parser) -> "RW_Matrix4x4":
-        row1 = Vector4.read(parser)
-        row2 = Vector4.read(parser)
-        row3 = Vector4.read(parser)
-        row4 = Vector4.read(parser)
-        return cls(row1=row1, row2=row2, row3=row3, row4=row4)
+    def decode(cls, value: int) -> "RwMatrixFlags":
+        return cls(
+            rwMATRIXTYPENORMAL=bool(value & 0x00000001),
+            rwMATRIXTYPEORTHOGONAL=bool(value & 0x00000002),
+            rwMATRIXINTERNALIDENTITY=bool(value & 0x00020000),
+        )
 
-    def get_translation(self) -> Vector3:
-        """Get the translation component of the matrix (row4, x,y,z)."""
-        return Vector3(x=self.row4.x, y=self.row4.y, z=self.row4.z)
+    def encode(self) -> int:
+        v = 0
+        if self.rwMATRIXTYPENORMAL:
+            v |= 0x00000001
+        if self.rwMATRIXTYPEORTHOGONAL:
+            v |= 0x00000002
+        if self.rwMATRIXINTERNALIDENTITY:
+            v |= 0x00020000
+        return v
+
+
+@dataclass
+class RwMatrix:
+    right: RwV3d = field(default_factory=RwV3d)
+    flags: RwMatrixFlags = field(default_factory=RwMatrixFlags)
+    up: RwV3d = field(default_factory=RwV3d)
+    at: RwV3d = field(default_factory=RwV3d)
+    pos: RwV3d = field(default_factory=RwV3d)
+
+    def write(self, f: BinaryIO):
+        self.right.write(f)
+        write_u32(f, self.flags.encode())
+        self.up.write(f)
+        write_u32(f, 0)
+        self.at.write(f)
+        write_u32(f, 0)
+        self.pos.write(f)
+        write_u32(f, 1)
+
+    @classmethod
+    def read(cls, parser: Parser) -> "RwMatrix":
+        right = RwV3d.read(parser)
+        flags = parser.readUint32()
+        up = RwV3d.read(parser)
+        _ = parser.readUint32()
+        at = RwV3d.read(parser)
+        _ = parser.readUint32()
+        pos = RwV3d.read(parser)
+        _ = parser.readUint32()  # should be 1
+
+        return cls(
+            right=right,
+            flags=RwMatrixFlags.decode(flags),
+            up=up,
+            at=at,
+            pos=pos,
+        )
+
+    def getTranslation(self) -> RwV3d:
+        return self.pos
 
     def translate(self, x: float, y: float, z: float) -> None:
-        self.row4.x += x
-        self.row4.y += y
-        self.row4.z += z
+        self.pos.x += x
+        self.pos.y += y
+        self.pos.z += z
 
     @override
     def __repr__(self):
-        return (
-            f"RW_Matrix4x4(\n{self.row1},\n {self.row2},\n {self.row3},\n {self.row4})"
-        )
+        return f"RwMatrix(\n{self.right},\n {self.up},\n {self.at},\n {self.pos}, flags={self.flags})"
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "row1": {
-                "x": self.row1.x,
-                "y": self.row1.y,
-                "z": self.row1.z,
-                "w": self.row1.w,
+            "flags": self.flags,
+            "right": {
+                "x": self.right.x,
+                "y": self.right.y,
+                "z": self.right.z,
             },
-            "row2": {
-                "x": self.row2.x,
-                "y": self.row2.y,
-                "z": self.row2.z,
-                "w": self.row2.w,
+            "up": {
+                "x": self.up.x,
+                "y": self.up.y,
+                "z": self.up.z,
             },
-            "row3": {
-                "x": self.row3.x,
-                "y": self.row3.y,
-                "z": self.row3.z,
-                "w": self.row3.w,
+            "at": {
+                "x": self.at.x,
+                "y": self.at.y,
+                "z": self.at.z,
             },
-            "row4": {
-                "x": self.row4.x,
-                "y": self.row4.y,
-                "z": self.row4.z,
-                "w": self.row4.w,
+            "pos": {
+                "x": self.pos.x,
+                "y": self.pos.y,
+                "z": self.pos.z,
             },
         }
 
     @staticmethod
-    def from_dict(content: dict[str, Any]) -> "RW_Matrix4x4":
-        row1 = content.get("row1", {})
-        row2 = content.get("row2", {})
-        row3 = content.get("row3", {})
-        row4 = content.get("row4", {})
+    def from_dict(content: dict[str, Any]) -> "RwMatrix":
+        right = content.get("right", {})
+        up = content.get("up", {})
+        at = content.get("at", {})
+        pos = content.get("pos", {})
 
-        return RW_Matrix4x4(
-            row1=Vector4(
-                x=row1.get("x", 0.0),
-                y=row1.get("y", 0.0),
-                z=row1.get("z", 0.0),
-                w=row1.get("w", 0.0),
+        return RwMatrix(
+            flags=content.get("flags", 0),
+            right=RwV3d(
+                x=right.get("x", 0.0),
+                y=right.get("y", 0.0),
+                z=right.get("z", 0.0),
             ),
-            row2=Vector4(
-                x=row2.get("x", 0.0),
-                y=row2.get("y", 0.0),
-                z=row2.get("z", 0.0),
-                w=row2.get("w", 0.0),
+            up=RwV3d(
+                x=up.get("x", 0.0),
+                y=up.get("y", 0.0),
+                z=up.get("z", 0.0),
             ),
-            row3=Vector4(
-                x=row3.get("x", 0.0),
-                y=row3.get("y", 0.0),
-                z=row3.get("z", 0.0),
-                w=row3.get("w", 0.0),
+            at=RwV3d(
+                x=at.get("x", 0.0),
+                y=at.get("y", 0.0),
+                z=at.get("z", 0.0),
             ),
-            row4=Vector4(
-                x=row4.get("x", 0.0),
-                y=row4.get("y", 0.0),
-                z=row4.get("z", 0.0),
-                w=row4.get("w", 0.0),
+            pos=RwV3d(
+                x=pos.get("x", 0.0),
+                y=pos.get("y", 0.0),
+                z=pos.get("z", 0.0),
             ),
         )
 
     @staticmethod
-    def from_list(content: list[tuple[float, float, float, float]]) -> "RW_Matrix4x4":
-        row1 = content[0]
-        row2 = content[1]
-        row3 = content[2]
-        row4 = content[3]
+    def from_list(content: list[tuple[float, float, float, float]]) -> "RwMatrix":
+        right = content[0]
+        up = content[1]
+        at = content[2]
+        pos = content[3]
 
-        return RW_Matrix4x4(
-            row1=Vector4(
-                x=row1[0],
-                y=row1[1],
-                z=row1[2],
-                w=row1[3],
+        return RwMatrix(
+            right=RwV3d(
+                x=right[0],
+                y=right[1],
+                z=right[2],
             ),
-            row2=Vector4(
-                x=row2[0],
-                y=row2[1],
-                z=row2[2],
-                w=row2[3],
+            up=RwV3d(
+                x=up[0],
+                y=up[1],
+                z=up[2],
             ),
-            row3=Vector4(
-                x=row3[0],
-                y=row3[1],
-                z=row3[2],
-                w=row3[3],
+            at=RwV3d(
+                x=at[0],
+                y=at[1],
+                z=at[2],
             ),
-            row4=Vector4(
-                x=row4[0],
-                y=row4[1],
-                z=row4[2],
-                w=row4[3],
+            pos=RwV3d(
+                x=pos[0],
+                y=pos[1],
+                z=pos[2],
             ),
         )
 
@@ -490,15 +569,17 @@ class RW_Matrix4x4:
         return buf.getvalue()
 
     def __iter__(self):
-        return iter((self.row1, self.row2, self.row3, self.row4))
+        return iter((self.right, self.up, self.at, self.pos))
 
 
 def expect_chunk_type_or_raise(
-    header: RWHeader, expected_type: int, error: str = "Wrong Chunk Type"
+    header: RWHeader,
+    expected_type: int,
+    error: str = "Wrong Chunk Type",
 ):
     if header.type != expected_type:
         raise ValueError(
-            f"{error}: expected 0x{expected_type:02X}, got 0x{header.type:02X} ({int(header.type)})"
+            f"{error}: expected 0x{expected_type:02X}, got 0x{header.type:02X} ({int(header.type)})",
         )
 
 
@@ -511,7 +592,10 @@ class RW_Section:
         raise NotImplementedError("[read] This section type is not implemented yet.")
 
     def write(
-        self, f: BinaryIO, stamp: int, parent: "RW_Section | None" = None
+        self,
+        f: BinaryIO,
+        stamp: int,
+        parent: "RW_Section | None" = None,
     ) -> None:
         raise NotImplementedError("[write] This section type is not implemented yet.")
 
@@ -525,7 +609,9 @@ class RW_Section_NotImplemented(RW_Section):
     @classmethod
     @override
     def read(
-        cls, parser: Parser, parent: RW_Section | None = None
+        cls,
+        parser: Parser,
+        parent: RW_Section | None = None,
     ) -> "RW_Section_NotImplemented":
         sni = cls(RWHeader.read(parser))
 
@@ -545,7 +631,7 @@ class RW_Section_NotImplemented(RW_Section):
 
     @override
     def __repr__(self):
-        output = f"RW_Section_NotImplemented(type={hex(self.header.type)}, size={self.header.size}, library_id_stamp={hex(self.header.library_id_stamp if self.header.library_id_stamp else 0)}, version={hex(self.header.version)}, build={self.header.build})"
+        output = f"RW_Section_NotImplemented(type={hex(self.header.type)}, size={self.header.size}, library_id_stamp={hex(self.header.library_id_stamp or 0)}, version={hex(self.header.version)}, build={self.header.build})"
 
         output += f"\n# raw_data: {len(self.raw_data)} bytes"
 
@@ -564,42 +650,44 @@ class RW_Section_NotImplemented(RW_Section):
 
         print(
             "\033[93m"
-            + "======================= Warning =======================\n"
-            + "Section parser not implemented. (or mapped)\n"
-            + f" Type : {self.header.type:#06x} ({secname})\n"
-            + "\n"
-            + " Data will be preserved:\n"
-            + "   • header -> self.header\n"
-            + "   • payload -> self.raw_data\n"
-            + "\n"
-            + " To add support, create a parser in formats/sections.\n"
-            + "(or add existing one to \n       formats/sections/__init__.py - SECTION_REGISTRY)\n"
-            + "\033[0m",
+            "======================= Warning =======================\n"
+            "Section parser not implemented. (or mapped)\n"
+            f" Type : {self.header.type:#06x} ({secname})\n"
+            "\n"
+            " Data will be preserved:\n"
+            "   • header -> self.header\n"
+            "   • payload -> self.raw_data\n"
+            "\n"
+            " To add support, create a parser in formats/sections.\n"
+            "(or add existing one to \n       formats/sections/__init__.py - SECTION_REGISTRY)\n"
+            "\033[0m",
         )
 
 
 @dataclass
 class RW_StreamFunc:
+    header: RWHeader = field(default_factory=RWHeader)
+
     @classmethod
     def read(cls, parser: Parser) -> "RW_StreamFunc":
         raise NotImplementedError(
-            "[read] This string func type is not implemented yet."
+            "[read] This string func type is not implemented yet.",
         )
 
     def write(self, f: BinaryIO, stamp: int) -> None:
         raise NotImplementedError(
-            "[write] This string func type is not implemented yet."
+            "[write] This string func type is not implemented yet.",
         )
 
     def to_dict(self) -> dict[str, Any]:
         raise NotImplementedError(
-            "[to_dict] This string func type is not implemented yet."
+            "[to_dict] This string func type is not implemented yet.",
         )
 
     @classmethod
     def from_dict(cls, content: dict[str, Any]) -> "RW_StreamFunc":
         raise NotImplementedError(
-            "[from_dict] This string func type is not implemented yet."
+            "[from_dict] This string func type is not implemented yet.",
         )
 
     @property
@@ -643,10 +731,10 @@ class RW_StreamFunc_NotImplemented(RW_StreamFunc):
 
         print(
             "\033[93m"
-            + "======================= Warning =======================\n"
-            + "StrFunc parser not implemented. (or mapped)\n"
-            + f" Type : {self.header.type:#06x} ({secname})\n"
-            + "\033[0m",
+            "======================= Warning =======================\n"
+            "StrFunc parser not implemented. (or mapped)\n"
+            f" Type : {self.header.type:#06x} ({secname})\n"
+            "\033[0m",
         )
 
     @property
@@ -678,7 +766,7 @@ class RW_Frame:
     """https://gtamods.com/wiki/Frame_List_(RW_Section)"""
 
     rotation_matrix: RW_Matrix3x3 = field(default_factory=RW_Matrix3x3)
-    position: Vector3 = field(default_factory=Vector3)
+    position: RwV3d = field(default_factory=RwV3d)
     parent_idx: int = -1  # s32
     matrix_flags: int = 0  # u32 - see https://gtamods.com/wiki/Talk:Frame_List_(RW_Section)#Flags_under_Frame_Data
 
@@ -686,7 +774,7 @@ class RW_Frame:
     def read(parser: Parser) -> "RW_Frame":
         frame = RW_Frame()
         frame.rotation_matrix = RW_Matrix3x3.read(parser)
-        frame.position = Vector3.read(parser)
+        frame.position = RwV3d.read(parser)
         frame.parent_idx = parser.readInt32()
         frame.matrix_flags = parser.readUint32()
 

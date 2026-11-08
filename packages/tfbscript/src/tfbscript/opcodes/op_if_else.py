@@ -29,7 +29,7 @@ class OpIfElse(Opcode):
         keyword_str = "} else if (" if chained else "if ("
 
         print(
-            f"{pad}{keyword(keyword_str)} {condition.source_line(inline=True)} {keyword(') {')}"
+            f"{pad}{keyword(keyword_str)} {condition.source_line(inline=True)} {keyword(') {')}",
         )
 
         context = self.context
@@ -46,7 +46,7 @@ class OpIfElse(Opcode):
                     context.open_opcodes.pop()
 
             print(
-                f"{'    ' * (indent + 1)}{keyword('flow ')}{flow_control(self.flags.flow_control_str())}"
+                f"{'    ' * (indent + 1)}{keyword('flow ')}{flow_control(self.flags.flow_control_str())}",
             )
 
             else_children = self.children[1:]
@@ -65,7 +65,7 @@ class OpIfElse(Opcode):
                     else_child.print_tree(indent + 1)
 
                 print(
-                    f"{'    ' * (indent + 1)}{keyword('flow ')}{flow_control(self.flags.flow_control_str())}"
+                    f"{'    ' * (indent + 1)}{keyword('flow ')}{flow_control(self.flags.flow_control_str())}",
                 )
 
                 print(pad + keyword("}"))
@@ -88,7 +88,7 @@ class OpIfElse(Opcode):
                 "label": "true",
                 "children": condition.children,
                 "scope": [condition],
-            }
+            },
         ]
 
         if else_children:

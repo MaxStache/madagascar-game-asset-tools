@@ -26,9 +26,10 @@ try:
     from PySide6.QtGui import (
         QAction,
         QActionGroup,
+        QFont,
+        QIcon,
         QKeySequence,
         QTextCursor,
-        QIcon,
     )
     from PySide6.QtWidgets import (
         QApplication,
@@ -53,7 +54,8 @@ from .completions import (
     producer_of,
 )
 from .highlighter import TfbPseudoHighlighter
-from .panel import HEIGHT as PANEL_HEIGHT, Panel, describe
+from .panel import HEIGHT as PANEL_HEIGHT
+from .panel import Panel, describe
 from .search import SearchBox
 from .theme import DEFAULT, THEMES, Theme, qt_palette, scrollbar_style
 from .widgets import CodeEditor
@@ -75,7 +77,6 @@ OPEN_FILTER = (
     f"TfbPseudo source (*{SOURCE_SUFFIX});;"
     "All files (*)"
 )
-
 
 
 STARTER = """\
@@ -110,7 +111,6 @@ behavior MyBehavior {
 """
 
 
-
 class EditorWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -121,6 +121,8 @@ class EditorWindow(QMainWindow):
         # What was chosen last time this was open, and the theme it names.
         self.preferences = preferences.load()
         self.theme = preferences.theme_named(self.preferences.theme)
+        # What the interface reads in before any size is chosen, to go back to.
+        self.system_font = QApplication.font()
 
         self.editor = CodeEditor(theme=self.theme)
         self.highlighter = TfbPseudoHighlighter(self.editor.document(), self.theme)
@@ -163,13 +165,19 @@ class EditorWindow(QMainWindow):
 
         self.add_action(file_menu, "New", QKeySequence.StandardKey.New, self.new_file)
         self.add_action(
-            file_menu, "Open...", QKeySequence.StandardKey.Open, self.open_file
+            file_menu,
+            "Open...",
+            QKeySequence.StandardKey.Open,
+            self.open_file,
         )
         self.recent_menu = file_menu.addMenu("Open Recent")
         self.fill_recent_menu()
         file_menu.addSeparator()
         self.add_action(
-            file_menu, "Save", QKeySequence.StandardKey.Save, self.save_source
+            file_menu,
+            "Save",
+            QKeySequence.StandardKey.Save,
+            self.save_source,
         )
         self.add_action(
             file_menu,
@@ -295,7 +303,8 @@ class EditorWindow(QMainWindow):
 
     def edit_settings(self) -> None:
         """The settings, as a dialog. What it answers is written to the
-        settings file and applied on the spot."""
+        settings file and applied on the spot.
+        """
         dialog = preferences.SettingsDialog(self.preferences, self)
 
         if dialog.exec() != QDialog.DialogCode.Accepted:
@@ -327,8 +336,32 @@ class EditorWindow(QMainWindow):
         if was is None or chosen.font_size != was.font_size:
             self.editor.set_font_size(chosen.font_size)
 
+        if was is None or chosen.interface_font_size != was.interface_font_size:
+            self.apply_interface_font_size(chosen.interface_font_size)
+
         if was is not None and chosen.drop_filler_tails != was.drop_filler_tails:
             self.reread_script()
+
+    def apply_interface_font_size(self, points: int) -> None:
+        """Size the chrome's text: everything that reads in the application's
+        font, which is all of it but the text being edited. No size puts the
+        system's own back.
+        """
+        font = QFont(self.system_font)
+
+        if points != preferences.SYSTEM_SIZE:
+            font.setPointSize(points)
+
+        QApplication.setFont(font)
+
+        # Under a stylesheet the new font does not reach every widget -- the
+        # status bar's labels keep the old one -- until the sheet is put on
+        # again, which re-polishes everything against it.
+        app = cast("QApplication", QApplication.instance())
+        if app is not None:
+            sheet = app.styleSheet()
+            app.setStyleSheet("")
+            app.setStyleSheet(sheet)
 
     def reread_script(self) -> None:
         """Decompile what is open again, now that it would come out differently.
@@ -348,7 +381,7 @@ class EditorWindow(QMainWindow):
         try:
             script = ScriptFile.from_path(path)
             text = decompile_script(script, self.preferences.drop_filler_tails)
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001 -- shown to the user, not swallowed
             self.report(f"Could not read {path.name} again", error)
             return
 
@@ -359,10 +392,11 @@ class EditorWindow(QMainWindow):
 
     def apply_theme(self, theme: Theme) -> None:
         """Repaint everything -- the chrome and the syntax have to move
-        together or one of them ends up unreadable."""
+        together or one of them ends up unreadable.
+        """
         self.theme = theme
 
-        app = cast(QApplication, QApplication.instance())
+        app = cast("QApplication", QApplication.instance())
         if app is not None:
             app.setPalette(qt_palette(theme))
             app.setStyleSheet(scrollbar_style(theme))
@@ -449,7 +483,10 @@ class EditorWindow(QMainWindow):
 
     def open_file(self) -> None:
         path, _ = QFileDialog.getOpenFileName(
-            self, "Open script", str(Path.cwd()), OPEN_FILTER
+            self,
+            "Open script",
+            str(Path.cwd()),
+            OPEN_FILTER,
         )
         if path:
             self.load(Path(path))
@@ -464,7 +501,8 @@ class EditorWindow(QMainWindow):
             if path.suffix.lower() == SCRIPT_SUFFIX:
                 script = ScriptFile.from_path(path)
                 text = decompile_script(
-                    script, self.preferences.drop_filler_tails
+                    script,
+                    self.preferences.drop_filler_tails,
                 )
                 # The text is a decompilation, not a file on disk yet, so Save
                 # has to ask where to put it rather than overwrite the .ai.
@@ -474,7 +512,7 @@ class EditorWindow(QMainWindow):
                 text = path.read_text()
                 self.source_path = path
                 note = f"Opened {path.name}"
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001 -- shown to the user, not swallowed
             self.report(f"Could not open {path.name}", error)
             return
 
@@ -545,13 +583,14 @@ class EditorWindow(QMainWindow):
             f"Compiles: {instructions} instructions, "
             f"{len(script.opcode_table.entries)} opcodes, "
             f"{len(script.global_refs.entries)} globals, "
-            f"{len(script.local_refs.entries)} locals"
+            f"{len(script.local_refs.entries)} locals",
         )
         self.panel.report(f"Checked {self.document_name()}", describe(script))
 
     def build_key(self) -> Path | None:
         """What a remembered build target is remembered against: the file this
-        text came from, saved as or decompiled from."""
+        text came from, saved as or decompiled from.
+        """
         return self.source_path or self.opened_from
 
     def compile_to_script(self) -> None:
@@ -606,7 +645,8 @@ class EditorWindow(QMainWindow):
 
     def compile_text(self):
         """Compile what is in the editor, pointing at the offending line when
-        it does not. Returns the ScriptFile, or None."""
+        it does not. Returns the ScriptFile, or None.
+        """
         self.editor.clear_error()
 
         try:
@@ -622,7 +662,7 @@ class EditorWindow(QMainWindow):
             # The lexer raises this for a character it cannot read.
             self.status(str(error))
             QMessageBox.warning(self, "Cannot compile", str(error))
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001 -- shown to the user, not swallowed
             self.report("Cannot compile", error)
 
         return None
@@ -656,7 +696,8 @@ class EditorWindow(QMainWindow):
 
     def go_to_definition(self) -> None:
         """Jump to where the name under the cursor comes from: the line that
-        declares a variable, or the op that produces a builtin."""
+        declares a variable, or the op that produces a builtin.
+        """
         source = self.editor.toPlainText()
         position = self.editor.textCursor().position()
         name = name_at(source, position)
@@ -680,7 +721,8 @@ class EditorWindow(QMainWindow):
     def go_to_producer(self, source: str, position: int, name: str) -> None:
         """A builtin is whatever the op that produced it left behind, so where
         it comes from is that op: the innermost one the cursor is inside of.
-        Two `findVariable`s inside one another answer with the inner one."""
+        Two `findVariable`s inside one another answer with the inner one.
+        """
         methods = producer_methods(name)
 
         if not methods:
@@ -747,7 +789,7 @@ class EditorWindow(QMainWindow):
 
 def build_application(theme: Theme = DEFAULT) -> "QApplication":
     """The QApplication, in `theme`."""
-    app = cast(QApplication, QApplication.instance()) or QApplication([])
+    app = cast("QApplication", QApplication.instance()) or QApplication([])
 
     app.setStyle(QStyleFactory.create("Fusion"))
     app.setPalette(qt_palette(theme))
@@ -762,11 +804,9 @@ def open_editor(path: Path | str | None = None) -> None:
 
     window = EditorWindow()
 
-    
     icon = QIcon(str(Path(__file__).resolve().parent / "favicon.png"))
     app.setWindowIcon(icon)
     window.setWindowIcon(icon)
-
 
     if path is not None:
         window.load(Path(path))

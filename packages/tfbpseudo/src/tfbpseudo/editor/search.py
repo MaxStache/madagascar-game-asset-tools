@@ -102,7 +102,7 @@ class SearchBox(QWidget):
         self.status = QLabel("", self)
         self.status.setMinimumWidth(72)
         self.status.setAlignment(
-            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
         )
 
         self.prev_button = self.button("Prev", "Previous match (Shift+Enter)")
@@ -193,7 +193,8 @@ class SearchBox(QWidget):
 
     def dismiss(self) -> None:
         """Hide the box and hand the editor back the focus, with the match the
-        search landed on selected so it can be typed over."""
+        search landed on selected so it can be typed over.
+        """
         span = self.span()
         self.editor.set_search_selections([])
         self.matches = []
@@ -343,7 +344,7 @@ class SearchBox(QWidget):
 
             selection = QTextEdit.ExtraSelection()
             selection.format.setBackground(
-                current if index == self.current else match
+                current if index == self.current else match,
             )
             selection.cursor = cursor
             selections.append(selection)
@@ -404,14 +405,17 @@ class SearchBox(QWidget):
         )
 
     def eventFilter(self, watched, event) -> bool:
-        if watched is self.edit and event.type() == QEvent.Type.KeyPress:
-            if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
-                if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
-                    self.previous_match()
-                else:
-                    self.next_match()
+        if (
+            watched is self.edit
+            and event.type() == QEvent.Type.KeyPress
+            and event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter)
+        ):
+            if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+                self.previous_match()
+            else:
+                self.next_match()
 
-                return True  # never let it through to the text underneath
+            return True  # never let it through to the text underneath
 
         if event.type() == QEvent.Type.Resize and self.isVisible():
             self.reposition()

@@ -1,19 +1,21 @@
 import copy
 import io
 import math
+import uuid
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, override
-import uuid
 
 from madformats.lib.parser import Parser
-from madformats.lib.writer import write_alignedString, write_u32, write_bool, write_s32
-from madformats.lib.rwConstants import strfunc_func
 from madformats.lib.rw_basics import (
-    RW_Matrix4x4,
     RW_StreamFunc,
+    RwBool,
     RWHeader,
+    RwMatrix,
     expect_chunk_type_or_raise,
 )
+from madformats.lib.rwConstants import strfunc_func
+from madformats.lib.writer import write_alignedString, write_s32, write_u32
+
 from .sf_LoadEmbeddedAsset import RW_sf_LoadEmbeddedAsset
 
 if TYPE_CHECKING:
@@ -26,24 +28,26 @@ RWSPH_CREATECLASSID = 0x20000000  # Behavior
 
 @dataclass
 class RW_sf_CreateEntity_Attribute_TFBReference:
-    index: int = field(default=-1)
+    slot: int = field(default=-1)
     guid: uuid.UUID = field(default=uuid.UUID(int=0))
     name: str | None = field(default=None)
 
     def resolveSoft(
-        self, stream: "StreamQueryMixin"
+        self,
+        stream: "StreamQueryMixin",
     ) -> "RW_sf_CreateEntity | RW_sf_LoadEmbeddedAsset | None":
         """Resolve the reference to an embedded asset or entity if possible, else returns None"""
         return stream.assetByIDSoft(self.guid) or stream.entityByIDSoft(self.guid)
 
     def resolve(
-        self, stream: "StreamQueryMixin"
+        self,
+        stream: "StreamQueryMixin",
     ) -> "RW_sf_CreateEntity | RW_sf_LoadEmbeddedAsset":
         """Resolves the reference to a RW_sf_LoadEmbeddedAsset or RW_sf_CreateEntity, raises if none matches"""
         found = self.resolveSoft(stream)
         if not found:
             raise AssertionError(
-                f"No entity or asset in this stream with the id: {self.guid}"
+                f"No entity or asset in this stream with the id: {self.guid}",
             )
         return found
 
@@ -69,7 +73,6 @@ class RW_sf_CreateEntity_Attribute:
             - tag (int)
             - name (str)
         """
-
         parser = Parser(self.data, endian="little")
 
         value_bytes = parser.readBytes(4)
@@ -86,10 +89,10 @@ class RW_sf_CreateEntity_Attribute:
         the `CProtoActor.setModelRef` / `setScriptRef` helpers.
         """
         parser = Parser(self.data)
-        index = parser.readInt32()  # -1 = None
+        slot = parser.readInt32()  # -1 = None
 
         guid_string = parser.readString(
-            38
+            38,
         )  # { + 32 bytes guid + 4 seperator bytes + } = 38 bytes
         guid = uuid.UUID(guid_string)
 
@@ -99,12 +102,12 @@ class RW_sf_CreateEntity_Attribute:
         if parser.remaining() > 0:
             name = parser.readPaddedCString()
 
-        return RW_sf_CreateEntity_Attribute_TFBReference(index, guid, name)
+        return RW_sf_CreateEntity_Attribute_TFBReference(slot, guid, name)
 
     def setTfbRef(self, ref: RW_sf_CreateEntity_Attribute_TFBReference) -> None:
         buf = io.BytesIO()
 
-        write_s32(buf, ref.index)  # -1 = None
+        write_s32(buf, ref.slot)  # -1 = None
 
         guid_string = "{" + str(ref.guid).upper() + "}"
         buf.write(guid_string.encode("latin1"))
@@ -145,7 +148,8 @@ class RW_sf_CreateEntity_AttributeClass:
 
             if self.class_name == "LevelHub" and attr.command == 1:
                 attr_dict["_READONLY_LevelHub_cmd1_VALUE"] = int.from_bytes(
-                    attr.data[:4], byteorder="little"
+                    attr.data[:4],
+                    byteorder="little",
                 )
                 attr_dict["_READONLY_LevelHub_cmd1_TAG"] = "0x" + attr.data[4:8].hex()
                 attr_dict["_READONLY_LevelHub_cmd1_NAME"] = (
@@ -166,7 +170,7 @@ class RW_sf_CreateEntity(RW_StreamFunc):
 
     behaviour: str = ""
     entityID: uuid.UUID = field(default=uuid.UUID(int=0))
-    isGlobal: bool = False
+    isGlobal: RwBool | bool = field(default_factory=RwBool)
 
     classes: list[RW_sf_CreateEntity_AttributeClass] = field(default_factory=list)
 
@@ -183,7 +187,7 @@ class RW_sf_CreateEntity(RW_StreamFunc):
         )
 
         subparser = Parser(parser.readBytes(entity.header.size), endian="little")
-        entity.isGlobal = subparser.readBool()
+        entity.isGlobal = RwBool(subparser.readUint32())
 
         current_class = None
 
@@ -197,7 +201,7 @@ class RW_sf_CreateEntity(RW_StreamFunc):
 
             if command == RWSPH_CLASSID:
                 current_class = RW_sf_CreateEntity_AttributeClass(
-                    class_name=subparser.readPaddedCString()
+                    class_name=subparser.readPaddedCString(),
                 )
                 entity.classes.append(current_class)
                 continue
@@ -212,14 +216,14 @@ class RW_sf_CreateEntity(RW_StreamFunc):
 
             if current_class is None:
                 raise ValueError(
-                    f"Attribute with command {command} found outside of a class"
+                    f"Attribute with command {command} found outside of a class",
                 )
 
             current_class.attributes.append(
                 RW_sf_CreateEntity_Attribute(
                     command=command,
                     data=subparser.readBytes(data_size),
-                )
+                ),
             )
 
         return entity
@@ -228,7 +232,7 @@ class RW_sf_CreateEntity(RW_StreamFunc):
     def write(self, f, stamp):
         buf = io.BytesIO()
 
-        write_bool(buf, self.isGlobal)
+        write_u32(buf, int(self.isGlobal))
 
         # Behaviour (CreateClassID)
         if self.behaviour:
@@ -273,7 +277,8 @@ class RW_sf_CreateEntity(RW_StreamFunc):
         f.write(buf.getvalue())
 
     def find_first_class(
-        self, class_name: str
+        self,
+        class_name: str,
     ) -> RW_sf_CreateEntity_AttributeClass | None:
         for cls in self.classes:
             if cls.class_name == class_name:
@@ -281,7 +286,9 @@ class RW_sf_CreateEntity(RW_StreamFunc):
         return None
 
     def find_first_class_with_command(
-        self, class_name: str, command: int
+        self,
+        class_name: str,
+        command: int,
     ) -> RW_sf_CreateEntity_AttributeClass | None:
         for cls in self.classes:
             if cls.class_name == class_name:
@@ -304,22 +311,22 @@ class RW_sf_CreateEntity(RW_StreamFunc):
             "header": self.header.to_dict(),
             "behaviour": self.behaviour,
             "entityID": str(self.entityID),
-            "isGlobal": self.isGlobal,
+            "isGlobal": RwBool(self.isGlobal).to_json(),
             "classes": [cls.to_dict() for cls in self.classes],
         }
 
     @classmethod
     @override
-    def from_dict(cls, content: dict[str, Any]) -> "RW_StreamFunc":
+    def from_dict(cls, content: dict[str, Any]) -> "RW_sf_CreateEntity":
         header = RWHeader.from_dict(content.get("header", {}))
 
         return cls(
             header=header,
             behaviour=content.get("behaviour", ""),
             entityID=uuid.UUID(
-                content.get("entityID", "00000000-0000-0000-0000-000000000000")
+                content.get("entityID", "00000000-0000-0000-0000-000000000000"),
             ),
-            isGlobal=content.get("isGlobal", False),
+            isGlobal=RwBool(content.get("isGlobal", False)),
             classes=[
                 RW_sf_CreateEntity_AttributeClass(
                     class_name=cls.get("class_name", ""),
@@ -340,7 +347,9 @@ class RW_sf_CreateEntity(RW_StreamFunc):
         attr.data = data
 
     def getAttributeSoft(
-        self, class_name: str, command: int
+        self,
+        class_name: str,
+        command: int,
     ) -> RW_sf_CreateEntity_Attribute | None:
         """Returns the first instace of a Classes command, for multiple attributes use getAttributes. Returns None if attribute isnt found"""
         for cls in self.classes:
@@ -354,19 +363,24 @@ class RW_sf_CreateEntity(RW_StreamFunc):
         return None
 
     def getAttribute(
-        self, class_name: str, command: int
+        self,
+        class_name: str,
+        command: int,
     ) -> RW_sf_CreateEntity_Attribute:
         """Returns the first instace of a Classes command, for multiple attributes use getAttributes. Raises if not found"""
         attr = self.getAttributeSoft(class_name, command)
         if attr is None:
             raise ValueError(
                 "No matching class/attribute in entity "
-                + f"with the name: {class_name}, and command: {command}"
+                f"with the name: {class_name}, and command: {command}",
             )
         return attr
 
     def getAttributeOrCreate(
-        self, class_name: str, command: int, default_data: bytes = b""
+        self,
+        class_name: str,
+        command: int,
+        default_data: bytes = b"",
     ) -> RW_sf_CreateEntity_Attribute:
         """Returns the first instace of a Classes command, for multiple attributes use getAttributes. If no attribute was found it gets created with default data."""
         attr = self.getAttributeSoft(class_name, command)
@@ -376,7 +390,9 @@ class RW_sf_CreateEntity(RW_StreamFunc):
         return attr
 
     def getAttributes(
-        self, class_name: str, command: int
+        self,
+        class_name: str,
+        command: int,
     ) -> list[RW_sf_CreateEntity_Attribute]:
         """Return all attributes matching the class name and command."""
         for cls in self.classes:
@@ -388,7 +404,10 @@ class RW_sf_CreateEntity(RW_StreamFunc):
         raise ValueError(f"No matching class in entity with the name: {class_name}")
 
     def addAttribute(
-        self, class_name: str, command: int, data: bytes
+        self,
+        class_name: str,
+        command: int,
+        data: bytes,
     ) -> RW_sf_CreateEntity_Attribute:
         """Adds an attribute to a specific class in the entity. Adds the class too if needed."""
         # First make the attribute
@@ -399,7 +418,8 @@ class RW_sf_CreateEntity(RW_StreamFunc):
 
         # Next find the class to add the attribute to, or create it
         target_cls = next(
-            (cls for cls in self.classes if cls.class_name == class_name), None
+            (cls for cls in self.classes if cls.class_name == class_name),
+            None,
         )
         if (
             target_cls is None
@@ -435,7 +455,7 @@ class RW_sf_CreateEntity(RW_StreamFunc):
             0x01,
         )
 
-        matrix = RW_Matrix4x4.read(Parser(attr.data))
+        matrix = RwMatrix.read(Parser(attr.data))
         matrix.translate(x, y, z)
 
         self.setAttribute(
@@ -444,14 +464,14 @@ class RW_sf_CreateEntity(RW_StreamFunc):
             matrix.pack(),
         )
 
-    def getMatrix(self) -> RW_Matrix4x4:
+    def getMatrix(self) -> RwMatrix:
         attr = self.getAttribute(
             "CSystemCommands",
             0x01,
         )
-        return RW_Matrix4x4.read(Parser(attr.data))
+        return RwMatrix.read(Parser(attr.data))
 
-    def setMatrix(self, matrix: RW_Matrix4x4):
+    def setMatrix(self, matrix: RwMatrix):
         self.setAttribute(
             "CSystemCommands",
             0x01,
@@ -460,21 +480,25 @@ class RW_sf_CreateEntity(RW_StreamFunc):
 
     def setTranslation(self, x: float, y: float, z: float):
         matrix = self.getMatrix()
-        matrix.row4.x = x
-        matrix.row4.y = y
-        matrix.row4.z = z
+        matrix.pos.x = x
+        matrix.pos.y = y
+        matrix.pos.z = z
         self.setMatrix(matrix)
 
     def setPosition(self, x: float, y: float, z: float):
-        """Rename of setTranslation ;) """
+        """Rename of setTranslation ;)"""
         self.setTranslation(x, y, z)
 
     def setRotation(self, x: float, y: float, z: float):
         """Replace the rotation basis (rows 1-3) from Euler angles in degrees,
-        applied in X, then Y, then Z order. Preserves position (row4)."""
+        applied in X, then Y, then Z order. Preserves position (pos).
+        """
         rx, ry, rz = math.radians(x), math.radians(y), math.radians(z)
 
-        def matmul3(a: list[list[float | int]] | tuple[tuple[float | int, ...], ...], b: list[list[float | int]] | tuple[tuple[float | int, ...], ...]):
+        def matmul3(
+            a: list[list[float | int]] | tuple[tuple[float | int, ...], ...],
+            b: list[list[float | int]] | tuple[tuple[float | int, ...], ...],
+        ):
             return tuple(
                 tuple(sum(a[i][k] * b[k][j] for k in range(3)) for j in range(3))
                 for i in range(3)
@@ -499,18 +523,19 @@ class RW_sf_CreateEntity(RW_StreamFunc):
         right, up, forward = matmul3(matmul3(mx, my), mz)
 
         matrix = self.getMatrix()
-        matrix.row1.x, matrix.row1.y, matrix.row1.z = right
-        matrix.row2.x, matrix.row2.y, matrix.row2.z = up
-        matrix.row3.x, matrix.row3.y, matrix.row3.z = forward
+        matrix.right.x, matrix.right.y, matrix.right.z = right
+        matrix.up.x, matrix.up.y, matrix.up.z = up
+        matrix.at.x, matrix.at.y, matrix.at.z = forward
 
         self.setMatrix(matrix)
 
     def getRotation(self) -> tuple[float, float, float]:
         """Decompose the rotation basis (rows 1-3) back into Euler degrees --
-        the inverse of `setRotation` (X, then Y, then Z order)."""
+        the inverse of `setRotation` (X, then Y, then Z order).
+        """
         matrix = self.getMatrix()
-        m00, m01, m02 = matrix.row1.x, matrix.row1.y, matrix.row1.z
-        m12, m22 = matrix.row2.z, matrix.row3.z
+        m00, m01, m02 = matrix.right.x, matrix.right.y, matrix.right.z
+        m12, m22 = matrix.up.z, matrix.at.z
 
         ry = math.asin(max(-1.0, min(1.0, -m02)))
         rx = math.atan2(m12, m22)
@@ -554,21 +579,23 @@ class RW_sf_CreateEntity(RW_StreamFunc):
         matrix = self.getMatrix()
 
         # Preserve rotation, replace scale
-        row1_length = (matrix.row1.x**2 + matrix.row1.y**2 + matrix.row1.z**2) ** 0.5
-        row2_length = (matrix.row2.x**2 + matrix.row2.y**2 + matrix.row2.z**2) ** 0.5
-        row3_length = (matrix.row3.x**2 + matrix.row3.y**2 + matrix.row3.z**2) ** 0.5
+        right_length = (
+            matrix.right.x**2 + matrix.right.y**2 + matrix.right.z**2
+        ) ** 0.5
+        up_length = (matrix.up.x**2 + matrix.up.y**2 + matrix.up.z**2) ** 0.5
+        at_length = (matrix.at.x**2 + matrix.at.y**2 + matrix.at.z**2) ** 0.5
 
-        matrix.row1.x *= x / row1_length
-        matrix.row1.y *= x / row1_length
-        matrix.row1.z *= x / row1_length
+        matrix.right.x *= x / right_length
+        matrix.right.y *= x / right_length
+        matrix.right.z *= x / right_length
 
-        matrix.row2.x *= y / row2_length
-        matrix.row2.y *= y / row2_length
-        matrix.row2.z *= y / row2_length
+        matrix.up.x *= y / up_length
+        matrix.up.y *= y / up_length
+        matrix.up.z *= y / up_length
 
-        matrix.row3.x *= z / row3_length
-        matrix.row3.y *= z / row3_length
-        matrix.row3.z *= z / row3_length
+        matrix.at.x *= z / at_length
+        matrix.at.y *= z / at_length
+        matrix.at.z *= z / at_length
 
         self.setMatrix(matrix)
 
@@ -577,11 +604,11 @@ class RW_sf_CreateEntity(RW_StreamFunc):
             "CSystemCommands",
             0x01,
         )
-        matrix = RW_Matrix4x4.read(Parser(attr.data))
+        matrix = RwMatrix.read(Parser(attr.data))
         return (
-            matrix.row4.x,
-            matrix.row4.y,
-            matrix.row4.z,
+            matrix.pos.x,
+            matrix.pos.y,
+            matrix.pos.z,
         )
 
     def print_matrix(self):
@@ -590,7 +617,7 @@ class RW_sf_CreateEntity(RW_StreamFunc):
             0x01,
         )
 
-        matrix = RW_Matrix4x4.read(Parser(attr.data))
+        matrix = RwMatrix.read(Parser(attr.data))
         print(matrix)
 
     def setRandomEntityId(self):

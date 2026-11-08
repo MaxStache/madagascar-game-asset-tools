@@ -1,12 +1,12 @@
-# noqa: N999
+import io
+from dataclasses import dataclass, field
 from typing import BinaryIO, override
 
-from madformats.lib.utils import bytes_pad4
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.parser import Parser
 from madformats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
-from dataclasses import dataclass, field
-import io
+from madformats.lib.rwConstants import RWSectionType
+from madformats.lib.utils import bytes_pad4
+
 
 @dataclass
 class RW_String(RW_Section):
@@ -30,7 +30,7 @@ class RW_String(RW_Section):
             .split(b"\x00", 1)[0]
             .decode("latin-1", errors="replace")
         )
-      
+
         return string
 
     @override
@@ -41,10 +41,10 @@ class RW_String(RW_Section):
             raise ValueError("Content can only contain ascii charactes (latin-1)")
 
         enc_string = bytes_pad4(
-            self.content.encode("latin-1", errors="replace")
+            self.content.encode("latin-1", errors="replace"),
         )
         buf.write(enc_string)
-    
+
         rw_header = RWHeader(
             type=RWSectionType.rwID_STRING.value,
             size=len(buf.getvalue()),

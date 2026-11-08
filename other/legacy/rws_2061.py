@@ -1,9 +1,10 @@
-from madformats.lib.parser import Parser
-from enum import Enum
 import tkinter as tk
-from tkinter import ttk
 import wave
-import madformats.lib.ima_adpcm as ima_adpcm
+from enum import Enum
+from tkinter import ttk
+
+from madformats.lib import ima_adpcm
+from madformats.lib.parser import Parser
 
 
 class CodecUUID(Enum):

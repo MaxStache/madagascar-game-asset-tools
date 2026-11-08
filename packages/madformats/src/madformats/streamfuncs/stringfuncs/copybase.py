@@ -3,14 +3,14 @@ from dataclasses import dataclass, field
 from typing import Any, BinaryIO, override
 
 from madformats.lib.parser import Parser
-from madformats.lib.writer import write_u32  # pyright: ignore[reportUnusedImport] # noqa: F401
-from madformats.lib.rwConstants import MAKECHUNKID, RwVendor, strfunc_func
 from madformats.lib.rw_basics import RW_StreamFunc, RWHeader, expect_chunk_type_or_raise
+from madformats.lib.rwConstants import MAKECHUNKID, RwVendor, strfunc_func
+from madformats.lib.writer import write_u32  # pyright: ignore[reportUnusedImport] # noqa: F401
+
 
 @dataclass
 class RW_sf_NameHere(RW_StreamFunc):
     header: RWHeader = field(default_factory=RWHeader)
-    
 
     @classmethod
     @override
@@ -19,7 +19,9 @@ class RW_sf_NameHere(RW_StreamFunc):
         sf_NameHere.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             sf_NameHere.header,
-            MAKECHUNKID(RwVendor.CRITERIONRM, strfunc_func.sf_Reserved1.value), # TODO: REPLACE!
+            MAKECHUNKID(
+                RwVendor.CRITERIONRM, strfunc_func.sf_Reserved1.value
+            ),  # TODO: REPLACE!
             "RW_sf_NameHere chunk type",
         )
 
@@ -32,7 +34,9 @@ class RW_sf_NameHere(RW_StreamFunc):
         # Writing here
 
         rw_header = RWHeader(
-            type=MAKECHUNKID(RwVendor.CRITERIONRM, strfunc_func.sf_Reserved1.value), # TODO: REPLACE!
+            type=MAKECHUNKID(
+                RwVendor.CRITERIONRM, strfunc_func.sf_Reserved1.value
+            ),  # TODO: REPLACE!
             size=len(buf.getvalue()),
             library_id_stamp=stamp,
         )

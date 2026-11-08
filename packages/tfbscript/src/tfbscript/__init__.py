@@ -1,15 +1,15 @@
 """Parser and decompiler for TFB script (.ai) files."""
 
+from typing import TYPE_CHECKING
+
 from tfbscript.payload import PayloadReader
 from tfbscript.reference import Reference
 from tfbscript.rhs import Rhs
 from tfbscript.script import ScriptFile
 from tfbscript.string_table import StringTable, StringTableEntry
 
-from typing import TYPE_CHECKING
-
 if TYPE_CHECKING:
-    from tfbscript.editor import open_editor, editor_from_filepath
+    from tfbscript.editor import editor_from_filepath, open_editor
 
 
 def __getattr__(name: str):
@@ -29,6 +29,6 @@ __all__ = [
     "ScriptFile",
     "StringTable",
     "StringTableEntry",
+    "editor_from_filepath",
     "open_editor",
-    "editor_from_filepath"
 ]

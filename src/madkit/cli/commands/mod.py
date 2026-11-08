@@ -1,3 +1,4 @@
+import hashlib
 import io
 import json
 import shutil
@@ -5,16 +6,14 @@ import time
 import tomllib
 from collections.abc import Callable, Hashable, Iterable
 from pathlib import Path
-import hashlib
 
 import cyclopts
-from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import DEFAULT_VERSION_STAMP
-from madformats.lib.rw_basics import RW_Matrix4x4, RW_StreamFunc
+from colorama import Fore
+from colorama import init as colorama_init
 
-from ..cli import app
-from ..settings import load_settings
-from ..utils import ValidatedExistingFile
+from madformats.lib.parser import Parser
+from madformats.lib.rw_basics import RW_StreamFunc, RwMatrix
+from madformats.lib.rwConstants import DEFAULT_VERSION_STAMP
 from madformats.mod import collect
 from madformats.stream import RW_StreamFile, load_stream
 from madformats.streamfuncs.stringfuncs.sf_CreateEntity import (
@@ -24,8 +23,10 @@ from madformats.streamfuncs.stringfuncs.sf_CreateEntity import (
 from madformats.streamfuncs.stringfuncs.sf_LoadEmbeddedAsset import (
     RW_sf_LoadEmbeddedAsset,
 )
-from colorama import init as colorama_init
-from colorama import Fore
+
+from ..cli import app
+from ..settings import load_settings
+from ..utils import ValidatedExistingFile
 
 MODS_DIR = Path("mods")
 
@@ -72,6 +73,7 @@ def init(name: str, level: str = "kingofny"):
         Mod name, becomes the folder mods/NAME.
     level : str
         Level the template's first @level function edits.
+
     """
     mod_dir = MODS_DIR / name
     if mod_dir.exists():
@@ -125,7 +127,7 @@ def _build(name: str, verbose: bool = False) -> list[Path]:
         print(f"[MOD] wrote {out_file}")
 
         BUILD_OUTPUTS.append(
-            (f"{level_name}.stream", hashlib.sha256(strmBytes).hexdigest())
+            (f"{level_name}.stream", hashlib.sha256(strmBytes).hexdigest()),
         )
 
     with open(out_dir / "build.json", "w") as f:
@@ -137,7 +139,7 @@ def _build(name: str, verbose: bool = False) -> list[Path]:
                         "sha265": b[1],
                     }
                     for b in BUILD_OUTPUTS
-                ]
+                ],
             },
             f,
             indent=4,
@@ -145,7 +147,7 @@ def _build(name: str, verbose: bool = False) -> list[Path]:
 
     print(
         Fore.LIGHTCYAN_EX
-        + f"[MOD] built {mod_name} (took: {time.perf_counter() - start:.2f}s)"
+        + f"[MOD] built {mod_name} (took: {time.perf_counter() - start:.2f}s)",
     )
     return written
 
@@ -158,6 +160,7 @@ def build(name: str, verbose: bool = False):
     ----------
     name : str
         Mod name (folder in mods/).
+
     """
     _build(name, verbose)
 
@@ -172,6 +175,7 @@ def install(name: str, game_dir: Path | None = None):
         Mod name (folder in mods/).
     game_dir : Path
         Game install folder (the one containing Levels/). Defaults to game_dir in settings.toml.
+
     """
     if game_dir is None:
         game_dir = load_settings().game_dir
@@ -207,23 +211,23 @@ def _keyed[T](items: Iterable[T], key: Callable[[T], Hashable]) -> dict[Key, T]:
     return out
 
 
-def _fmt_matrix(m: RW_Matrix4x4) -> str:
-    rows = (m.row1, m.row2, m.row3)
+def _fmt_matrix(m: RwMatrix) -> str:
+    rows = (m.right, m.up, m.at)
     rot = " | ".join(f"{r.x:.3g} {r.y:.3g} {r.z:.3g}" for r in rows)
-    return f"pos=({m.row4.x:.3f}, {m.row4.y:.3f}, {m.row4.z:.3f}) rot=[{rot}]"
+    return f"pos=({m.pos.x:.3f}, {m.pos.y:.3f}, {m.pos.z:.3f}) rot=[{rot}]"
 
 
 def _fmt_attr(class_name: str, attr: RW_sf_CreateEntity_Attribute) -> str:
     data = attr.data
 
     if class_name == "CSystemCommands" and attr.command == 0x01 and len(data) >= 64:
-        return _fmt_matrix(RW_Matrix4x4.read(Parser(data)))
+        return _fmt_matrix(RwMatrix.read(Parser(data)))
 
     if len(data) >= 42 and data[4:5] == b"{":
         try:
             ref = attr.asTfbRef()
             return f"ref {ref.guid}" + (f" {ref.name!r}" if ref.name else "")
-        except Exception:
+        except Exception:  # noqa: BLE001, S110
             pass
 
     text = data.replace(b"\xbf", b"").rstrip(b"\x00")
@@ -265,7 +269,7 @@ def _diff_entities(a: RW_StreamFile, b: RW_StreamFile) -> list[Change]:
         header = Fore.LIGHTYELLOW_EX + f"~ entity {_entity_label(eb)}"
         if ea.behaviour != eb.behaviour:
             changes.append(
-                (header, f"    behaviour: {ea.behaviour!r} -> {eb.behaviour!r}")
+                (header, f"    behaviour: {ea.behaviour!r} -> {eb.behaviour!r}"),
             )
         if ea.isGlobal != eb.isGlobal:
             changes.append((header, f"    isGlobal: {ea.isGlobal} -> {eb.isGlobal}"))
@@ -277,15 +281,15 @@ def _diff_entities(a: RW_StreamFile, b: RW_StreamFile) -> list[Change]:
             old, new = attrs_a.get(akey), attrs_b.get(akey)
             if old is not None and new is None:
                 changes.append(
-                    (header, Fore.LIGHTRED_EX + f"    - {where}: {_fmt_attr(*old)}")
+                    (header, Fore.LIGHTRED_EX + f"    - {where}: {_fmt_attr(*old)}"),
                 )
             elif old is None and new is not None:
                 changes.append(
-                    (header, Fore.LIGHTGREEN_EX + f"    + {where}: {_fmt_attr(*new)}")
+                    (header, Fore.LIGHTGREEN_EX + f"    + {where}: {_fmt_attr(*new)}"),
                 )
             elif old is not None and new is not None and old[1].data != new[1].data:
                 changes.append(
-                    (header, f"    ~ {where}: {_fmt_attr(*old)} -> {_fmt_attr(*new)}")
+                    (header, f"    ~ {where}: {_fmt_attr(*old)} -> {_fmt_attr(*new)}"),
                 )
 
     for key, eb in ents_b.items():
@@ -316,7 +320,7 @@ def _diff_assets(a: RW_StreamFile, b: RW_StreamFile) -> list[Change]:
                 changes.append((header, f"    {field_name}: {old!r} -> {new!r}"))
         if xa.data != xb.data:
             changes.append(
-                (header, f"    data: {len(xa.data)} -> {len(xb.data)} bytes")
+                (header, f"    data: {len(xa.data)} -> {len(xb.data)} bytes"),
             )
 
     for key, xb in assets_b.items():
@@ -337,7 +341,8 @@ def _diff_other(a: RW_StreamFile, b: RW_StreamFile) -> list[Change]:
             if not isinstance(sf, (RW_sf_CreateEntity, RW_sf_LoadEmbeddedAsset))
         )
         return _keyed(
-            funcs, lambda sf: sf.streamfunc.name if sf.streamfunc else type(sf).__name__
+            funcs,
+            lambda sf: sf.streamfunc.name if sf.streamfunc else type(sf).__name__,
         )
 
     def raw(sf: RW_StreamFunc) -> bytes:
@@ -362,7 +367,7 @@ def _diff_other(a: RW_StreamFile, b: RW_StreamFile) -> list[Change]:
                         None,
                         Fore.LIGHTYELLOW_EX
                         + f"~ {name} #{n}: {len(ra)} -> {len(rb)} bytes",
-                    )
+                    ),
                 )
 
     return changes
@@ -380,6 +385,7 @@ def diff(a: ValidatedExistingFile, b: ValidatedExistingFile, max_changes: int = 
         Modified .stream file.
     max_changes : int
         Stop printing after this many changes, 0 shows all.
+
     """
     strm_a, strm_b = load_stream(a), load_stream(b)
     changes = (
@@ -401,7 +407,7 @@ def diff(a: ValidatedExistingFile, b: ValidatedExistingFile, max_changes: int = 
     elif len(shown) < len(changes):
         print(
             Fore.LIGHTCYAN_EX
-            + f"[DIFF] {len(changes)} changes, {len(changes) - len(shown)} not shown (raise --max-changes)"
+            + f"[DIFF] {len(changes)} changes, {len(changes) - len(shown)} not shown (raise --max-changes)",
         )
     else:
         print(Fore.LIGHTCYAN_EX + f"[DIFF] {len(changes)} changes")

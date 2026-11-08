@@ -4,7 +4,6 @@ import io
 from pathlib import Path
 
 from fontTools.ttLib import TTFont
-
 from PySide6.QtGui import QFont, QFontDatabase
 
 
@@ -15,8 +14,7 @@ def load_font(
     italic: bool = False,
     aliased: bool = True,
 ) -> QFont:
-    """
-    Load a custom font from file, rendered GDI-style (grid-fitted, no AA).
+    """Load a custom font from file, rendered GDI-style (grid-fitted, no AA).
 
     Args:
         path: Path to the font file (.ttf, .otf, etc.), or a Qt resource path
@@ -30,6 +28,7 @@ def load_font(
 
     Raises:
         ValueError: if the font file could not be loaded.
+
     """
     font_id = QFontDatabase.addApplicationFont(str(path))
 
@@ -49,8 +48,8 @@ def load_font(
         # Hard pixel edges + snap stems to the pixel grid == comctl32 look
         font.setStyleStrategy(
             QFont.StyleStrategy(
-                QFont.StyleStrategy.NoAntialias | QFont.StyleStrategy.PreferMatch
-            )
+                QFont.StyleStrategy.NoAntialias | QFont.StyleStrategy.PreferMatch,
+            ),
         )
         font.setHintingPreference(QFont.HintingPreference.PreferFullHinting)
     else:
@@ -62,8 +61,7 @@ def load_font(
 
 
 def register_bold_variant(regular_family: str, bold_path: str | Path) -> None:
-    """
-    Load `bold_path` as the Bold weight of `regular_family`.
+    """Load `bold_path` as the Bold weight of `regular_family`.
 
     The bold TTF's own name/OS2 tables declare it as an unrelated Regular-weight
     family (e.g. "MS Sans Serif Bold" @ weight 400), so Qt registers it as a

@@ -5,6 +5,7 @@ from typing import BinaryIO, override
 from madformats.lib.parser import Parser
 from madformats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
 
+
 @dataclass
 class RpTFBUVAnimation:
     uScrollRate: float = field(default=0.0)
@@ -36,7 +37,7 @@ class RpTFBUVAnimation:
         anim.vPhase = parser.readFloat()
 
         return anim
-        
+
 
 @dataclass
 class RpTFBMaterialFlags:
@@ -97,12 +98,14 @@ class RW_TFB_TFBMaterial(RW_Section):
     hasColourCurve: bool = field(default=False)
     hasAlphaCurve: bool = field(default=False)
 
-    unknown_2D8: int = field(default=0) # Seen: 0,1,2
+    unknown_2D8: int = field(default=0)  # Seen: 0,1,2
 
     @classmethod
     @override
     def read(
-        cls, parser: Parser, parent: RW_Section | None = None
+        cls,
+        parser: Parser,
+        parent: RW_Section | None = None,
     ) -> "RW_TFB_TFBMaterial":
         tfbmat = cls()
         tfbmat.header = RWHeader.read(parser)

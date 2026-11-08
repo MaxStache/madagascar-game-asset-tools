@@ -57,7 +57,7 @@ class PlayerPosition:
         raise RuntimeError(
             f"Could not resolve base address for {module_name!r} "
             f"(pid={self.process.pid}). "
-            f"Modules visible: {found or '<none - permission or bitness mismatch?>'}"
+            f"Modules visible: {found or '<none - permission or bitness mismatch?>'}",
         )
 
     def _read_pointer(self, address) -> int:
@@ -141,7 +141,12 @@ class PlayerPosition:
     def position(self, value):
         self.set_position(*value)
 
-    def set_position(self, x=None, y=None, z=None):
+    def set_position(
+        self,
+        x: float | None = None,
+        y: float | None = None,
+        z: float | None = None,
+    ) -> None:
         addr = self.address
 
         for offset, value in (

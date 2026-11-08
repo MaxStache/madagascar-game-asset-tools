@@ -56,7 +56,9 @@ class _Field:
 
     @overload
     def __get__(
-        self, instance: "ActorParamBlock", owner: type | None = None
+        self,
+        instance: "ActorParamBlock",
+        owner: type | None = None,
     ) -> Any: ...
 
     def __get__(self, instance: "ActorParamBlock | None", owner: type | None = None):
@@ -69,7 +71,7 @@ class _Field:
             raise AttributeError(
                 f"{type(instance).__name__}.{self.name} is read-only "
                 "(the engine never reads it back, changing it only risks "
-                "breaking the record)"
+                "breaking the record)",
             )
         instance.writeValue(self.offset, self._fmt, self._coerce(value))
 
@@ -104,7 +106,9 @@ class _FlagField(_Field):
 
     @overload
     def __get__(
-        self, instance: "ActorParamBlock", owner: type | None = None
+        self,
+        instance: "ActorParamBlock",
+        owner: type | None = None,
     ) -> bool: ...
 
     @override
@@ -131,7 +135,7 @@ class ActorParamBlock:
     record wherever it is embedded.
     """
 
-    __slots__ = ("_base", "_command", "_className", "_owner")
+    __slots__ = ("_base", "_className", "_command", "_owner")
 
     SIZE: ClassVar[int] = 0
 
@@ -164,7 +168,7 @@ class ActorParamBlock:
         if at + struct.calcsize(fmt) > len(blob):
             raise ValueError(
                 f"{self._className} attribute {self._command} is only "
-                f"{len(blob)} bytes, too short to hold offset 0x{at:x}"
+                f"{len(blob)} bytes, too short to hold offset 0x{at:x}",
             )
         return struct.unpack_from(fmt, blob, at)[0]
 
@@ -175,7 +179,7 @@ class ActorParamBlock:
         if at + struct.calcsize(fmt) > len(attr.data):
             raise ValueError(
                 f"{self._className} attribute {self._command} is only "
-                f"{len(attr.data)} bytes, too short to hold offset 0x{at:x}"
+                f"{len(attr.data)} bytes, too short to hold offset 0x{at:x}",
             )
         data = bytearray(attr.data)
         struct.pack_into(fmt, data, at, value)
@@ -230,16 +234,19 @@ class CProtoActorParams(ActorParamBlock):
     version = _UIntField(0x00, "Record format version -- 2 everywhere.", readOnly=True)
     flags = _UIntField(0x04, "Raw flags bitmask; see the bool fields below.")
     activationRange = _FloatField(
-        0x08, "Distance at which the actor wakes up and starts ticking. 0 = always on."
+        0x08,
+        "Distance at which the actor wakes up and starts ticking. 0 = always on.",
     )
     deactivationRange = _FloatField(
-        0x0C, "Distance at which it sleeps again. 9999/10000 = never deactivate."
+        0x0C,
+        "Distance at which it sleeps again. 9999/10000 = never deactivate.",
     )
     coneColor = _UIntField(0x10, "Palette index (0/3/4/8) for the debug vision cone.")
     unknown0x14 = _UIntField(0x14, "1 on 5727/5730 actors. No reader found.")
     blipColor = _UIntField(0x18, "Palette index (0/2) for the radar dot.")
     activationRangeFadePercent = _UIntField(
-        0x1C, "Fade-in fraction of the activation range. 0 in all shipped data."
+        0x1C,
+        "Fade-in fraction of the activation range. 0 in all shipped data.",
     )
 
     solidCollision = _FlagField(0x04, 0, "Actor blocks other actors.")
@@ -248,21 +255,31 @@ class CProtoActorParams(ActorParamBlock):
     noShadow = _FlagField(0x04, 3, "Shadow renderer skips this actor.")
     visibleOnRadar = _FlagField(0x04, 4, "Drawn on the radar using blipColor.")
     cutSceneIgnore = _FlagField(
-        0x04, 5, "Excluded from normal cut-scene processing outside game mode 3."
+        0x04,
+        5,
+        "Excluded from normal cut-scene processing outside game mode 3.",
     )
     ignoresGroundColor = _FlagField(
-        0x04, 6, "Skips ground-tint lighting. Never set in shipped data."
+        0x04,
+        6,
+        "Skips ground-tint lighting. Never set in shipped data.",
     )
     tiltsWithGround = _FlagField(0x04, 7, "Pitches/rolls to match the ground normal.")
     meshCollider = _FlagField(
-        0x04, 8, "Collide against the mesh instead of the box (needs actor+0x2c8)."
+        0x04,
+        8,
+        "Collide against the mesh instead of the box (needs actor+0x2c8).",
     )
     trianglesCollide = _FlagField(
-        0x04, 9, "Per-triangle collision (needs actor+0x2c8)."
+        0x04,
+        9,
+        "Per-triangle collision (needs actor+0x2c8).",
     )
     unknownBit10 = _FlagField(0x04, 10, "Set on 16 actors; no accessor, no reader.")
     rwClumpFlag0x1000 = _FlagField(
-        0x04, 11, "Model-instance ctor applies RW clump flag 0x1000 when set."
+        0x04,
+        11,
+        "Model-instance ctor applies RW clump flag 0x1000 when set.",
     )
 
 
@@ -289,7 +306,8 @@ class SharedActorParams(ActorParamBlock):
 
     # --- jumping / gravity -------------------------------------------------
     jumpCoastFrames = _UIntField(
-        0x04, "Frames the jump floats after takeoff before gravity takes over."
+        0x04,
+        "Frames the jump floats after takeoff before gravity takes over.",
     )
     jumpDelay = _UIntField(0x08, "Windup frames between the jump input and takeoff.")
     initialJumpVelocity = _FloatField(0x2C, "Launch speed applied at takeoff.")
@@ -307,10 +325,12 @@ class SharedActorParams(ActorParamBlock):
 
     # --- ground movement ---------------------------------------------------
     groundTopSpeed = _FloatField(
-        0x14, "Max ground speed, and the upper edge of the fast-move anim band."
+        0x14,
+        "Max ground speed, and the upper edge of the fast-move anim band.",
     )
     groundTurnRate = _FloatField(
-        0x18, "Max ground turn rate, deg/s; also drives the lean anims."
+        0x18,
+        "Max ground turn rate, deg/s; also drives the lean anims.",
     )
     groundAcceleration = _FloatField(0x48, "How fast it reaches groundTopSpeed.")
     groundDeceleration = _FloatField(0x4C, "How fast it stops on the ground.")
@@ -334,19 +354,24 @@ class SharedActorParams(ActorParamBlock):
     xOffset = _FloatField(0x68, "Box centre offset.")
     yOffset = _FloatField(0x6C, "Box centre offset.")
     zOffset = _FloatField(
-        0x70, "Vertical box offset -- usually hExtent/2, so the base sits on the origin."
+        0x70,
+        "Vertical box offset -- usually hExtent/2, so the base sits on the origin.",
     )
 
     # --- locomotion animation rate bands -----------------------------------
     # FUN_004235b0 picks a band from ground speed, then lerps min->max
     # across it and divides by 100 to get the clip playback rate.
     slowestToSlowSpeed = _FloatField(
-        0x78, "Speed at which slowest-move gives way to slow-move."
+        0x78,
+        "Speed at which slowest-move gives way to slow-move.",
     )
     slowToFastSpeed = _FloatField(
-        0x7C, "Speed at which slow-move gives way to fast-move."
+        0x7C,
+        "Speed at which slow-move gives way to fast-move.",
     )
-    slowestMoveRateMin = _IntField(0x80, "Slowest-move playback rate x100, band bottom.")
+    slowestMoveRateMin = _IntField(
+        0x80, "Slowest-move playback rate x100, band bottom."
+    )
     slowestMoveRateMax = _IntField(0x84, "Slowest-move playback rate x100, band top.")
     slowMoveRateMin = _IntField(0x88, "Slow-move playback rate x100, band bottom.")
     slowMoveRateMax = _IntField(0x8C, "Slow-move playback rate x100, band top.")
@@ -354,9 +379,15 @@ class SharedActorParams(ActorParamBlock):
     fastMoveRateMax = _IntField(0x94, "Fast-move playback rate x100, band top.")
 
     # --- dead editor defaults ---------------------------------------------
-    unused50 = _FloatField(0xB0, "50 on every actor and model. No reader.", readOnly=True)
-    unused100 = _FloatField(0xB4, "100 on every actor and model. No reader.", readOnly=True)
-    unused150 = _FloatField(0xB8, "150 on every actor and model. No reader.", readOnly=True)
+    unused50 = _FloatField(
+        0xB0, "50 on every actor and model. No reader.", readOnly=True
+    )
+    unused100 = _FloatField(
+        0xB4, "100 on every actor and model. No reader.", readOnly=True
+    )
+    unused150 = _FloatField(
+        0xB8, "150 on every actor and model. No reader.", readOnly=True
+    )
 
     def checkAlignment(self) -> bool:
         """True if the dead 50/100/150 triple is where it should be.

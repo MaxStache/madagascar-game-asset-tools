@@ -34,7 +34,7 @@ class OpCreateVariable(Opcode):
                     "type": "ref",
                     "ref": self.variable,
                 },
-            ]
+            ],
         }
 
     @override

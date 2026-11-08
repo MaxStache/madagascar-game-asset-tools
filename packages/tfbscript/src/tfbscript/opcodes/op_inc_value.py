@@ -35,7 +35,7 @@ class OpIncValue(Opcode):
                     "name": "lhs",
                     "ref": self.lhs,
                 },
-            ]
+            ],
         }
 
     @override

@@ -8,9 +8,9 @@ from typing import override
 
 from madformats.lib import ima_adpcm
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
-
+from madformats.lib.rwConstants import RWSectionType
+from madformats.sections.RWA.WAVEDATA_0804 import RWA_WaveData
 from madformats.sections.RWA.WAVESTRUCT_0803 import (
     FLAG_HAS_AUX,
     FLAG_HAS_CODEC,
@@ -20,7 +20,6 @@ from madformats.sections.RWA.WAVESTRUCT_0803 import (
     RWA_WaveFormat,
     RWA_WaveStruct,
 )
-from madformats.sections.RWA.WAVEDATA_0804 import RWA_WaveData
 
 # ---------------------------------------------------------------------------
 # Template values for waves built from scratch (`RWA_Wave.from_wav`).
@@ -31,7 +30,9 @@ from madformats.sections.RWA.WAVEDATA_0804 import RWA_WaveData
 # identifier GUID and sample data.
 # ---------------------------------------------------------------------------
 
-_RETAIL_FLAGS = FLAG_HAS_IDENTIFIER | FLAG_HAS_NAME | FLAG_HAS_CODEC | FLAG_HAS_AUX  # 0xF
+_RETAIL_FLAGS = (
+    FLAG_HAS_IDENTIFIER | FLAG_HAS_NAME | FLAG_HAS_CODEC | FLAG_HAS_AUX
+)  # 0xF
 
 # Runtime pointer on disk; the loader only tests it for != 0, and a nonzero value
 # is what makes the codec GUID get written at all. Retail value kept verbatim.
@@ -92,7 +93,10 @@ class RWA_Wave(RW_Section):
         leaving genuinely compressed waves alone.
         """
         actual = len(self.wave_data.data)
-        tracked = self.wave_struct.dest_format.data_size == self.wave_struct.source_format.data_size
+        tracked = (
+            self.wave_struct.dest_format.data_size
+            == self.wave_struct.source_format.data_size
+        )
 
         self.wave_struct.source_format.data_size = actual
         if tracked:
@@ -143,6 +147,7 @@ class RWA_Wave(RW_Section):
 
         Raises:
             NotImplementedError: The wave uses a codec with no decoder here.
+
         """
         codec = self.wave_struct.codec
         data = self.wave_data.data
@@ -153,16 +158,20 @@ class RWA_Wave(RW_Section):
         if codec is CodecUUID.XBOXIMA:
             channels = max(1, self.wave_struct.source_format.channels)
             return ima_adpcm.decode(
-                data, channels, _XBOX_IMA_CHANNEL_BLOCK * channels
+                data,
+                channels,
+                _XBOX_IMA_CHANNEL_BLOCK * channels,
             )
 
         label = codec.name if codec else str(self.wave_struct.codec_uuid)
         raise NotImplementedError(
-            f"No decoder for codec {label}; cannot export {self.name!r} to WAV."
+            f"No decoder for codec {label}; cannot export {self.name!r} to WAV.",
         )
 
     def export_wav(
-        self, filepath: str | Path, big_endian: bool = False
+        self,
+        filepath: str | Path,
+        big_endian: bool = False,
     ) -> None:
         """Write this wave out as a .wav file.
 
@@ -172,6 +181,7 @@ class RWA_Wave(RW_Section):
         Args:
             filepath: Destination .wav path.
             big_endian: The sample data is stored big-endian (GCN/Wii).
+
         """
         pcm = self.to_pcm16(big_endian=big_endian)
         fmt = self.wave_struct.dest_format
@@ -183,7 +193,9 @@ class RWA_Wave(RW_Section):
             out.writeframes(pcm)
 
     def import_wav(
-        self, filepath: str | Path, big_endian: bool = False
+        self,
+        filepath: str | Path,
+        big_endian: bool = False,
     ) -> None:
         """Replace this wave's sample data with the contents of a .wav file.
 
@@ -199,6 +211,7 @@ class RWA_Wave(RW_Section):
 
         Raises:
             ValueError: The .wav is not 16-bit PCM.
+
         """
         pcm, sample_rate, channels = _read_wav_pcm16(filepath)
 
@@ -212,8 +225,8 @@ class RWA_Wave(RW_Section):
             fmt.channels = channels
             fmt.bit_depth = 16
             fmt.codec_uuid = CodecUUID.PCM16.value
-            if fmt._format_ref == 0:
-                fmt._format_ref = _RETAIL_FORMAT_REF
+            if fmt.format_ref == 0:
+                fmt.format_ref = _RETAIL_FORMAT_REF
 
         # Keeps the declared sizes in step with the new buffer.
         self.sync_sizes()
@@ -241,6 +254,7 @@ class RWA_Wave(RW_Section):
         Returns:
             A new RWA_Wave. Append it to `dict.wave.streams`; the subsong count
             is re-derived on write.
+
         """
         pcm, sample_rate, channels = _read_wav_pcm16(filepath)
 
@@ -250,7 +264,7 @@ class RWA_Wave(RW_Section):
         def _make_format(tail: bytes, pad0: int) -> RWA_WaveFormat:
             return RWA_WaveFormat(
                 sample_rate=sample_rate,
-                _format_ref=_RETAIL_FORMAT_REF,
+                format_ref=_RETAIL_FORMAT_REF,
                 data_size=len(pcm),
                 bit_depth=16,
                 channels=channels,
@@ -288,7 +302,7 @@ def _read_wav_pcm16(filepath: str | Path) -> tuple[bytes, int, int]:
         if width != 2:
             raise ValueError(
                 f"{filepath}: expected 16-bit PCM, got {width * 8}-bit. "
-                "Convert the file first; there is no encoder here."
+                "Convert the file first; there is no encoder here.",
             )
         channels = src.getnchannels()
         sample_rate = src.getframerate()

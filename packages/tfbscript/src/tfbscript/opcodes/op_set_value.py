@@ -43,7 +43,7 @@ class OpSetValue(Opcode):
                     "type": "rhs",
                     "rhs": self.rhs,
                 },
-            ]
+            ],
         }
 
     @override

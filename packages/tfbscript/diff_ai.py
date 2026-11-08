@@ -63,7 +63,8 @@ class Node:
 
 def _safe_source_line(op: Opcode) -> str:
     """`op.source_line()`, never raising -- a script that only half-decompiles
-    should still diff on everything else."""
+    should still diff on everything else.
+    """
     try:
         return op.source_line()
     except Exception as error:  # noqa: BLE001
@@ -155,7 +156,11 @@ class Report:
         self._emit()
 
     def node_modified(
-        self, old: Node, new: Node, path: str, details: list[str]
+        self,
+        old: Node,
+        new: Node,
+        path: str,
+        details: list[str],
     ) -> None:
         self.modified += 1
         position = (
@@ -181,7 +186,8 @@ class Report:
 
 def _describe_change(old: Node, new: Node, show_bytes: bool) -> list[str]:
     """Detail lines for two instructions matched to the same slot. Empty when
-    they are equivalent."""
+    they are equivalent.
+    """
     details: list[str] = []
 
     if old.kind != new.kind or old.text != new.text:
@@ -191,15 +197,15 @@ def _describe_change(old: Node, new: Node, show_bytes: bool) -> list[str]:
         details.append(_paint(f"~ flow: {old.flow} -> {new.flow}", _YELLOW))
     if old.no_handler != new.no_handler:
         details.append(
-            _paint(f"~ no_handler: {old.no_handler} -> {new.no_handler}", _YELLOW)
+            _paint(f"~ no_handler: {old.no_handler} -> {new.no_handler}", _YELLOW),
         )
     if show_bytes and old.op.raw_payload != new.op.raw_payload:
         details.append(
             _paint(
                 f"~ payload: {old.op.raw_payload.hex() or '-'}"
-                + f" -> {new.op.raw_payload.hex() or '-'}",
+                f" -> {new.op.raw_payload.hex() or '-'}",
                 _DIM,
-            )
+            ),
         )
     return details
 
@@ -214,7 +220,10 @@ def _compare_pair(old: Node, new: Node, path: str, report: Report) -> None:
 
 
 def diff_levels(
-    old_nodes: list[Node], new_nodes: list[Node], path: str, report: Report
+    old_nodes: list[Node],
+    new_nodes: list[Node],
+    path: str,
+    report: Report,
 ) -> None:
     """Align two sibling lists and report their differences."""
     matcher = SequenceMatcher(
@@ -241,10 +250,14 @@ def diff_levels(
 
 
 def _diff_replace_block(
-    old_nodes: list[Node], new_nodes: list[Node], path: str, report: Report
+    old_nodes: list[Node],
+    new_nodes: list[Node],
+    path: str,
+    report: Report,
 ) -> None:
     """Re-align a replaced run on opcode identity alone, so an edited parameter
-    reads as one change instead of a removal plus an addition."""
+    reads as one change instead of a removal plus an addition.
+    """
     matcher = SequenceMatcher(
         a=[node.kind for node in old_nodes],
         b=[node.kind for node in new_nodes],
@@ -289,13 +302,13 @@ def diff_string_table(name: str, old: StringTable, new: StringTable) -> list[str
 
     if sorted(old_strings) == sorted(new_strings):
         lines.append(
-            _paint(f"~ {name}: same {len(old_strings)} entries, reordered", _YELLOW)
+            _paint(f"~ {name}: same {len(old_strings)} entries, reordered", _YELLOW),
         )
         for index, (old_string, new_string) in enumerate(zip(old_strings, new_strings)):
             if old_string != new_string:
                 lines.append(
                     f"    [{index}] {_paint(old_string, _RED)}"
-                    f" -> {_paint(new_string, _GREEN)}"
+                    f" -> {_paint(new_string, _GREEN)}",
                 )
         return lines
 
@@ -316,11 +329,11 @@ def diff_header(old: ScriptFile, new: ScriptFile) -> list[str]:
     lines: list[str] = []
     if old.magic_string != new.magic_string:
         lines.append(
-            _paint(f"~ magic: {old.magic_string!r} -> {new.magic_string!r}", _YELLOW)
+            _paint(f"~ magic: {old.magic_string!r} -> {new.magic_string!r}", _YELLOW),
         )
     if old.unk != new.unk:
         lines.append(
-            _paint(f"~ header bytes: {old.unk.hex()} -> {new.unk.hex()}", _YELLOW)
+            _paint(f"~ header bytes: {old.unk.hex()} -> {new.unk.hex()}", _YELLOW),
         )
 
     lines += diff_string_table("opcode table", old.opcode_table, new.opcode_table)
@@ -367,10 +380,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     color_group = parser.add_mutually_exclusive_group()
     color_group.add_argument(
-        "--no-color", action="store_true", help="disable colored output"
+        "--no-color",
+        action="store_true",
+        help="disable colored output",
     )
     color_group.add_argument(
-        "--color", action="store_true", help="force colored output even when piped"
+        "--color",
+        action="store_true",
+        help="force colored output even when piped",
     )
     args = parser.parse_args(argv)
 
@@ -411,7 +428,7 @@ def main(argv: list[str] | None = None) -> int:
         print(
             f"{report.added} instruction(s) added, "
             f"{report.removed} removed, "
-            f"{report.modified} changed."
+            f"{report.modified} changed.",
         )
     elif header_lines:
         print("No instruction differences.")

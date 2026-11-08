@@ -3,18 +3,21 @@ from dataclasses import dataclass, field
 from typing import override
 
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from madformats.lib.rwConstants import RWSectionType
+
 
 @dataclass
 class RW_Rockstar_Frame(RW_Section):
     header: RWHeader = field(default_factory=RWHeader)
-    
+
     name: str = field(default="")
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_Rockstar_Frame":
+    def read(
+        cls, parser: Parser, parent: RW_Section | None = None
+    ) -> "RW_Rockstar_Frame":
         frame = cls()
         frame.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(

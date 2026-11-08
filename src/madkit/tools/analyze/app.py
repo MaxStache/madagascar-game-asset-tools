@@ -1,32 +1,33 @@
 """Tkinter GUI that renders a RenderWare file as a browsable chunk tree."""
 
+import ctypes as ct
 import importlib
 import inspect
+import logging
 import sys
 import time
 import tkinter as tk
-import traceback
 from pathlib import Path
 from tkinter import ttk
 
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-from madformats import sections
-import madformats.lib.rw_basics as rw_basics
 import madformats.lib.rwConstants as rw_constants
-import madformats.lib.parser as parser
+from madformats import sections
+from madformats.lib import parser, rw_basics
 
 from .formatting import hexdump, pretty_object
 from .rwtree import read_recursive
 from .syntax import configure_tags, highlight
 from .theme import COLORS, configure_style, make_icons
 
-import ctypes as ct
+logger = logging.getLogger(__name__)
 
 RWHeader = rw_basics.RWHeader
 RWSectionType = rw_constants.RWSectionType
 Parser = parser.Parser
+
 
 def set_dark_titlebar(window):
     if sys.platform != "win32":
@@ -43,8 +44,8 @@ def set_dark_titlebar(window):
     rendering_policy = DWMWA_USE_IMMERSIVE_DARK_MODE
     value = 2
     value = ct.c_int(value)
-    set_window_attribute(hwnd, rendering_policy, ct.byref(value),
-                         ct.sizeof(value))
+    set_window_attribute(hwnd, rendering_policy, ct.byref(value), ct.sizeof(value))
+
 
 def run(file_path):
     """Open ``file_path`` and launch the analyzer window."""
@@ -59,7 +60,6 @@ def run(file_path):
     root.title("RW Tree")
     root.geometry("900x500")
     root.configure(bg=COLORS["bg"])
-
 
     # --- ttk dark theme ---
     configure_style(root)
@@ -121,8 +121,8 @@ def run(file_path):
             importlib.reload(sys.modules["formats.lib.rwConstants"])
             importlib.reload(sys.modules["formats.lib.parser"])
 
-        except Exception as e:
-            print(f"\033[31;1;4mFailed to reload sections: {e}\033[0m")
+        except Exception:
+            logger.exception("\033[31;1;4mFailed to reload sections\033[0m")
             return
 
         # Reloaded parsers may produce different results; drop cached parses.
@@ -186,7 +186,9 @@ def run(file_path):
         highlightthickness=0,
     )
     hexview.configure(
-        bg=COLORS["panel_bg"], fg=COLORS["fg"], insertbackground=COLORS["fg"]
+        bg=COLORS["panel_bg"],
+        fg=COLORS["fg"],
+        insertbackground=COLORS["fg"],
     )
 
     hvsb = ttk.Scrollbar(hex_frame, orient="vertical", command=hexview.yview)
@@ -245,7 +247,7 @@ def run(file_path):
 
         if not section:
             raise ValueError(
-                f"No section parser registered for type {header.type} (0x{header.type:X})"
+                f"No section parser registered for type {header.type} (0x{header.type:X})",
             )
         # Skip past any Extension parent to the chunk it is attached to, so a
         # section sees its real parent (e.g. a Geometry) rather than the Extension.
@@ -260,9 +262,9 @@ def run(file_path):
             parent_section, parent_read_end = (
                 read_section(parent_iid) if parent_iid else (None, None)
             )
-        except Exception as e:
+        except Exception:
             print("###### FOLLOWING ERROR OCCURED DURING PARENT PARSE ######")
-            raise e
+            raise
 
         # A STRUCT (0x1) has no standalone parser — the owning section parses it
         # into `.struct`. Show that parsed struct rather than the raw fallback.
@@ -313,16 +315,10 @@ def run(file_path):
         try:
             abc, end_offset = read_section(iid)
         except Exception as e:
-            tb = traceback.extract_tb(e.__traceback__)
-
-            print("\nTRACEBACK:")
-            for i, t in enumerate(tb):
-                print(f"    {i}: {t.filename}:{t.lineno}")
-
             details_label.config(state="normal")
             details_label.delete("1.0", "end")
             details_label.insert("1.0", f"Failed to parse section: {e}")
-            print(f"\033[31;1;4mFailed to parse section: {e}\033[0m")
+            logger.exception("\033[31;1;4mFailed to parse section\033[0m")
             details_label.config(state="disabled")
             hexview.config(state="disabled")
 
@@ -330,8 +326,10 @@ def run(file_path):
         hexview.delete("1.0", "end")
 
         if iid in leaf_bytes:
-            hexdump(hexview, leaf_bytes[iid], parse_end=end_offset-12) # - 12 for the header size
-        
+            hexdump(
+                hexview, leaf_bytes[iid], parse_end=end_offset - 12
+            )  # - 12 for the header size
+
         root.title("RW Tree - preparing....")
 
         if abc is None:
@@ -401,10 +399,12 @@ def run(file_path):
             populate(tree, "", read_recursive(file_parser))
 
     reopen_btn = ttk.Button(
-        toolbar, text="⟳ Re-open", style="Toolbar.TButton", command=reopen_file
+        toolbar,
+        text="⟳ Re-open",
+        style="Toolbar.TButton",
+        command=reopen_file,
     )
     reopen_btn.pack(side="left", padx=4, pady=4)
-
 
     root.protocol("WM_DELETE_WINDOW", on_close)
     root.mainloop()

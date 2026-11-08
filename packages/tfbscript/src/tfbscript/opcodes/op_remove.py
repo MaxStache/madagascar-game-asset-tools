@@ -21,7 +21,6 @@ class OpRemove(Opcode):
     def source_line(self, inline: bool = False) -> str:
         return f"{self.target}.{method('remove')}{parentheses('()')};"
 
-
     @override
     def editor_repr(self) -> dict[str, Any]:
         return {
@@ -35,7 +34,7 @@ class OpRemove(Opcode):
                     "type": "ref",
                     "ref": self.target,
                 },
-            ]
+            ],
         }
 
     @override

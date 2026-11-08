@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Any, BinaryIO, override
 
-from tfbscript.ansi import func_call, quoted_string
 from madformats.lib.writer import write_u8
+from tfbscript.ansi import func_call, quoted_string
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.payload import PayloadReader
 from tfbscript.reference import Reference
@@ -43,7 +43,7 @@ class OpPrint(Opcode):
                     "name": "content",
                     "value": self.content,
                 },
-            ]
+            ],
         }
 
     @override

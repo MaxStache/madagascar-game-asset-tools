@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Any, BinaryIO, override
 
-from tfbscript.ansi import func_call
 from madformats.lib.writer import write_u8
+from tfbscript.ansi import func_call
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.opcodes.enums import CombineMode
 from tfbscript.payload import PayloadReader
@@ -25,7 +25,7 @@ class OpDisplace(Opcode):
     def parse_payload(cls, reader: PayloadReader) -> "OpDisplace":
         target = reader.readRef()  # the object being displaced
         combine_mode = CombineMode(
-            reader.readUint8()
+            reader.readUint8(),
         )  # TODO : May actually be a SetDirection
 
         length = reader.readRHS()
@@ -107,5 +107,5 @@ class OpDisplace(Opcode):
                     "type": "label",
                     "content": "degrees",
                 },
-            ]
+            ],
         }

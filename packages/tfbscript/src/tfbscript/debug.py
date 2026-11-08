@@ -7,8 +7,6 @@ def str_set() -> set[str]:
 
 @dataclass
 class DebugStore:
-    """
-    Stores debug information while parsing a scirpt
-    """
+    """Stores debug information while parsing a scirpt"""
 
     unresolved_ops: set[str] = field(default_factory=str_set)

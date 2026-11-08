@@ -1,13 +1,12 @@
 import io
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import override
 
 from madformats.lib.parser import Parser
-from madformats.lib.writer import write_u32, write_f32
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
-
-from enum import Enum
+from madformats.lib.rwConstants import RWSectionType
+from madformats.lib.writer import write_f32, write_u32
 
 
 class RW_UserDataPlugin_EntryType(Enum):
@@ -27,8 +26,8 @@ class RW_UserDataPlugin_Entry:
 
 @dataclass
 class RW_UserDataPlugin(RW_Section):
-    """https://gtamods.com/wiki/User_Data_PLG_(RW_Section)
-    """
+    """https://gtamods.com/wiki/User_Data_PLG_(RW_Section)"""
+
     header: RWHeader = field(default_factory=RWHeader)
 
     entry_count: int = 0
@@ -37,7 +36,9 @@ class RW_UserDataPlugin(RW_Section):
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_UserDataPlugin":
+    def read(
+        cls, parser: Parser, parent: RW_Section | None = None
+    ) -> "RW_UserDataPlugin":
         usrdataplg = cls()
         usrdataplg.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -54,11 +55,18 @@ class RW_UserDataPlugin(RW_Section):
             entry.numberOfObjects = parser.readUint32()
 
             if entry.dataType == RW_UserDataPlugin_EntryType.Integer:
-                entry.objects = [parser.readInt32() for _ in range(entry.numberOfObjects)]
+                entry.objects = [
+                    parser.readInt32() for _ in range(entry.numberOfObjects)
+                ]
             elif entry.dataType == RW_UserDataPlugin_EntryType.Float:
-                entry.objects = [parser.readFloat() for _ in range(entry.numberOfObjects)]
+                entry.objects = [
+                    parser.readFloat() for _ in range(entry.numberOfObjects)
+                ]
             elif entry.dataType == RW_UserDataPlugin_EntryType.String:
-                entry.objects = [parser.readLengthPrefixedString() for _ in range(entry.numberOfObjects)]
+                entry.objects = [
+                    parser.readLengthPrefixedString()
+                    for _ in range(entry.numberOfObjects)
+                ]
             else:
                 raise ValueError(f"Unknown data type: {entry.dataType}")
 

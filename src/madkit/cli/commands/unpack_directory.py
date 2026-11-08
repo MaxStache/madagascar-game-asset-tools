@@ -1,11 +1,12 @@
+import os
 from pathlib import Path
 
 from ..cli import app
 from ..utils import (
     ValidatedExistingDir,
 )
-from .unpack import unpack, FileNaming
-import os
+from .unpack import FileNaming, unpack
+
 
 @app.command
 def unpack_directory(
@@ -24,6 +25,7 @@ def unpack_directory(
         Whether to make the manifest more human-readable (pretty-printed).
     gzipped : bool
         Whether the stream file is gzipped or not.
+
     """
     for file in Path(stream_folder_dir).glob("*.stream"):
         output_dir = Path(stream_folder_dir, file.stem)

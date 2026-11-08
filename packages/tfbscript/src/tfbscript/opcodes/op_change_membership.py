@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Any, BinaryIO, override
 
-from tfbscript.ansi import method, parentheses
 from madformats.lib.writer import write_u8
+from tfbscript.ansi import method, parentheses
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.opcodes.enums import MembershipCombiner
 from tfbscript.payload import PayloadReader
@@ -58,5 +58,5 @@ class OpChangeMembership(Opcode):
                     "type": "ref",
                     "ref": self.ref2,
                 },
-            ]
+            ],
         }

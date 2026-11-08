@@ -3,43 +3,61 @@ from dataclasses import dataclass, field
 from typing import BinaryIO, override
 
 from madformats.lib.parser import Parser
+from madformats.lib.rw_basics import (
+    RW_UV,
+    RW_Section,
+    RW_Triangle,
+    RWColor32,
+    RWHeader,
+    RwV3d,
+    expect_chunk_type_or_raise,
+)
 from madformats.lib.rwConstants import RWSectionType
-from madformats.lib.rw_basics import RW_UV, RW_Section, RW_Triangle, RWColor32, RWHeader, Vector3, expect_chunk_type_or_raise
 from madformats.lib.writer import write_f32, write_u16, write_u32
-from madformats.sections.shared.worldflags import RpWorldFlags
 from madformats.sections.EXTENSION_0003 import RW_Extension
+from madformats.sections.shared.worldflags import RpWorldFlags
+
 
 @dataclass
 class RW_AtomicSector_Struct(RW_Section):
     header: RWHeader = field(default_factory=RWHeader)
-    
+
     matListWindowBase: int = 0  # u32
     numTriangles: int = 0  # u32
     numVertices: int = 0  # u32
 
-    boxMax: Vector3 = field(default_factory=Vector3)
-    boxMin: Vector3 = field(default_factory=Vector3)
+    boxMax: RwV3d = field(default_factory=RwV3d)
+    boxMin: RwV3d = field(default_factory=RwV3d)
 
     collSectorPresent: int = 0  # u32
     unused: int = 0  # u32 always 0 in tested files
 
-    vertices: list[Vector3] = field(default_factory=list, init=False)  # num_vertices
+    vertices: list[RwV3d] = field(default_factory=list, init=False)  # num_vertices
 
     # if not handled as collision bsp in TFB games
     colors: list[RWColor32] | None = field(
-        default_factory=list, init=False
+        default_factory=list,
+        init=False,
     )  # num_vertices
     uvs: list[RW_UV] | None = field(default_factory=list, init=False)  # num_vertices
     # endif
 
     triangles: list[RW_Triangle] = field(
-        default_factory=list, init=False
+        default_factory=list,
+        init=False,
     )  # num_triangles
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None = None, worldFlags: RpWorldFlags | None =None) -> "RW_AtomicSector_Struct":
-        assert worldFlags is not None, "worldFlags must be provided to read RW_AtomicSector_Struct"
+    def read(
+        cls,
+        parser: Parser,
+        parent: RW_Section | None = None,
+        worldFlags: RpWorldFlags | None = None,
+    ) -> "RW_AtomicSector_Struct":
+        assert worldFlags is not None, (
+            "worldFlags must be provided to read RW_AtomicSector_Struct"
+        )
         atsec_s = RW_AtomicSector_Struct()
         atsec_s.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -53,15 +71,15 @@ class RW_AtomicSector_Struct(RW_Section):
         atsec_s.numTriangles = parser.readUint32()
         atsec_s.numVertices = parser.readUint32()
 
-        atsec_s.boxMax = Vector3.read(parser)
-        atsec_s.boxMin = Vector3.read(parser)
+        atsec_s.boxMax = RwV3d.read(parser)
+        atsec_s.boxMin = RwV3d.read(parser)
 
         atsec_s.collSectorPresent = parser.readUint32()
         atsec_s.unused = parser.readUint32()
-        
+
         atsec_s.vertices = []
         for _ in range(atsec_s.numVertices):
-            atsec_s.vertices.append(Vector3.read(parser))
+            atsec_s.vertices.append(RwV3d.read(parser))
 
         atsec_s.colors = []
         atsec_s.uvs = []
@@ -77,7 +95,7 @@ class RW_AtomicSector_Struct(RW_Section):
         )
         if numUVSets > 1:
             raise NotImplementedError(
-                f"Atomic sector has {numUVSets} UV sets; only 1 is supported."
+                f"Atomic sector has {numUVSets} UV sets; only 1 is supported.",
             )
         if numUVSets:
             for _ in range(atsec_s.numVertices):
@@ -96,8 +114,8 @@ class RW_AtomicSector_Struct(RW_Section):
         if consumed != atsec_s.header.size:
             raise ValueError(
                 f"RW_AtomicSector_Struct consumed {consumed} bytes but header "
-                + f"declares {atsec_s.header.size} (numVertices={atsec_s.numVertices}, "
-                + f"numTriangles={atsec_s.numTriangles}, worldFlags=0x{worldFlags.encode():08X})"
+                f"declares {atsec_s.header.size} (numVertices={atsec_s.numVertices}, "
+                f"numTriangles={atsec_s.numTriangles}, worldFlags=0x{worldFlags.encode():08X})",
             )
 
         return atsec_s
@@ -108,7 +126,7 @@ class RW_AtomicSector_Struct(RW_Section):
         if worldFlags is None:
             raise ValueError(
                 "RW_AtomicSector_Struct.write needs the owning RW_AtomicSector as "
-                + "`parent` to resolve worldFlags"
+                "`parent` to resolve worldFlags",
             )
 
         # The counts are what the reader trusts; keep them in sync with the
@@ -136,7 +154,7 @@ class RW_AtomicSector_Struct(RW_Section):
             if len(colors) != self.numVertices:
                 raise ValueError(
                     f"rpWORLDPRELIT set but sector has {len(colors)} colors for "
-                    + f"{self.numVertices} vertices"
+                    f"{self.numVertices} vertices",
                 )
             for color in colors:
                 color.write(buf)
@@ -146,14 +164,14 @@ class RW_AtomicSector_Struct(RW_Section):
         )
         if numUVSets > 1:
             raise NotImplementedError(
-                f"Atomic sector has {numUVSets} UV sets; only 1 is supported."
+                f"Atomic sector has {numUVSets} UV sets; only 1 is supported.",
             )
         if numUVSets:
             uvs = self.uvs or []
             if len(uvs) != self.numVertices:
                 raise ValueError(
                     f"{numUVSets} UV set(s) declared but sector has {len(uvs)} UVs "
-                    + f"for {self.numVertices} vertices"
+                    f"for {self.numVertices} vertices",
                 )
             for uv in uvs:
                 write_f32(buf, uv.u)
@@ -173,10 +191,11 @@ class RW_AtomicSector_Struct(RW_Section):
         f.write(rw_header.pack())
         f.write(buf.getvalue())
 
+
 @dataclass
 class RW_AtomicSector(RW_Section):
     header: RWHeader = field(default_factory=RWHeader)
-    
+
     struct: RW_AtomicSector_Struct = field(default_factory=RW_AtomicSector_Struct)
 
     extension: RW_Extension = field(default_factory=RW_Extension)
@@ -187,7 +206,9 @@ class RW_AtomicSector(RW_Section):
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None, worldFlags: RpWorldFlags) -> "RW_AtomicSector": # pyright: ignore[reportIncompatibleMethodOverride]
+    def read(
+        cls, parser: Parser, parent: RW_Section | None, worldFlags: RpWorldFlags
+    ) -> "RW_AtomicSector":  # pyright: ignore[reportIncompatibleMethodOverride]
         atsec = cls()
         atsec.worldFlags = worldFlags
         atsec.header = RWHeader.read(parser)
@@ -197,7 +218,9 @@ class RW_AtomicSector(RW_Section):
             "RW_AtomicSector chunk type",
         )
 
-        atsec.struct = RW_AtomicSector_Struct.read(parser, parent=atsec, worldFlags=worldFlags)
+        atsec.struct = RW_AtomicSector_Struct.read(
+            parser, parent=atsec, worldFlags=worldFlags
+        )
         atsec.extension = RW_Extension.read(parser, parent=atsec)
 
         return atsec

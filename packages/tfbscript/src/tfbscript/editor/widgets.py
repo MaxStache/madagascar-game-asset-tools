@@ -4,8 +4,6 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import override
 
-from tfbscript.opcodes.base import InstructionFlags, Opcode
-
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QDialog,
@@ -21,6 +19,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from tfbscript.opcodes.base import InstructionFlags, Opcode
+
 from .search import ROW_PADDING, SearchEntry, row_text
 from .style import Win98TreeStyle, tfb_colored_box
 
@@ -34,9 +34,11 @@ def clear_layout(layout: QHBoxLayout):
         if widget is not None:
             widget.deleteLater()
 
+
 def text_to_tb(label: QWidget):
     fm = label.fontMetrics()
     label.setFixedHeight(fm.height())
+
 
 class RHSDialog(QDialog):
     def __init__(self, rhs=None, parent=None):
@@ -80,13 +82,14 @@ class RHSDialog(QDialog):
             standardButtons=(
                 QDialogButtonBox.StandardButton.Ok
                 | QDialogButtonBox.StandardButton.Cancel
-            )
+            ),
         )
 
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
 
         layout.addWidget(buttons)
+
 
 class RHSButton(QPushButton):
     doubleClicked = Signal()
@@ -102,6 +105,7 @@ class RHSButton(QPushButton):
             self.rhs = dialog.rhs
 
         super().mouseDoubleClickEvent(event)
+
 
 def opcode_row(opcode: Opcode, layout: QHBoxLayout, on_change: Callable[[], None]):
     fields = opcode.editor_repr().get("fields", [])
@@ -148,10 +152,9 @@ def opcode_row(opcode: Opcode, layout: QHBoxLayout, on_change: Callable[[], None
             button.setFlat(True)
             button.setStyleSheet(
                 "QPushButton { padding: 2px 4px; margin: 0px; border: none; background-color: #616161; color: #FFFFFF; }"
-                " QPushButton::menu-indicator { image: none; width: 0px; height: 0px; }"
+                " QPushButton::menu-indicator { image: none; width: 0px; height: 0px; }",
             )
             layout.addWidget(button)
-
 
         elif f_type == "ref":
             content = str(_field.get("ref", None))
@@ -176,14 +179,14 @@ def opcode_row(opcode: Opcode, layout: QHBoxLayout, on_change: Callable[[], None
             button.setFlat(True)
             button.setStyleSheet(
                 "QPushButton { padding: 2px 4px; margin: 0px; border: none; background-color: #616161; color: #FFFFFF; }"
-                " QPushButton::menu-indicator { image: none; width: 0px; height: 0px; }"
+                " QPushButton::menu-indicator { image: none; width: 0px; height: 0px; }",
             )
             layout.addWidget(button)
             menu = QMenu(button)
             menu.setStyleSheet(
                 "QMenu { background-color: #3c3c3c; color: #e0e0e0; border: 1px solid #555; padding: 2px; }"
                 " QMenu::item { padding: 4px 16px; }"
-                " QMenu::item:selected { background-color: #5a5a5a; color: #ffffff; }"
+                " QMenu::item:selected { background-color: #5a5a5a; color: #ffffff; }",
             )
 
             def select_entry(entry: object, attr_name: str | None = attr_name) -> None:
@@ -194,13 +197,14 @@ def opcode_row(opcode: Opcode, layout: QHBoxLayout, on_change: Callable[[], None
             for entry in selected.__class__:
                 action = menu.addAction(str(entry))
                 action.triggered.connect(
-                    lambda checked=False, entry=entry: select_entry(entry)
+                    lambda checked=False, entry=entry: select_entry(entry),
                 )
 
             button.setMenu(menu)
 
         else:
             raise NotImplementedError(f"Unsupported field type: {f_type}")
+
 
 @dataclass
 class FlowControlOpcode(Opcode):
@@ -212,8 +216,10 @@ class FlowControlOpcode(Opcode):
         return {
             "fields": [
                 {"type": "label", "content": "flow"},
-                {"type": "label", "content": self.op_flags.flow_control_str()} if self.parent_op_idx == 0xFF else {"type": "flow", "value": self.op_flags.flow_control_str()},
-            ]
+                {"type": "label", "content": self.op_flags.flow_control_str()}
+                if self.parent_op_idx == 0xFF
+                else {"type": "flow", "value": self.op_flags.flow_control_str()},
+            ],
         }
 
 
@@ -221,7 +227,8 @@ class FlowControlOpcode(Opcode):
 class GroupOpcode(Opcode):
     """Pseudo-opcode heading a labelled branch of another opcode's body, e.g.
     the "true" / "else" halves of an if/else. `scope` holds the opcodes that
-    must stay open while its body renders (see ParserContext.open_opcodes)."""
+    must stay open while its body renders (see ParserContext.open_opcodes).
+    """
 
     label: str = field(default="")
     scope: list[Opcode] = field(default_factory=list)
@@ -263,7 +270,10 @@ def populate_tree(
     content = QWidget()
     layout = QHBoxLayout(content)
     layout.setContentsMargins(
-        ROW_PADDING, ROW_PADDING, ROW_PADDING, ROW_PADDING
+        ROW_PADDING,
+        ROW_PADDING,
+        ROW_PADDING,
+        ROW_PADDING,
     )
     layout.setSpacing(4)
     layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
@@ -312,7 +322,8 @@ def populate_tree(
             populate_tree(
                 item,
                 FlowControlOpcode(
-                    parent_op_idx=opcode.opcode_index, op_flags=opcode.flags
+                    parent_op_idx=opcode.opcode_index,
+                    op_flags=opcode.flags,
                 ),
                 search_index,
             )

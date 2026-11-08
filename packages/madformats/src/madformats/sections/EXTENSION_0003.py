@@ -1,16 +1,15 @@
-# noqa: N999
 import io
 from dataclasses import dataclass, field
 from typing import BinaryIO, override
 
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import (
     RW_Section,
     RW_Section_NotImplemented,
     RWHeader,
     expect_chunk_type_or_raise,
 )
+from madformats.lib.rwConstants import RWSectionType
 
 
 @dataclass
@@ -44,8 +43,8 @@ class RW_Extension(RW_Section):
             child = SECTION_REGISTRY.get(header.type, RW_Section_NotImplemented)
 
             child_parser = Parser(
-                sub_parser.readBytes(header.size + RWHeader.BYTE_SIZE)
-            ) # Seperate parser for child section to avoid offset issues if child isnt consuming full section size
+                sub_parser.readBytes(header.size + RWHeader.BYTE_SIZE),
+            )  # Seperate parser for child section to avoid offset issues if child isnt consuming full section size
 
             child_instance = child.read(child_parser, parent)
 

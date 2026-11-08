@@ -3,22 +3,24 @@ from dataclasses import dataclass, field
 from typing import BinaryIO, override
 
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from madformats.lib.rwConstants import RWSectionType
+
 
 @dataclass
 class RW_SectionNameHere(RW_Section):
     header: RWHeader = field(default_factory=RWHeader)
-    
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_SectionNameHere":
+    def read(
+        cls, parser: Parser, parent: RW_Section | None = None
+    ) -> "RW_SectionNameHere":
         namehere = cls()
         namehere.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
             namehere.header,
-            RWSectionType.rwID_NAOBJECT.value, # TODO: REPLACE!
+            RWSectionType.rwID_NAOBJECT.value,  # TODO: REPLACE!
             "RW_SectionNameHere chunk type",
         )
 

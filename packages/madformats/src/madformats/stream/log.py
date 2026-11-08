@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import io
+from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, TextIO, cast
-from collections.abc import Callable
 
 from madformats.lib.parser import Parser
+from madformats.lib.rw_basics import RW_StreamFunc, RwMatrix
 from madformats.lib.rwConstants import DEFAULT_VERSION_STAMP
-from madformats.lib.rw_basics import RW_Matrix4x4, RW_StreamFunc
 from madformats.streamfuncs.stringfuncs.sf_CreateEntity import (
     RW_sf_CreateEntity,
     RW_sf_CreateEntity_Attribute,
@@ -61,13 +61,13 @@ class StreamLogMixin:
                     _write_unknown(f, sf, stream)
 
 
-def _format_matrix4x4(matrix: RW_Matrix4x4, indent: int) -> str:
+def _format_matrix4x4(matrix: RwMatrix, indent: int) -> str:
     """Render a matrix as column aligned rows, continuation lines padded by `indent`."""
     values = [
-        [matrix.row1.x, matrix.row1.y, matrix.row1.z, matrix.row1.w],
-        [matrix.row2.x, matrix.row2.y, matrix.row2.z, matrix.row2.w],
-        [matrix.row3.x, matrix.row3.y, matrix.row3.z, matrix.row3.w],
-        [matrix.row4.x, matrix.row4.y, matrix.row4.z, matrix.row4.w],
+        [matrix.right.x, matrix.right.y, matrix.right.z, matrix.flags],
+        [matrix.up.x, matrix.up.y, matrix.up.z, 0],
+        [matrix.at.x, matrix.at.y, matrix.at.z, 0],
+        [matrix.pos.x, matrix.pos.y, matrix.pos.z, 1],
     ]
 
     formatted = [[f"{v:.3f}" for v in row] for row in values]
@@ -92,8 +92,12 @@ def _write_attribute(
     output = f"\t\tAttribute {attr.command:>3}"
 
     # CSystemCommands command 1 is the entity transform, print it as a matrix
-    if class_name == "CSystemCommands" and attr.command == 0x01 and len(attr.data) >= 64:
-        matrix = RW_Matrix4x4.read(Parser(attr.data, endian="little"))
+    if (
+        class_name == "CSystemCommands"
+        and attr.command == 0x01
+        and len(attr.data) >= 64
+    ):
+        matrix = RwMatrix.read(Parser(attr.data, endian="little"))
         indent = len(output.replace("\t", "    ") + ": Matrix4x4(")
         f.write(output + ": " + _format_matrix4x4(matrix, indent) + "\n")
         return
@@ -126,7 +130,11 @@ def _write_attribute(
     f.write(f"{output}: [{textView}][{hexView}]\n")
 
 
-def _write_createEntity(f: TextIO, sf: RW_sf_CreateEntity, stream: RW_StreamFile) -> None:
+def _write_createEntity(
+    f: TextIO,
+    sf: RW_sf_CreateEntity,
+    stream: RW_StreamFile,
+) -> None:
     f.write("Create Entity Call:\n")
 
     f.write(f"\tBehaviour:\t{sf.behaviour}\n")
@@ -142,17 +150,26 @@ def _write_createEntity(f: TextIO, sf: RW_sf_CreateEntity, stream: RW_StreamFile
     f.write("\n")
 
 
-def _write_placementNew(f: TextIO, sf: RW_sf_PlacementNew, stream: RW_StreamFile) -> None:
+def _write_placementNew(
+    f: TextIO,
+    sf: RW_sf_PlacementNew,
+    stream: RW_StreamFile,
+) -> None:
     f.write("Data:\n")
 
     f.writelines(
-        f"    {behaviour} Count:{entityCount}\n" for behaviour, entityCount in sf.entries
+        f"    {behaviour} Count:{entityCount}\n"
+        for behaviour, entityCount in sf.entries
     )
 
     f.write("\n")
 
 
-def _write_loadEmbeddedAsset(f: TextIO, sf: RW_sf_LoadEmbeddedAsset, stream: RW_StreamFile) -> None:
+def _write_loadEmbeddedAsset(
+    f: TextIO,
+    sf: RW_sf_LoadEmbeddedAsset,
+    stream: RW_StreamFile,
+) -> None:
     f.write("Asset Header:\n")
 
     f.write(f"\t- Header Size: {sf.headerSize}\n")
@@ -182,4 +199,3 @@ _SECTION_WRITERS: list[tuple[type, Callable[[TextIO, Any, RW_StreamFile], None]]
     (RW_sf_PlacementNew, _write_placementNew),
     (RW_sf_LoadEmbeddedAsset, _write_loadEmbeddedAsset),
 ]
-

@@ -1,18 +1,21 @@
-# noqa: N999
-from enum import Enum
 import io
 import os
 from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
 from typing import BinaryIO, override
 
-from madformats.lib.writer import write_u32, write_u16
 from madformats.lib.parser import Parser
+from madformats.lib.rw_basics import (
+    RW_Section,
+    RWHeader,
+    expect_chunk_type_or_raise,
+    library_id_unpack,
+)
 from madformats.lib.rwConstants import RWSectionType
-from madformats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise, library_id_unpack
-
-from madformats.sections.TEXTURENATIVE_0015 import RW_TextureNative
+from madformats.lib.writer import write_u16, write_u32
 from madformats.sections.EXTENSION_0003 import RW_Extension
+from madformats.sections.TEXTURENATIVE_0015 import RW_TextureNative
 
 # textureCount is a u16 from RW 3.6 on, which every Madagascar dictionary is.
 MAX_TEXTURES_PER_DICTIONARY = 0xFFFF
@@ -25,13 +28,15 @@ class RW_TextureDictionary_DeviceId(Enum):
     XBOX = 8
     PS3 = 10
 
+
 @dataclass
 class RW_TextureDictionary_Struct(RW_Section):
     """https://gtamods.com/wiki/Texture_Dictionary_(RW_Section)"""
+
     header: RWHeader = field(default_factory=RWHeader)
-    
+
     # if version > 0x3600
-    textureCount: int = 0 # u16 - determines count of Raster sections
+    textureCount: int = 0  # u16 - determines count of Raster sections
 
     deviceId: RW_TextureDictionary_DeviceId = RW_TextureDictionary_DeviceId.D3D8
     # else
@@ -40,7 +45,9 @@ class RW_TextureDictionary_Struct(RW_Section):
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_TextureDictionary_Struct":
+    def read(
+        cls, parser: Parser, parent: RW_Section | None = None
+    ) -> "RW_TextureDictionary_Struct":
         texdict_s = cls()
         texdict_s.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -56,7 +63,7 @@ class RW_TextureDictionary_Struct(RW_Section):
             texdict_s.textureCount = parser.readUint32()
 
         return texdict_s
-    
+
     @override
     def write(self, f: BinaryIO, stamp: int, parent: RW_Section | None = None):
         buf = io.BytesIO()
@@ -81,11 +88,14 @@ class RW_TextureDictionary_Struct(RW_Section):
         f.write(rw_header.pack())
         f.write(buf.getvalue())
 
+
 @dataclass
 class RW_TextureDictionary(RW_Section):
     header: RWHeader = field(default_factory=RWHeader)
-    
-    struct: RW_TextureDictionary_Struct = field(default_factory=RW_TextureDictionary_Struct)
+
+    struct: RW_TextureDictionary_Struct = field(
+        default_factory=RW_TextureDictionary_Struct
+    )
 
     textures: list[RW_TextureNative] = field(default_factory=list)
 
@@ -93,7 +103,9 @@ class RW_TextureDictionary(RW_Section):
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_TextureDictionary":
+    def read(
+        cls, parser: Parser, parent: RW_Section | None = None
+    ) -> "RW_TextureDictionary":
         texdict = cls()
         texdict.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -135,8 +147,7 @@ class RW_TextureDictionary(RW_Section):
         )
         f.write(rw_header.pack())
         f.write(buf.getvalue())
-    
-    
+
     def export_all(
         self,
         output_dir: str | Path,
@@ -151,27 +162,29 @@ class RW_TextureDictionary(RW_Section):
                 reporting it and carrying on.
             all_mipmaps: Write every mipmap level side by side, largest first,
                 instead of just the full resolution level.
+
         """
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
         for i, tex in enumerate(self.textures):
-            name = tex.struct.name if tex.struct.name else f"texture_{i}"
+            name = tex.struct.name or f"texture_{i}"
             out_path = output_dir / f"{name}.png"
             try:
                 tex.export_png(out_path, all_mipmaps=all_mipmaps)
             except Exception as e:
                 if raise_on_error:
-                    raise RuntimeError(f"Failed to export texture {name} to {out_path}: {e}") from e
-                else:
-                    print(f"  Failed to export {name}: {e}")
+                    raise RuntimeError(
+                        f"Failed to export texture {name} to {out_path}: {e}"
+                    ) from e
+                print(f"  Failed to export {name}: {e}")
 
     def add_texture(self, texture: RW_TextureNative):
         """Add a texture to the dictionary an update textureCount"""
         if len(self.textures) >= MAX_TEXTURES_PER_DICTIONARY:
             raise ValueError(
-                f"A texture dictionary holds at most "
-                f"{MAX_TEXTURES_PER_DICTIONARY} textures"
+                "A texture dictionary can hold at most "
+                f"{MAX_TEXTURES_PER_DICTIONARY} textures",
             )
 
         self.textures.append(texture)

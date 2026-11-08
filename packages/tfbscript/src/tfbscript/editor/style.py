@@ -1,6 +1,6 @@
 # pyright: basic
 
-from PySide6.QtCore import Qt, QRect
+from PySide6.QtCore import QRect, Qt
 from PySide6.QtGui import QColor, QPainter, QPalette, QPen
 from PySide6.QtWidgets import QProxyStyle, QStyle, QStyleOption, QWidget
 
@@ -10,7 +10,7 @@ TEXT = QColor("#101010")
 
 def tfb_colored_box(element: QWidget, color: str):
     element.setStyleSheet(
-        f"background-color: {color}; color: #FFFFFF; padding: 0px 4px;"
+        f"background-color: {color}; color: #FFFFFF; padding: 0px 4px;",
     )
 
 
@@ -32,13 +32,19 @@ def build_palette() -> QPalette:
 
     # Disabled state, so grayed-out buttons/labels don't go invisible
     palette.setColor(
-        QPalette.ColorGroup.Disabled, QPalette.ColorRole.WindowText, QColor("#707070")
+        QPalette.ColorGroup.Disabled,
+        QPalette.ColorRole.WindowText,
+        QColor("#707070"),
     )
     palette.setColor(
-        QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, QColor("#707070")
+        QPalette.ColorGroup.Disabled,
+        QPalette.ColorRole.Text,
+        QColor("#707070"),
     )
     palette.setColor(
-        QPalette.ColorGroup.Disabled, QPalette.ColorRole.ButtonText, QColor("#707070")
+        QPalette.ColorGroup.Disabled,
+        QPalette.ColorRole.ButtonText,
+        QColor("#707070"),
     )
 
     return palette
@@ -46,7 +52,8 @@ def build_palette() -> QPalette:
 
 class Win98TreeStyle(QProxyStyle):
     """Redraws QTreeView branch connectors as classic Win98/comctl32-style
-    dotted lines and a dotted-bordered +/- box, instead of Fusion's arrows."""
+    dotted lines and a dotted-bordered +/- box, instead of Fusion's arrows.
+    """
 
     LINE_COLOR = QColor("#97A1AD")
     BOX_SIZE = 11
@@ -121,16 +128,18 @@ class Win98TreeStyle(QProxyStyle):
             box = QRect(box_x, box_y, box_size, box_size)
 
             painter.save()
-            painter.setPen(QPen(QColor("#788897"))) # BOX BORDER COLOR
-            painter.setBrush(QColor("#DCDCDC")) # BOX BG COLOR
+            painter.setPen(QPen(QColor("#788897")))  # BOX BORDER COLOR
+            painter.setBrush(QColor("#DCDCDC"))  # BOX BG COLOR
             painter.drawRect(box)
 
-            painter.setPen(QPen(QColor("#3F3F3F"))) # SIGN COLOR
+            painter.setPen(QPen(QColor("#3F3F3F")))  # SIGN COLOR
 
             # + or - sign
             sign_x = mid_x + self.CONTENT_OFFSET
-            painter.drawLine(box.left() + 2, box_y + half, box.right() - 2, box_y + half) # -
-            if not is_open: # |  (| + - = +)
+            painter.drawLine(
+                box.left() + 2, box_y + half, box.right() - 2, box_y + half
+            )  # -
+            if not is_open:  # |  (| + - = +)
                 painter.drawLine(
                     sign_x,
                     box.top() + 2,

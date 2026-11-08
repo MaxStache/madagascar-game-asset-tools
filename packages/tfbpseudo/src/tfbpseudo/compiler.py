@@ -38,9 +38,9 @@ from tfbpseudo.references import (
 from tfbpseudo.rhs import parse_condition, parse_rhs
 from tfbscript import opcodes
 from tfbscript.opcodes.base import ParserContext
+from tfbscript.opcodes.enums import RelOp
 from tfbscript.reference import Reference as TFBReference
 from tfbscript.reference import ReferenceType
-from tfbscript.opcodes.enums import RelOp
 from tfbscript.rhs import Rhs
 from tfbscript.script import ScriptFile
 from tfbscript.string_table import StringTableEntry
@@ -67,8 +67,10 @@ class MethodSpec:
     arguments: tuple["Argument", ...] = ()
 
     def accepts(self, count: int) -> bool:
-        return self.arg_count <= count <= (
-            self.arg_count if self.max_args is None else self.max_args
+        return (
+            self.arg_count
+            <= count
+            <= (self.arg_count if self.max_args is None else self.max_args)
         )
 
     def arity(self) -> str:
@@ -91,7 +93,8 @@ def opcode_handler(
     arguments: tuple["Argument", ...] = (),
 ):
     """Register a handler for a TfbPseudo method under `name`, emitting the
-    opcode that the opcode table calls `op_name`."""
+    opcode that the opcode table calls `op_name`.
+    """
 
     def register(fn: HandlerFn) -> HandlerFn:
         METHOD_OPCODE_TABLE[name] = MethodSpec(
@@ -112,7 +115,8 @@ def _at_op(tokens: list[Token], pos: int, value: str) -> bool:
 
 def block_flow_control(block: Block | None) -> int:
     """The flow-control value the opcode owning `block` returns: whatever its
-    trailing `flow` says, or continue when it has none."""
+    trailing `flow` says, or continue when it has none.
+    """
     if block is None or block.flow is None:
         return FLOW_CONTINUE
 
@@ -145,7 +149,7 @@ class Compiler:
         if len(table.entries) >= CONTROL_BLOCK_INDEX:
             raise CompileError(
                 f"script uses more than {CONTROL_BLOCK_INDEX} distinct opcodes, "
-                + "which does not fit the u8 opcode index",
+                "which does not fit the u8 opcode index",
                 0,
                 0,
             )
@@ -160,7 +164,9 @@ class Compiler:
         if pos < len(tokens):
             t = tokens[pos]
             raise CompileError(
-                f"unexpected {t.value!r} after the reference", t.line, t.col
+                f"unexpected {t.value!r} after the reference",
+                t.line,
+                t.col,
             )
 
         return ref
@@ -169,13 +175,17 @@ class Compiler:
         """Read one `target.member#scope:sub` chain starting at `pos`, and
         return it with the position just past it. Each step is optional, but
         they only come in this order -- it is the order the engine walks them,
-        see Reference.resolve_type."""
+        see Reference.resolve_type.
+        """
         ref, pos = self.read_ref_base(tokens, pos)
 
         if _at_op(tokens, pos, MEMBER_OP):
             # A member is a field of the target's own type.
             ref.member, pos = self._read_field(
-                tokens, pos, self._chain_type(ref, before_sub=False), MEMBER_INDEX_WORD
+                tokens,
+                pos,
+                self._chain_type(ref, before_sub=False),
+                MEMBER_INDEX_WORD,
             )
 
         if _at_op(tokens, pos, SCOPE_OP):
@@ -185,15 +195,18 @@ class Compiler:
             # A sub is a field of whatever the chain has reached by now, which
             # is the element `scope` picked when there was one.
             ref.sub, pos = self._read_field(
-                tokens, pos, self._chain_type(ref, before_sub=True), SUB_INDEX_WORD
+                tokens,
+                pos,
+                self._chain_type(ref, before_sub=True),
+                SUB_INDEX_WORD,
             )
 
         elif ref.scope and _at_op(tokens, pos, MEMBER_OP):
             t = tokens[pos]
             raise CompileError(
                 f"{MEMBER_OP!r} takes a field of the whole set, and {SCOPE_OP} has "
-                + f"already picked one element out of it -- use {SUB_OP!r} for a "
-                + "field of that element",
+                f"already picked one element out of it -- use {SUB_OP!r} for a "
+                "field of that element",
                 t.line,
                 t.col,
             )
@@ -204,7 +217,8 @@ class Compiler:
         """The one place the scope error looks wrong: the `else` of the very
         check that would have produced the builtin. The else branch is not the
         check's body -- it is the if/else's -- and it runs when the check found
-        nothing, so there is nothing to name there either."""
+        nothing, so there is nothing to name there either.
+        """
         if_else = self.context.nearest_ancestor(opcodes.OpIfElse)
 
         if (
@@ -219,7 +233,8 @@ class Compiler:
     def _chain_type(self, ref: TFBReference, before_sub: bool) -> str | None:
         """The type a field name is looked up against, or None when the script
         cannot tell -- a builtin resolves through the op that produced it, and
-        that op may not be in the tree yet."""
+        that op may not be in the tree yet.
+        """
         try:
             if before_sub:
                 return ref.resolve_type(apply_sub=False).type
@@ -231,14 +246,18 @@ class Compiler:
     def _picks_from_set(self, ref: TFBReference) -> bool | None:
         """Whether what a `#scope` would pick from is a set; None when unknown.
         Reference decides this for rendering, so ask it rather than repeating
-        the rule here."""
+        the rule here.
+        """
         try:
             return ref._selects_from_set()  # pyright: ignore[reportPrivateUsage]
         except ValueError:
             return None
 
     def _read_scope(
-        self, tokens: list[Token], pos: int, ref: TFBReference
+        self,
+        tokens: list[Token],
+        pos: int,
+        ref: TFBReference,
     ) -> tuple[int, int]:
         t_op = tokens[pos]
         token = tokens[pos + 1] if pos + 1 < len(tokens) else None
@@ -257,13 +276,17 @@ class Compiler:
             and _at_op(tokens, pos + 2, INDEX_OPEN)
         ):
             return self._read_index(
-                tokens, pos + 2, SCOPE_INDEX_WORD, SCOPE_MIN, SCOPE_MAX
+                tokens,
+                pos + 2,
+                SCOPE_INDEX_WORD,
+                SCOPE_MIN,
+                SCOPE_MAX,
             )
 
         if token is None or token.kind != "NAME" or token.value not in SCOPE_BY_NAME:
             raise CompileError(
                 f"expected {names} or {SCOPE_INDEX_WORD}{INDEX_OPEN}1{INDEX_CLOSE} "
-                + f"after {SCOPE_OP!r}",
+                f"after {SCOPE_OP!r}",
                 t_op.line,
                 t_op.col,
             )
@@ -275,7 +298,7 @@ class Compiler:
         if picks_from_set is None:
             raise CompileError(
                 "cannot tell whether this is a set at compile time, "
-                + f"so {SCOPE_OP}{token.value} cannot be checked",
+                f"so {SCOPE_OP}{token.value} cannot be checked",
                 token.line,
                 token.col,
             )
@@ -283,7 +306,7 @@ class Compiler:
         if not picks_from_set:
             raise CompileError(
                 f"{SCOPE_OP}{token.value} picks an element out of a set, "
-                + "but this is not a set",
+                "but this is not a set",
                 token.line,
                 token.col,
             )
@@ -291,12 +314,17 @@ class Compiler:
         return SCOPE_BY_NAME[token.value], pos + 2
 
     def _read_field(
-        self, tokens: list[Token], pos: int, type_name: str | None, index_word: str
+        self,
+        tokens: list[Token],
+        pos: int,
+        type_name: str | None,
+        index_word: str,
     ) -> tuple[int, int]:
         """A field after `.` or `:`: a name, a quoted name, a raw index like
         `field[0x2a]`, or -- for a field that holds a set -- a name in the
         brackets a set may be written in, `.[waypoints]`. `pos` is the
-        operator; the returned position is just past the field."""
+        operator; the returned position is just past the field.
+        """
         t_op = tokens[pos]
 
         # `.[waypoints]` is `.waypoints` said out loud. The brackets come
@@ -309,7 +337,9 @@ class Compiler:
 
         if token is None:
             raise CompileError(
-                f"expected a field after {t_op.value!r}", t_op.line, t_op.col
+                f"expected a field after {t_op.value!r}",
+                t_op.line,
+                t_op.col,
             )
 
         if (
@@ -323,16 +353,16 @@ class Compiler:
         if token.kind not in ("NAME", "STRING"):
             raise CompileError(
                 f"{token.value!r} is not a field name, "
-                + f"write a name or {index_word}[0x01]",
+                f"write a name or {index_word}[0x01]",
                 token.line,
                 token.col,
             )
 
         if type_name is None:
             raise CompileError(
-                f"cannot tell what this refers to at compile time, "
-                + f"so {token.value!r} cannot be looked up -- "
-                + f"name the field by index instead, e.g. {index_word}[0x01]",
+                "cannot tell what this refers to at compile time, "
+                f"so {token.value!r} cannot be looked up -- "
+                f"name the field by index instead, e.g. {index_word}[0x01]",
                 token.line,
                 token.col,
             )
@@ -358,8 +388,7 @@ class Compiler:
         if not _at_op(tokens, name_pos + 1, SET_CLOSE):
             t = tokens[name_pos + 1] if name_pos + 1 < len(tokens) else t_open
             raise CompileError(
-                f"expected {SET_CLOSE!r} to close {SET_OPEN!r} around "
-                + f"{token.value!r}",
+                f"expected {SET_CLOSE!r} to close {SET_OPEN!r} around {token.value!r}",
                 t.line,
                 t.col,
             )
@@ -367,7 +396,7 @@ class Compiler:
         if member_is_set(type_name, index) is False:
             raise CompileError(
                 f"{SET_OPEN}{SET_CLOSE} says {token.value!r} is a set of things, "
-                + f"and {type_name}'s {token.value!r} is a single thing",
+                f"and {type_name}'s {token.value!r} is a single thing",
                 t_open.line,
                 t_open.col,
             )
@@ -375,10 +404,16 @@ class Compiler:
         return index, name_pos + 2
 
     def _read_index(
-        self, tokens: list[Token], pos: int, index_word: str, low: int, high: int
+        self,
+        tokens: list[Token],
+        pos: int,
+        index_word: str,
+        low: int,
+        high: int,
     ) -> tuple[int, int]:
         """The `[0x2a]` of `field[0x2a]`, and the same for `sub` and `scope`.
-        `pos` is the opening bracket."""
+        `pos` is the opening bracket.
+        """
         t_open = tokens[pos]
         token = tokens[pos + 1] if pos + 1 < len(tokens) else None
 
@@ -393,7 +428,9 @@ class Compiler:
             index = int(token.value, 0)
         except ValueError:
             raise CompileError(
-                f"{token.value!r} is not a whole index", token.line, token.col
+                f"{token.value!r} is not a whole index",
+                token.line,
+                token.col,
             ) from None
 
         if not low <= index <= high:
@@ -405,14 +442,17 @@ class Compiler:
 
         if not _at_op(tokens, pos + 2, INDEX_CLOSE):
             raise CompileError(
-                f"expected {INDEX_CLOSE!r} after the index", token.line, token.col
+                f"expected {INDEX_CLOSE!r} after the index",
+                token.line,
+                token.col,
             )
 
         return index, pos + 3
 
     def read_ref_base(self, tokens: list[Token], pos: int) -> tuple[TFBReference, int]:
         """The target a reference starts at, with the brackets a set may be
-        written in: `players` and `[players]` are the same target."""
+        written in: `players` and `[players]` are the same target.
+        """
         if not _at_op(tokens, pos, SET_OPEN):
             return self.read_ref_target(tokens, pos)
 
@@ -434,7 +474,7 @@ class Compiler:
         if names_a_set(ref) is False:
             raise CompileError(
                 f"{SET_OPEN}{SET_CLOSE} says this is a set of things, "
-                + "and this one is a single thing",
+                "and this one is a single thing",
                 t_open.line,
                 t_open.col,
             )
@@ -444,22 +484,25 @@ class Compiler:
     def _set_bracket_hint(self, tokens: list[Token], pos: int) -> str:
         """Where the brackets should have gone, said in terms of what was
         written instead. They hug the name of the set, the way Reference
-        prints one, so the rest of the chain stays outside them."""
+        prints one, so the rest of the chain stays outside them.
+        """
         if _at_op(tokens, pos, MEMBER_OP) or _at_op(tokens, pos, SUB_OP):
             return (
                 "a field of something gets its own brackets, so they go around "
-                + f"the field: `@myself{MEMBER_OP}{SET_OPEN}clones{SET_CLOSE}`"
+                f"the field: `@myself{MEMBER_OP}{SET_OPEN}clones{SET_CLOSE}`"
             )
 
         if _at_op(tokens, pos, SCOPE_OP):
             return (
                 f"{SCOPE_OP}first picks one element out of the set, so it comes "
-                + f"after them: `{SET_OPEN}players{SET_CLOSE}{SCOPE_OP}first`"
+                f"after them: `{SET_OPEN}players{SET_CLOSE}{SCOPE_OP}first`"
             )
 
         return f"they go around the name of the set: `{SET_OPEN}players{SET_CLOSE}`"
 
-    def read_ref_target(self, tokens: list[Token], pos: int) -> tuple[TFBReference, int]:
+    def read_ref_target(
+        self, tokens: list[Token], pos: int
+    ) -> tuple[TFBReference, int]:
         """The target itself: a builtin, or a variable name."""
         if pos >= len(tokens):
             t = tokens[-1] if tokens else Token("EOF", "", 0, 0)
@@ -476,8 +519,8 @@ class Compiler:
                 raise CompileError(
                     f"expected a variable name after {t_base.value}"
                     + (
-                        f" -- the brackets go around the whole target, "
-                        + f"{SET_OPEN}{t_base.value} name{SET_CLOSE}"
+                        " -- the brackets go around the whole target, "
+                        f"{SET_OPEN}{t_base.value} name{SET_CLOSE}"
                         if bracketed
                         else ""
                     ),
@@ -494,38 +537,42 @@ class Compiler:
                     TFBReference(kind=ReferenceType.NULL, context=self.context),
                     pos,
                 )
-            else:
-                builtin_kind = BUILTIN_TOKENS.get(t_base.value, None)
-                if not builtin_kind:
-                    raise CompileError(
-                        f"Unknown builtin '{t_base.value}'", t_base.line, t_base.col
-                    )
-
-                out_of_scope = builtin_out_of_scope(builtin_kind, self.context)
-                if out_of_scope is not None:
-                    raise CompileError(
-                        out_of_scope.message(t_base.value)
-                        + self._else_branch_hint(out_of_scope),
-                        t_base.line,
-                        t_base.col,
-                    )
-
-                return (
-                    TFBReference(
-                        kind=ReferenceType.BUILTIN,
-                        builtin_kind=builtin_kind,
-                        context=self.context,
-                    ),
-                    pos,
+            builtin_kind = BUILTIN_TOKENS.get(t_base.value, None)
+            if not builtin_kind:
+                raise CompileError(
+                    f"Unknown builtin '{t_base.value}'",
+                    t_base.line,
+                    t_base.col,
                 )
 
-        elif t_base.kind in ("NAME", "STRING"):
+            out_of_scope = builtin_out_of_scope(builtin_kind, self.context)
+            if out_of_scope is not None:
+                raise CompileError(
+                    out_of_scope.message(t_base.value)
+                    + self._else_branch_hint(out_of_scope),
+                    t_base.line,
+                    t_base.col,
+                )
+
+            return (
+                TFBReference(
+                    kind=ReferenceType.BUILTIN,
+                    builtin_kind=builtin_kind,
+                    context=self.context,
+                ),
+                pos,
+            )
+
+        if t_base.kind in ("NAME", "STRING"):
             # Quoted, because not every variable name in the shipped scripts is
             # made of bare words -- "interrupted?", "Auto-Save".
             name = t_base.value
 
             found = find_entry(
-                self.tfbscript.local_refs, self.tfbscript.global_refs, name, table
+                self.tfbscript.local_refs,
+                self.tfbscript.global_refs,
+                name,
+                table,
             )
 
             if found is None:
@@ -547,20 +594,20 @@ class Compiler:
                 pos,
             )
 
-        else:
-            raise CompileError(
-                f"Expected a builtin, a name or a quoted name for a reference, "
-                + f"but got {t_base.kind}",
-                t_base.line,
-                t_base.col,
-            )
+        raise CompileError(
+            "Expected a builtin, a name or a quoted name for a reference, "
+            f"but got {t_base.kind}",
+            t_base.line,
+            t_base.col,
+        )
 
     def get_rhs_by_tokens(self, tokens: list[Token]) -> Rhs:
         """The right-hand-side operand an argument's tokens spell out."""
         return parse_rhs(tokens, self.read_ref)
 
     def get_condition_by_tokens(
-        self, tokens: list[Token]
+        self,
+        tokens: list[Token],
     ) -> tuple[TFBReference, RelOp, Rhs]:
         """The `lhs <op> rhs` condition an argument's tokens spell out."""
         return parse_condition(tokens, self.read_ref)
@@ -666,7 +713,7 @@ class Compiler:
                 if not spec.accepts(len(i.arguments)):
                     raise CompileError(
                         f"`{method_name}` takes {spec.arity()} arguments, "
-                        + f"got {len(i.arguments)}",
+                        f"got {len(i.arguments)}",
                         i.method[-1].line,
                         i.method[-1].col,
                     )
@@ -681,7 +728,9 @@ class Compiler:
 
         return out
 
-    def wrap_if_else(self, condition: opcodes.Opcode, else_block: Block) -> opcodes.Opcode:
+    def wrap_if_else(
+        self, condition: opcodes.Opcode, else_block: Block
+    ) -> opcodes.Opcode:
         """Put `condition` inside an if/else, which is how the format stores a
         check that has an else: the if/else holds the condition as its first
         child and the else branch as the rest, while the condition keeps the
@@ -689,7 +738,8 @@ class Compiler:
 
         Each half keeps its own flow -- the condition's is the then branch's,
         the if/else's is the else branch's -- which is what the shipped scripts
-        do, they differ often enough that one value could not stand for both."""
+        do, they differ often enough that one value could not stand for both.
+        """
         i_ifelse = opcodes.OpIfElse(self.opcode_index(IF_ELSE_OP_NAME))
         i_ifelse.context = self.context
 
@@ -707,7 +757,8 @@ class Compiler:
 
     def compile_block_into(self, opcode: opcodes.Opcode, block: Block) -> None:
         """Compile `block` as `opcode`'s body: the statements become its children
-        and the block's trailing `flow` is what `opcode` returns once they ran."""
+        and the block's trailing `flow` is what `opcode` returns once they ran.
+        """
         self.context.open_opcodes.append(opcode)
         try:
             opcode.children.extend(self.compile_block(block))

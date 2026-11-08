@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Any, BinaryIO, override
 
-from tfbscript.ansi import func_call, method, parentheses
 from madformats.lib.writer import write_u8
+from tfbscript.ansi import func_call, method, parentheses
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.opcodes.enums import AnimationMapping
 from tfbscript.payload import PayloadReader
@@ -38,7 +38,7 @@ class OpPlayAnimation(Opcode):
                     "name": "animation",
                     "entry": self.animation,
                 },
-            ]
+            ],
         }
 
     @override

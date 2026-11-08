@@ -1,17 +1,17 @@
 import io
-from typing import override
 import uuid
 from dataclasses import dataclass, field
+from typing import override
 
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import (
     RW_Section,
     RWHeader,
     expect_chunk_type_or_raise,
-    write_u32,
     write_bytes,
+    write_u32,
 )
+from madformats.lib.rwConstants import RWSectionType
 from madformats.sections.RWA.WAVESTRUCT_0803 import null_guid, read_rwguid, rwguid_bytes
 
 # ---------------------------------------------------------------------------
@@ -57,21 +57,27 @@ class RW_WaveDict_Dict(RW_Section):
     header: RWHeader = field(default_factory=RWHeader)
 
     # -- serialized RtWaveDictionary object fields (runtime pointers on disk) --
-    _guid_ptr: int = 0        # +0x00  presence flag for guid  (runtime -> &guid)
-    _name_ptr: int = 0        # +0x04  presence flag for name  (runtime -> &name)
-    _ownership: int = 0       # +0x08  owns-guid (bit0) / owns-name (bit1) flags
-    _entries_next: int = 0    # +0x0C  wave-entry list head .next (reset to self on load)
-    _entries_prev: int = 0    # +0x10  wave-entry list head .prev (reset to self on load)
-    _entries_end: int = 0     # +0x14  list terminator / count   (reset to 0 on load)
-    info: bytes = b"\x00\x00\x00\x00"  # +0x18  info word (endianness flag in byte +0x1B bit3)
-    _registry_next: int = 0   # +0x1C  global dict-registry link .next (recomputed on load)
-    _registry_prev: int = 0   # +0x20  global dict-registry link .prev (recomputed on load)
+    _guid_ptr: int = 0  # +0x00  presence flag for guid  (runtime -> &guid)
+    _name_ptr: int = 0  # +0x04  presence flag for name  (runtime -> &name)
+    _ownership: int = 0  # +0x08  owns-guid (bit0) / owns-name (bit1) flags
+    _entries_next: int = 0  # +0x0C  wave-entry list head .next (reset to self on load)
+    _entries_prev: int = 0  # +0x10  wave-entry list head .prev (reset to self on load)
+    _entries_end: int = 0  # +0x14  list terminator / count   (reset to 0 on load)
+    info: bytes = (
+        b"\x00\x00\x00\x00"  # +0x18  info word (endianness flag in byte +0x1B bit3)
+    )
+    _registry_next: int = (
+        0  # +0x1C  global dict-registry link .next (recomputed on load)
+    )
+    _registry_prev: int = (
+        0  # +0x20  global dict-registry link .prev (recomputed on load)
+    )
 
     # -- persisted data --
-    guid: uuid.UUID = field(default_factory=null_guid)    # +0x24  dictionary GUID
-    name: str = ""            # +0x34  null-terminated dictionary name
+    guid: uuid.UUID = field(default_factory=null_guid)  # +0x24  dictionary GUID
+    name: str = ""  # +0x34  null-terminated dictionary name
 
-    _trailing: bytes = b""    # leftover bytes after the name (padding / buffer garbage)
+    _trailing: bytes = b""  # leftover bytes after the name (padding / buffer garbage)
 
     @property
     def has_guid(self) -> bool:
@@ -88,7 +94,9 @@ class RW_WaveDict_Dict(RW_Section):
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_WaveDict_Dict":
+    def read(
+        cls, parser: Parser, parent: RW_Section | None = None
+    ) -> "RW_WaveDict_Dict":
         dict_struct = cls()
         dict_struct.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -148,6 +156,6 @@ class RW_WaveDict_Dict(RW_Section):
     @override
     def __repr__(self):
         return (
-            f"RW_WaveDict_Dict(name={self.name!r}, guid=\"{self.guid}\", "
+            f'RW_WaveDict_Dict(name={self.name!r}, guid="{self.guid}", '
             f"info=0x{self.info.hex().upper()}, big_endian={self.is_big_endian})"
         )

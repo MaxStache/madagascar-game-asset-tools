@@ -1,36 +1,37 @@
-from enum import Enum
 import io
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import override
 
-from madformats.lib.writer import write_u32
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from madformats.lib.rwConstants import RWSectionType
+from madformats.lib.writer import write_u32
+
 
 class RW_BinMeshPlugin_Flags(Enum):
     TRIANGLE_LIST = 0
     TRIANGLE_STRIP = 1
-    
+
+
 @dataclass
 class RW_BinMeshPlugin_Mesh:
-    """
-    container class for a mesh in RW_BinMeshPlugin
-    """
-    
+    """container class for a mesh in RW_BinMeshPlugin"""
+
     numIndices: int = field(default=0)  # uint32
     materialIndex: int = field(
-        default=0
+        default=0,
     )  # uint32 - Material Index in the Geometry's Material List
 
     indices: list[int] = field(
-        default_factory=list, init=False
+        default_factory=list,
+        init=False,
     )  # uint32[numIndices] - Vertex indices for this mesh
+
 
 @dataclass
 class RW_BinMeshPlugin(RW_Section):
-    """
-    The Bin Mesh plugin holds an optimized representation of the model topology.
+    """The Bin Mesh plugin holds an optimized representation of the model topology.
     Triangles are grouped together into Meshes by their Material and stored as triangle strips
     when the rpGEOMETRYTRISTRIP flag (0x1) is set in the Geometry, otherwise as triangle lists.
     In pre-instanced files, the chunk looks different according to platform.
@@ -42,19 +43,21 @@ class RW_BinMeshPlugin(RW_Section):
     header: RWHeader = field(default_factory=RWHeader)
 
     flags: RW_BinMeshPlugin_Flags = field(
-        default=RW_BinMeshPlugin_Flags.TRIANGLE_LIST
+        default=RW_BinMeshPlugin_Flags.TRIANGLE_LIST,
     )  # uint32
     numMeshes: int = 0  # uint32
     numIndices: int = 0  # uint32 - Total number of indices across all meshes
 
     meshes: list[RW_BinMeshPlugin_Mesh] = field(
-        default_factory=list, init=False
+        default_factory=list,
+        init=False,
     )  # RW_BinMeshPLG_Mesh[numMeshes]
-
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_BinMeshPlugin":
+    def read(
+        cls, parser: Parser, parent: RW_Section | None = None
+    ) -> "RW_BinMeshPlugin":
         binmesh = cls()
         binmesh.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(

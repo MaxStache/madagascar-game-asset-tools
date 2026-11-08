@@ -6,6 +6,7 @@ from .app import run
 
 DEFAULT_FILE = "kingofny.stream"
 
+
 def main():
     ap = argparse.ArgumentParser(prog="analyze", description=__doc__)
     ap.add_argument(

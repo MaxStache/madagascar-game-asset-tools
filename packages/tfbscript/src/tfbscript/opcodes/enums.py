@@ -17,11 +17,11 @@ class RelOp(IntEnum):
 
     def symbol(self) -> str:
         return ("<=", "==", ">=", "<", ">", "!=")[self.value]
-    
+
     @override
     def __str__(self) -> str:
         return str(self.symbol())
-    
+
 class ControlRequirement(IntEnum):
     """u8 in OpControl payload that specifies how the control block is executed."""
 
@@ -32,7 +32,7 @@ class ControlRequirement(IntEnum):
     @override
     def __str__(self) -> str:
         return ("suspend script", "allow script")[self.value]
-    
+
 class CutsceneCommand(IntEnum):
     BeginAlt = 0 # start (allow skipping)    - in retail same effect as start because skipping is implmenented via tfbscript
 
@@ -45,7 +45,7 @@ class CutsceneCommand(IntEnum):
     @override
     def __str__(self) -> str:
         return {0: "start (allow skipping)", 1: "start", 2: "end", 3: "pause"}[self.value]
-    
+
 class SetDirection(IntEnum):
     """Direction for how to traverse a set"""
 
@@ -56,7 +56,7 @@ class SetDirection(IntEnum):
     @override
     def __str__(self) -> str:
         return ("forward", "backward", "randomly")[self.value]
-    
+
 class CombineMode(IntEnum):
     """Displacement combine mode for OpDisplace."""
 
@@ -67,7 +67,7 @@ class CombineMode(IntEnum):
     @override
     def __str__(self) -> str:
         return ("relative", "absolute", "local")[self.value]
-    
+
 class MembershipTest(IntEnum):
     """Membership test for OpCheckMembership."""
 
@@ -85,8 +85,8 @@ class MembershipCombiner(IntEnum):
 
     include        = 0 # add a single thing?
     exclude        = 1 # remove a single thing?
-    intersect_with = 2 
-    be_replaced_by = 3  
+    intersect_with = 2
+    be_replaced_by = 3
     add            = 4  # concat sets together?
     exclude_all    = 5  # remove all elements that are also in set b?
 
@@ -165,7 +165,7 @@ class AnimationMapping(IntEnum):
     lean_right_slow = 0x3D
     lean_right_medium = 0x3E
     lean_right_fast = 0x3F
-    
+
     idle_cycle_1_A = 0x40
     idle_cycle_1_B = 0x41
     idle_cycle_1_C = 0x42

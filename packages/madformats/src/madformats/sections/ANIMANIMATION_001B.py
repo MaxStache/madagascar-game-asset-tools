@@ -1,17 +1,17 @@
-from enum import IntEnum
 import io
 from dataclasses import dataclass, field
+from enum import IntEnum
 from typing import BinaryIO, override
 
-from madformats.lib.writer import write_f32, write_f16, write_u32
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import (
     RW_Section,
     RWHeader,
-    Vector3,
+    RwV3d,
     expect_chunk_type_or_raise,
 )
+from madformats.lib.rwConstants import RWSectionType
+from madformats.lib.writer import write_f16, write_f32, write_u32
 
 KEYFRAME_PARENT_NONE_OFFSET = 0xFF30C9D8
 
@@ -28,11 +28,11 @@ class RW_AnimAnimation_CompressedKeyframe:
     time: float = field(default=0.0)  # in seconds
 
     rotation: tuple[float, float, float, float] = field(
-        default_factory=lambda: (0.0, 0.0, 0.0, 1.0)
+        default_factory=lambda: (0.0, 0.0, 0.0, 1.0),
     )  # Quantized quaternion components
 
     position: tuple[float, float, float] = field(
-        default_factory=lambda: (0.0, 0.0, 0.0)
+        default_factory=lambda: (0.0, 0.0, 0.0),
     )  # Quantized position components
 
     prev_frame_off: int = field(default=0)  # Offset to the previous keyframe
@@ -89,7 +89,7 @@ class RW_AnimAnimation(RW_Section):
 
     version: int = field(default=0x100)  # 0x100 = version 1.0 etc.
     keyframe_type: RW_AnimAnimation_KeyframeType = field(
-        default=RW_AnimAnimation_KeyframeType.UNCOMPRESSED
+        default=RW_AnimAnimation_KeyframeType.UNCOMPRESSED,
     )
 
     keyframe_count: int = field(default=0)
@@ -99,15 +99,17 @@ class RW_AnimAnimation(RW_Section):
     duration: float = field(default=0.0)  # duration in seconds
 
     keyframes: list[RW_AnimAnimation_CompressedKeyframe] = field(
-        default_factory=list
+        default_factory=list,
     )
 
-    pos_offset: Vector3 = field(default_factory=Vector3)
-    pos_scale: Vector3 = field(default_factory=Vector3)
+    pos_offset: RwV3d = field(default_factory=RwV3d)
+    pos_scale: RwV3d = field(default_factory=RwV3d)
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_AnimAnimation":
+    def read(
+        cls, parser: Parser, parent: RW_Section | None = None
+    ) -> "RW_AnimAnimation":
         anim = cls()
         anim.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -126,7 +128,7 @@ class RW_AnimAnimation(RW_Section):
 
         if anim.keyframe_type == RW_AnimAnimation_KeyframeType.UNCOMPRESSED:
             raise NotImplementedError("Uncompressed keyframes are not implemented yet.")
-        elif anim.keyframe_type == RW_AnimAnimation_KeyframeType.COMPRESSED:
+        if anim.keyframe_type == RW_AnimAnimation_KeyframeType.COMPRESSED:
             anim._read_keyframes_compressed(parser)
         else:
             raise ValueError(f"Unhandled keyframe type: {anim.keyframe_type}")
@@ -139,11 +141,11 @@ class RW_AnimAnimation(RW_Section):
         bone_id = -1
 
         for idx in range(self.keyframe_count):
-            keyframe_offsets.append(idx * 24) # using 24 bytes for a keyframe, whyever
+            keyframe_offsets.append(idx * 24)  # using 24 bytes for a keyframe, whyever
             keyframe_parser = Parser(parser.readBytes(KEYFRAME_SIZE))
 
             keyframe = RW_AnimAnimation_CompressedKeyframe.read(
-                keyframe_parser
+                keyframe_parser,
             )
 
             if keyframe.prev_frame_off & 0x3F000000:
@@ -156,14 +158,14 @@ class RW_AnimAnimation(RW_Section):
 
             self.keyframes.append(keyframe)
 
-        self.pos_offset = Vector3.read(parser)
-        self.pos_scale = Vector3.read(parser)
+        self.pos_offset = RwV3d.read(parser)
+        self.pos_scale = RwV3d.read(parser)
 
     @override
     def write(self, f, stamp, parent: RW_Section | None = None):
         buf = io.BytesIO()
 
-        prev_keyframe_offsets: dict[int,int] = {}
+        prev_keyframe_offsets: dict[int, int] = {}
         for kf_idx, kf in enumerate(self.keyframes):
             kf.write(buf, kf_idx, prev_keyframe_offsets)
 

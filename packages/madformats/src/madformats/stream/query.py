@@ -88,7 +88,9 @@ class StreamQueryMixin:
         return list(self._entitiesWhere(behavior=behavior))
 
     def entitiesByNameAndBehavior(
-        self, name: str, behavior: str
+        self,
+        name: str,
+        behavior: str,
     ) -> list[RW_sf_CreateEntity]:
         """Every sf_CreateEntity record with a specific name and behaviour, in stream order."""
         return list(self._entitiesWhere(name=name, behavior=behavior))
@@ -105,7 +107,9 @@ class StreamQueryMixin:
         )
 
     def entityByNameAndBehaviorSoft(
-        self, name: str, behavior: str
+        self,
+        name: str,
+        behavior: str,
     ) -> RW_sf_CreateEntity | None:
         """Find an entity by TFB object name and behaviour, or None."""
         return next(self._entitiesWhere(name=name, behavior=behavior), None)
@@ -142,7 +146,6 @@ class StreamQueryMixin:
         """Every SCRIPT asset, in stream order."""
         return list(self._assetsWhere(assetType="SCRIPT"))
 
-
     def assetsByName(self, name: str) -> list[RW_sf_LoadEmbeddedAsset]:
         """Every sf_LoadEmbeddedAsset record with a specific name, in stream order."""
         return list(self._assetsWhere(name=name))
@@ -162,12 +165,14 @@ class StreamQueryMixin:
         )
 
     def assetsByType(
-            self, assetType: str
+        self,
+        assetType: str,
     ) -> list[RW_sf_LoadEmbeddedAsset]:
         return list(self._assetsWhere(assetType=assetType))
 
     def assetByIDSoft(
-        self, asset_id: uuid.UUID | str
+        self,
+        asset_id: uuid.UUID | str,
     ) -> RW_sf_LoadEmbeddedAsset | None:
         """Find an asset by ID, or None when nothing matches."""
         if isinstance(asset_id, str):
@@ -189,7 +194,7 @@ class StreamQueryMixin:
     def cameras(self) -> list[RW_sf_CreateEntity]:
         """Every sf_CreateEntity record with CameraData behavior, in stream order."""
         return list(self._entitiesWhere(behavior="CameraData"))
-    
+
     def placementNew(self) -> RW_sf_PlacementNew | None:
         """The sf_PlacementNew record, or None when the stream has none."""
         return next(self._records(RW_sf_PlacementNew), None)

@@ -19,7 +19,7 @@ def check_occurance(file: Path):
         _global_refs = StringTable.read(reader)
         _local_refs = StringTable.read(reader)
 
-        #for e in _global_refs.entries:
+        # for e in _global_refs.entries:
         #    if "Melman Kick Lays" in e.string:
         #        print(file)
         #        print("DKWOAHDIUAWOHDIOWA")
@@ -32,13 +32,12 @@ def check_occurance(file: Path):
             reader.skip(reader.readUint8())
             if op_idx == 0xFF:
                 continue
-            else:
-                op_name = opcode_table.get(op_idx)
-                if op_name is None:
-                    print(f"Opcode index {op_idx} not found in opcode table.")
-                    continue
-                if OP_CODE in op_name.string:
-                    occurance_count += 1
+            op_name = opcode_table.get(op_idx)
+            if op_name is None:
+                print(f"Opcode index {op_idx} not found in opcode table.")
+                continue
+            if OP_CODE in op_name.string:
+                occurance_count += 1
 
         return occurance_count
 

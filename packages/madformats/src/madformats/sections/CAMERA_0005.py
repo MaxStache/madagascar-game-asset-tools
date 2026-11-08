@@ -2,12 +2,12 @@ import io
 from dataclasses import dataclass, field
 from typing import override
 
-from madformats.lib.writer import write_u32, write_f32
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
-
+from madformats.lib.rwConstants import RWSectionType
+from madformats.lib.writer import write_f32, write_u32
 from madformats.sections.EXTENSION_0003 import RW_Extension
+
 
 @dataclass
 class RpCameraProjectionMode:
@@ -39,6 +39,7 @@ class RpCameraProjectionMode:
         print(f"  perspective: {self.perspective}")
         print(f"  parallel: {self.parallel}")
 
+
 @dataclass
 class RW_Camera_Struct(RW_Section):
     header: RWHeader = field(default_factory=RWHeader)
@@ -51,12 +52,14 @@ class RW_Camera_Struct(RW_Section):
     farPlane: float = 0  # f32
     fogDistance: float = 0  # f32
     projectionMode: RpCameraProjectionMode = field(
-        default_factory=RpCameraProjectionMode
+        default_factory=RpCameraProjectionMode,
     )
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_Camera_Struct":
+    def read(
+        cls, parser: Parser, parent: RW_Section | None = None
+    ) -> "RW_Camera_Struct":
         cam_s = cls()
         cam_s.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -96,6 +99,7 @@ class RW_Camera_Struct(RW_Section):
         )
         f.write(rw_header.pack())
         f.write(buf.getvalue())
+
 
 @dataclass
 class RW_Camera(RW_Section):
@@ -137,4 +141,3 @@ class RW_Camera(RW_Section):
         )
         f.write(rw_header.pack())
         f.write(buf.getvalue())
-

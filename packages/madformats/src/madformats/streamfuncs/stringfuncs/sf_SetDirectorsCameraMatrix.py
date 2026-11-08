@@ -3,17 +3,21 @@ from dataclasses import dataclass, field
 from typing import Any, override
 
 from madformats.lib.parser import Parser
+from madformats.lib.rw_basics import (
+    RW_StreamFunc,
+    RWHeader,
+    RwMatrix,
+    expect_chunk_type_or_raise,
+)
 from madformats.lib.rwConstants import strfunc_func
-from madformats.lib.rw_basics import RW_Matrix4x4, RW_StreamFunc, RWHeader, expect_chunk_type_or_raise
 from madformats.lib.writer import write_f32
-
 
 
 @dataclass
 class RW_sf_SetDirectorsCameraMatrix(RW_StreamFunc):
     header: RWHeader = field(default_factory=RWHeader)
 
-    matrix: RW_Matrix4x4 = field(default_factory=RW_Matrix4x4)
+    matrix: RwMatrix = field(default_factory=RwMatrix)
     fov: float = 0.0
 
     @classmethod
@@ -28,7 +32,7 @@ class RW_sf_SetDirectorsCameraMatrix(RW_StreamFunc):
             "RW_sf_SetDirectorsCameraMatrix chunk type",
         )
 
-        sf.matrix = RW_Matrix4x4.read(parser)
+        sf.matrix = RwMatrix.read(parser)
         sf.fov = parser.readFloat()
 
         return sf
@@ -39,7 +43,6 @@ class RW_sf_SetDirectorsCameraMatrix(RW_StreamFunc):
 
         self.matrix.write(buf)
         write_f32(buf, self.fov)
-
 
         rw_header = RWHeader(
             type=strfunc_func.sf_SetDirectorsCameraMatrix.value,
@@ -66,6 +69,6 @@ class RW_sf_SetDirectorsCameraMatrix(RW_StreamFunc):
     def from_dict(cls, content: dict[str, Any]) -> "RW_StreamFunc":
         header = RWHeader.from_dict(content.get("header", {}))
 
-        matrix = RW_Matrix4x4.from_dict(content.get("matrix", {}))
+        matrix = RwMatrix.from_dict(content.get("matrix", {}))
 
         return cls(header=header, matrix=matrix)

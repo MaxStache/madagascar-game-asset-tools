@@ -13,12 +13,13 @@ _STEP_TABLE = [
    3327,  3660,  4026,  4428,  4871,  5358,  5894,  6484,
    7132,  7845,  8630,  9493, 10442, 11487, 12635, 13899,
   15289, 16818, 18500, 20350, 22385, 24623, 27086, 29794,
-  32767
+  32767,
 ]
 
 
 _INDEX_TABLE = [-1, -1, -1, -1, 2, 4, 6, 8, -1, -1, -1, -1, 2, 4, 6, 8]
 # fmt: on
+
 
 def _decode_nibble(nibble: int, pred: int, idx: int) -> tuple[int, int]:
     step = _STEP_TABLE[idx]
@@ -70,7 +71,7 @@ def decode(data: bytes, channels: int, block_size: int) -> bytes:
             chan_off = offset + ch * chan_block
             pred, idx = struct.unpack_from("<hB", data, chan_off)
             idx = max(0, min(88, idx))
-            samples = [pred]  # header predictor is sample 0
+            samples: list[float] = [pred]  # header predictor is sample 0
             total_nibbles = (chan_block - 4) * 2
             nibble_idx = 0
             for i in range(chan_block - 4):

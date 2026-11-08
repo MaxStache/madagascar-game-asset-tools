@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from enum import IntEnum
 from typing import TYPE_CHECKING, BinaryIO, cast, override
 
-from tfbscript.ansi import number, operator, rgb_square, type_
 from madformats.lib.writer import write_f32, write_i16, write_rgba, write_s32, write_u8
+from tfbscript.ansi import number, operator, rgb_square, type_
 from tfbscript.reference import Reference
 from tfbscript.string_table import StringTable
 
@@ -20,8 +20,11 @@ _OPERATORS = {
     0x03: "/",
 }
 
+
 class RhsKind(IntEnum):
     ADWAD = 234
+
+
 @dataclass
 class Rhs:
     tag: int = 0x00
@@ -58,10 +61,11 @@ class Rhs:
             local_refs: the script's 3rd string table (locals) for name resolution.
             context: the script's parser context, threaded through to any
                 embedded References so they can resolve builtin types.
+
         Returns:
             An Rhs.
-        """
 
+        """
         # A reference is 5 bytes (tag + 4-byte ref) unless there's room left for
         # the 6-byte "op + value2" tail (11 bytes total), decided here from how
         # many bytes are left in the payload.
@@ -175,7 +179,8 @@ class Rhs:
         context: "ParserContext | None" = None,
     ) -> "Rhs":
         """Read one operand of an expression: a tag plus its value, with no
-        operator tail. Used for the second operand only."""
+        operator tail. Used for the second operand only.
+        """
         tag = reader.readUint8()
 
         if tag == 0x02:
@@ -194,9 +199,10 @@ class Rhs:
         context: "ParserContext | None" = None,
     ) -> "Rhs":
         """Read the value bytes of a non-reference term, given its tag."""
-
         if tag & 0x01 not in (0x00, 0x01):
-            raise ValueError(f"Unknown RHS tag 0x{tag:02X} (low nibble {tag & 0x0F} <- CAUSE)")
+            raise ValueError(
+                f"Unknown RHS tag 0x{tag:02X} (low nibble {tag & 0x0F} <- CAUSE)"
+            )
 
         # The high nibble selects the kind (int/float/color/pair); the low
         # nibble is a "randomize" modifier -- bit 0 only. Confirmed from the
@@ -220,7 +226,12 @@ class Rhs:
 
         # RGBA color
         if (tag & 0xF0) == 0x20:
-            rgba = (reader.readUint8(), reader.readUint8(), reader.readUint8(), reader.readUint8())
+            rgba = (
+                reader.readUint8(),
+                reader.readUint8(),
+                reader.readUint8(),
+                reader.readUint8(),
+            )
             return cls(tag, "color", rgba)
 
         # int16 pair
@@ -233,7 +244,7 @@ class Rhs:
         write_u8(f, self.tag)
 
         if self.kind in ("reference", "expression"):
-            cast(Reference, self.value).write(f)
+            cast("Reference", self.value).write(f)
             if self.kind == "expression":
                 assert self.operator is not None
                 write_u8(f, self.operator)
@@ -242,19 +253,19 @@ class Rhs:
             return
 
         if self.kind == "int":
-            write_s32(f, cast(int, self.value))
+            write_s32(f, cast("int", self.value))
             return
 
         if self.kind == "float":
-            write_f32(f, cast(float, self.value))
+            write_f32(f, cast("float", self.value))
             return
 
         if self.kind == "color":
-            write_rgba(f, cast(tuple[int, int, int, int], self.value))
+            write_rgba(f, cast("tuple[int, int, int, int]", self.value))
             return
 
         if self.kind == "pair":
-            x, y = cast(tuple[int, int], self.value)
+            x, y = cast("tuple[int, int]", self.value)
             write_i16(f, x)
             write_i16(f, y)
             return
@@ -269,7 +280,6 @@ class Rhs:
         """Render this RHS as a readable, syntax-colored string.
         do_reconstructs: If True, reconstructs the compiler's "x + 0" / "x - 0" expression to just "x"
         """
-
         if self.kind == "int":
             prefix = type_("Int: ") if show_types else ""
             body = number(self.value)
@@ -283,12 +293,12 @@ class Rhs:
             return prefix + (f"random(0, {body})" if self.is_random else body)
 
         if self.kind == "color":
-            r, g, b, a = cast(tuple[int, int, int, int], self.value)
+            r, g, b, a = cast("tuple[int, int, int, int]", self.value)
             prefix = type_("RGBA: ") if show_types else type_("Color")
             return rgb_square(r, g, b) + prefix + number(f"({r}, {g}, {b}, {a})")
 
         if self.kind == "pair":
-            x, y = cast(tuple[int, int], self.value)
+            x, y = cast("tuple[int, int]", self.value)
             prefix = type_("Pair16: ") if show_types else type_("Pair")
             return prefix + number(f"({x}, {y})")
 
@@ -299,7 +309,7 @@ class Rhs:
             if self.operator is not None:
                 op = _OPERATORS.get(self.operator, f"unknown_operator_{self.operator}")
                 op = operator(op)
-                if "unknown_operator_" in op: # TODO: bad way of doing it
+                if "unknown_operator_" in op:  # TODO: bad way of doing it
                     print("WARN: UNKNOWN OPERATOR - " + hex(self.operator))
                     raise ValueError("WARN: UNKNOWN OPERATOR - " + hex(self.operator))
             else:

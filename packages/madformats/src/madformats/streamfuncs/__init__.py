@@ -4,7 +4,9 @@ from madformats.streamfuncs.stringfuncs.sf_CreateEntity import RW_sf_CreateEntit
 from madformats.streamfuncs.stringfuncs.sf_EnableDirectorsCamera import (
     RW_sf_EnableDirectorsCamera,
 )
-from madformats.streamfuncs.stringfuncs.sf_LoadEmbeddedAsset import RW_sf_LoadEmbeddedAsset
+from madformats.streamfuncs.stringfuncs.sf_LoadEmbeddedAsset import (
+    RW_sf_LoadEmbeddedAsset,
+)
 from madformats.streamfuncs.stringfuncs.sf_PlacementNew import RW_sf_PlacementNew
 from madformats.streamfuncs.stringfuncs.sf_SetDirectorsCameraMatrix import (
     RW_sf_SetDirectorsCameraMatrix,
@@ -44,5 +46,5 @@ __all__ = [
     "RW_sf_SetRunningMode",
     "RW_sf_Shutdown",
     "RW_sf_StartSystem",
-    "RW_sf_StopSystem"
+    "RW_sf_StopSystem",
 ]

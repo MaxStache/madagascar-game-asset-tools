@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, BinaryIO
 
-from madformats.lib.writer import write_u32, write_u8
+from madformats.lib.writer import write_u8, write_u32
 
 if TYPE_CHECKING:
     from madformats.lib.parser import Parser
@@ -26,12 +26,13 @@ class StringTableEntry:
 
     def _split_myself(self) -> list[str]:
         if not self._split:
-            self._split = re.split(r'(?=::(?!:))', self.string)
+            self._split = re.split(r"(?=::(?!:))", self.string)
             self._split = [self._split[0]] + [p[2:] for p in self._split[1:]]
 
-        
         if len(self._split) < 2:
-            raise ValueError(f"String table entry '{self.string}' does not have a type part")
+            raise ValueError(
+                f"String table entry '{self.string}' does not have a type part"
+            )
 
         if len(self._split) > 3:
             raise ValueError(f"String table entry '{self.string}' has too many parts")
@@ -64,6 +65,7 @@ class StringTableEntry:
         # abc::user::VALUE
         return self._split[-1]
 
+
 @dataclass
 class StringTable:
     """A u32 entry count followed by that many entries."""
@@ -77,13 +79,12 @@ class StringTable:
 
     def write(self, f: BinaryIO) -> None:
         """Write the ScriptFile to a binary file."""
-
         write_u32(f, len(self.entries))
         for entry in self.entries:
             write_u8(f, len(entry.string))
             f.write(entry.string.encode("latin1"))
             f.write(entry.metadata)
-        
+
     def __len__(self) -> int:
         return len(self.entries)
 

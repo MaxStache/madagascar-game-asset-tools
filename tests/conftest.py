@@ -21,5 +21,10 @@ def levels_dir() -> Path:
 def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
     # Tests marked `gamedata` get the Levels/ check without asking for the fixture.
     for item in items:
-        if item.get_closest_marker("gamedata") and "levels_dir" not in item.fixturenames:
+        if not isinstance(item, pytest.Function):
+            continue
+        if (
+            item.get_closest_marker("gamedata")
+            and "levels_dir" not in item.fixturenames
+        ):
             item.fixturenames.append("levels_dir")

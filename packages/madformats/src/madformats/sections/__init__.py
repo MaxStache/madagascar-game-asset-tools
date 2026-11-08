@@ -5,53 +5,58 @@ except ImportError:
     from madformats.lib.rw_basics import RW_Section, RW_Section_NotImplemented
     from madformats.lib.rwConstants import RWSectionType
 
-from madformats.sections.STRING_0002 import RW_String
-from madformats.sections.TEXTURE_0006 import RW_Texture
-from madformats.sections.EXTENSION_0003 import RW_Extension
-from madformats.sections.BINMESHPLUGIN_050E import RW_BinMeshPlugin
-from madformats.sections.MATERIALEFFECTSPLUGIN_0120 import RW_MaterialEffectsPlugin
-from madformats.sections.MATERIAL_0007 import RW_Material
-from madformats.sections.RIGHTTORENDER_001F import RW_RightToRender
-from madformats.sections.TFB.TFBMATERIAL_800000F6 import RW_TFB_TFBMaterial
-from madformats.sections.TFB.TFBTEXTURE1_800000DD import RW_TFB_TFBTextureExt1
-from madformats.sections.USERDATAPLUGIN_011F import RW_UserDataPlugin
-from madformats.sections.HANIMPLUGIN_011E import RW_HAnimPlugin
+from madformats.sections.ANIMANIMATION_001B import RW_AnimAnimation
 from madformats.sections.ATOMIC_0014 import RW_Atomic
 from madformats.sections.ATOMICSECT_0009 import RW_AtomicSector
-from madformats.sections.PLANESECT_000A import RW_PlaneSector
-from madformats.sections.CLUMP_0010 import RW_Clump
-from madformats.sections.FRAMELIST_000E import RW_FrameList
-from madformats.sections.GEOMETRYLIST_001A import RW_GeometryList
-from madformats.sections.GEOMETRY_000F import RW_Geometry
-from madformats.sections.MATLIST_0008 import RW_MaterialList
+from madformats.sections.BINMESHPLUGIN_050E import RW_BinMeshPlugin
 from madformats.sections.CAMERA_0005 import RW_Camera
-from madformats.sections.WORLD_000B import RW_World
-from madformats.sections.SKINPLUGIN_0116 import RW_SkinPlugin
-from madformats.sections.TEXDICTIONARY_0016 import RW_TextureDictionary
-from madformats.sections.TEXTURENATIVE_0015 import RW_TextureNative
-from madformats.sections.ANIMANIMATION_001B import RW_AnimAnimation
+from madformats.sections.CLUMP_0010 import RW_Clump
 from madformats.sections.COLLISIONPLG_011D import RW_CollisionPlugin
+from madformats.sections.EXTENSION_0003 import RW_Extension
+from madformats.sections.FRAMELIST_000E import RW_FrameList
+from madformats.sections.GEOMETRY_000F import RW_Geometry
+from madformats.sections.GEOMETRYLIST_001A import RW_GeometryList
+from madformats.sections.HANIMPLUGIN_011E import RW_HAnimPlugin
+from madformats.sections.MATERIAL_0007 import RW_Material
+from madformats.sections.MATERIALEFFECTSPLUGIN_0120 import RW_MaterialEffectsPlugin
+from madformats.sections.MATLIST_0008 import RW_MaterialList
+from madformats.sections.PLANESECT_000A import RW_PlaneSector
+from madformats.sections.RIGHTTORENDER_001F import RW_RightToRender
 
-# SKY (PS2)
-from madformats.sections.SKYMIPMAPVAL_0110 import RW_SkyMipmapVal
 # ----
-
 # Rockstar Games
 from madformats.sections.Rockstar.FRAME_0253F2FE import RW_Rockstar_Frame
-from madformats.sections.Rockstar.SPECULARMATERIAL_0253F2F6 import RW_Rockstar_SpecularMaterial
-from madformats.sections.Rockstar.REFLECTIONMATERIAL_0253F2FC import RW_Rockstar_ReflectionMaterial
-# ----
+from madformats.sections.Rockstar.REFLECTIONMATERIAL_0253F2FC import (
+    RW_Rockstar_ReflectionMaterial,
+)
+from madformats.sections.Rockstar.SPECULARMATERIAL_0253F2F6 import (
+    RW_Rockstar_SpecularMaterial,
+)
+from madformats.sections.RWA.STREAM_080D import RWA_Stream, RWA_StreamSegment
+from madformats.sections.RWA.STREAM_DATA_080F import RWA_Stream_Data
+from madformats.sections.RWA.STREAM_HDR_080E import RWA_Stream_Header
+from madformats.sections.RWA.WAVE_0802 import RWA_Wave
+from madformats.sections.RWA.WAVEDATA_0804 import RWA_WaveData
 
+# ----
 # RWA - RenderWare Audio
 from madformats.sections.RWA.WAVEDICT_0809 import RW_WaveDict
 from madformats.sections.RWA.WAVEDICT_DICT_080A import RW_WaveDict_Dict
 from madformats.sections.RWA.WAVEDICT_WAVE_080C import RW_WaveDict_Wave
-from madformats.sections.RWA.WAVE_0802 import RWA_Wave
 from madformats.sections.RWA.WAVESTRUCT_0803 import RWA_WaveStruct
-from madformats.sections.RWA.WAVEDATA_0804 import RWA_WaveData
-from madformats.sections.RWA.STREAM_080D import RWA_Stream, RWA_StreamSegment
-from madformats.sections.RWA.STREAM_HDR_080E import RWA_Stream_Header
-from madformats.sections.RWA.STREAM_DATA_080F import RWA_Stream_Data
+from madformats.sections.SKINPLUGIN_0116 import RW_SkinPlugin
+
+# SKY (PS2)
+from madformats.sections.SKYMIPMAPVAL_0110 import RW_SkyMipmapVal
+from madformats.sections.STRING_0002 import RW_String
+from madformats.sections.TEXDICTIONARY_0016 import RW_TextureDictionary
+from madformats.sections.TEXTURE_0006 import RW_Texture
+from madformats.sections.TEXTURENATIVE_0015 import RW_TextureNative
+from madformats.sections.TFB.TFBMATERIAL_800000F6 import RW_TFB_TFBMaterial
+from madformats.sections.TFB.TFBTEXTURE1_800000DD import RW_TFB_TFBTextureExt1
+from madformats.sections.USERDATAPLUGIN_011F import RW_UserDataPlugin
+from madformats.sections.WORLD_000B import RW_World
+
 # ----
 
 # fmt: off
@@ -231,9 +236,9 @@ SECTION_REGISTRY: dict[int, type[RW_Section]] = {
 
     # TFB
     0x800000D4: RW_Section_NotImplemented, # found on atomic world sector    NO READER IN PC VERSION
-    0x800000FE: RW_Section_NotImplemented, # found on atomic world sector    
-    0x800000B0: RW_Section_NotImplemented, # found on world                    
-    0x800000F6: RW_TFB_TFBMaterial, # found on material (in world)      
+    0x800000FE: RW_Section_NotImplemented, # found on atomic world sector
+    0x800000B0: RW_Section_NotImplemented, # found on world
+    0x800000F6: RW_TFB_TFBMaterial, # found on material (in world)
     0x800000ED: RW_Section_NotImplemented, # found on atomic                 NO READER IN PC VERSION
     0x800000FD: RW_Section_NotImplemented, # found on atomic
     0x800000B1: RW_Section_NotImplemented, # found on clump
@@ -243,39 +248,38 @@ SECTION_REGISTRY: dict[int, type[RW_Section]] = {
 
 __all__ = [
     "SECTION_REGISTRY",
-    "RW_String",
-    "RW_Texture",
-    "RW_Extension",
-    "RW_BinMeshPlugin",
-    "RW_MaterialEffectsPlugin",
-    "RW_UserDataPlugin",
-    "RW_SkyMipmapVal",
-    "RW_RightToRender",
-    "RW_Material",
-    "RW_GeometryList",
-    "RW_Geometry",
-    "RW_MaterialList",
+    "RWA_Stream",
+    "RWA_StreamSegment",
+    "RWA_Stream_Data",
+    "RWA_Stream_Header",
+    "RWA_Wave",
+    "RWA_WaveData",
+    "RWA_WaveStruct",
+    "RW_AnimAnimation",
     "RW_Atomic",
     "RW_AtomicSector",
-    "RW_PlaneSector",
+    "RW_BinMeshPlugin",
     "RW_Camera",
     "RW_Clump",
+    "RW_Extension",
     "RW_FrameList",
-    "RW_World",
+    "RW_Geometry",
+    "RW_GeometryList",
+    "RW_Material",
+    "RW_MaterialEffectsPlugin",
+    "RW_MaterialList",
+    "RW_PlaneSector",
+    "RW_RightToRender",
     "RW_SkinPlugin",
-    "RW_AnimAnimation",
-    "RW_TextureNative",
+    "RW_SkyMipmapVal",
+    "RW_String",
+    "RW_Texture",
     "RW_TextureDictionary",
-
+    "RW_TextureNative",
+    "RW_UserDataPlugin",
     # RWA - RenderWare Audio
     "RW_WaveDict",
     "RW_WaveDict_Dict",
     "RW_WaveDict_Wave",
-    "RWA_Wave",
-    "RWA_WaveStruct",
-    "RWA_WaveData",
-    "RWA_Stream",
-    "RWA_StreamSegment",
-    "RWA_Stream_Header",
-    "RWA_Stream_Data",
+    "RW_World",
 ]

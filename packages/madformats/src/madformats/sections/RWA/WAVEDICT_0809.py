@@ -6,11 +6,12 @@ from pathlib import Path
 from typing import override
 
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from madformats.lib.rwConstants import RWSectionType
 from madformats.sections.RWA.WAVE_0802 import RWA_Wave
 from madformats.sections.RWA.WAVEDICT_DICT_080A import RW_WaveDict_Dict
 from madformats.sections.RWA.WAVEDICT_WAVE_080C import RW_WaveDict_Wave
+
 
 @dataclass
 class RW_WaveDict(RW_Section):
@@ -89,6 +90,7 @@ class RW_WaveDict(RW_Section):
 
         Returns:
             The matching RWA_Wave, or None.
+
         """
         streams = self.wave.streams
 
@@ -100,7 +102,7 @@ class RW_WaveDict(RW_Section):
                 return streams[key]
             return None
 
-        if isinstance(key, str):
+        if isinstance(key, str):  # type: ignore
             for w in streams:
                 if w.wave_struct.stream_name == key:
                     return w
@@ -112,7 +114,7 @@ class RW_WaveDict(RW_Section):
             return None
 
         raise TypeError(
-            f"find_wave() expects an index or a name, got {type(key).__name__}"
+            f"find_wave() expects an index or a name, got {type(key).__name__}",
         )
 
     def get_wave(self, key: int | str) -> RWA_Wave:
@@ -124,6 +126,7 @@ class RW_WaveDict(RW_Section):
         Raises:
             IndexError: `key` is an out-of-range index.
             KeyError: `key` is a name that is not in the dictionary.
+
         """
         found = self.find_wave(key)
         if found is not None:
@@ -131,7 +134,7 @@ class RW_WaveDict(RW_Section):
 
         if isinstance(key, int):
             raise IndexError(
-                f"wave index {key} out of range ({len(self.wave.streams)} waves)"
+                f"wave index {key} out of range ({len(self.wave.streams)} waves)",
             )
         raise KeyError(f"no wave named {key!r} in {self.dict.name!r}")
 
@@ -164,6 +167,7 @@ class RW_WaveDict(RW_Section):
         Args:
             key: Wave index, or stream name.
             filepath: Destination .wav path.
+
         """
         self.get_wave(key).export_wav(filepath, big_endian=self.is_big_endian)
 
@@ -173,6 +177,7 @@ class RW_WaveDict(RW_Section):
         Args:
             key: Wave index, or stream name.
             filepath: Source .wav file. Must be 16-bit PCM.
+
         """
         self.get_wave(key).import_wav(filepath, big_endian=self.is_big_endian)
 
@@ -193,6 +198,7 @@ class RW_WaveDict(RW_Section):
 
         Returns:
             The paths written.
+
         """
         out = Path(output_dir)
         out.mkdir(parents=True, exist_ok=True)
@@ -200,7 +206,8 @@ class RW_WaveDict(RW_Section):
         written: list[Path] = []
         for i, w in enumerate(self.wave.streams):
             safe = "".join(
-                c if c.isalnum() or c in " ._-" else "_" for c in w.wave_struct.stream_name
+                c if c.isalnum() or c in " ._-" else "_"
+                for c in w.wave_struct.stream_name
             ).strip()
             target = out / f"{i}_{safe or 'wave'}.wav"
             try:

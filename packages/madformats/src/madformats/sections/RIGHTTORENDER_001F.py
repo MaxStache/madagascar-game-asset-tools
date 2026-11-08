@@ -3,22 +3,25 @@ from dataclasses import dataclass, field
 from typing import override
 
 from madformats.lib.parser import Parser
-from madformats.lib.writer import write_u32
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from madformats.lib.rwConstants import RWSectionType
+from madformats.lib.writer import write_u32
+
 
 @dataclass
 class RW_RightToRender(RW_Section):
-    """https://gtamods.com/wiki/Right_To_Render_(RW_Section)
-    """
+    """https://gtamods.com/wiki/Right_To_Render_(RW_Section)"""
+
     header: RWHeader = field(default_factory=RWHeader)
 
-    plugin_id: int = 0 # should be a RWSectionType
+    plugin_id: int = 0  # should be a RWSectionType
     extra_data: bytes = b""
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_RightToRender":
+    def read(
+        cls, parser: Parser, parent: RW_Section | None = None
+    ) -> "RW_RightToRender":
         rtt = cls()
         rtt.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(

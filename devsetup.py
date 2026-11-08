@@ -1,17 +1,11 @@
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
 from pathlib import Path
+from tkinter import filedialog, messagebox, ttk
 
 from madformats.savegame import read_save, write_save
 
-
 DEFAULT_SAVE_PATH = (
-    Path.home()
-    / "Documents"
-    / "Activision"
-    / "Madagascar"
-    / "Save"
-    / "SaveGames.mem"
+    Path.home() / "Documents" / "Activision" / "Madagascar" / "Save" / "SaveGames.mem"
 )
 
 
@@ -73,7 +67,7 @@ def patch_savefile():
             f"Slot {slot_index + 1} was successfully patched.",
         )
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         messagebox.showerror(
             "Patch failed",
             f"An error occurred:\n\n{e}",
@@ -89,7 +83,6 @@ def patch_all_slots():
             "Please select a save file first.",
         )
         return
-
 
     confirmed = messagebox.askyesno(
         "WARNING - Irreversible",
@@ -118,7 +111,7 @@ def patch_all_slots():
             "All slots were successfully patched.",
         )
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         messagebox.showerror(
             "Patch failed",
             f"An error occurred:\n\n{e}",

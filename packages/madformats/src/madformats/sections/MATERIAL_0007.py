@@ -3,11 +3,16 @@ from dataclasses import dataclass, field
 from typing import BinaryIO, override
 
 from madformats.lib.parser import Parser
-from madformats.lib.writer import write_u32, write_f32
+from madformats.lib.rw_basics import (
+    RW_Section,
+    RWColor32,
+    RWHeader,
+    expect_chunk_type_or_raise,
+)
 from madformats.lib.rwConstants import RWSectionType
-from madformats.lib.rw_basics import RW_Section, RWColor32, RWHeader, expect_chunk_type_or_raise
-from madformats.sections.TEXTURE_0006 import RW_Texture
+from madformats.lib.writer import write_f32, write_u32
 from madformats.sections.EXTENSION_0003 import RW_Extension
+from madformats.sections.TEXTURE_0006 import RW_Texture
 
 
 @dataclass
@@ -25,7 +30,9 @@ class RW_Material_Struct(RW_Section):
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_Material_Struct":
+    def read(
+        cls, parser: Parser, parent: RW_Section | None = None
+    ) -> "RW_Material_Struct":
         mat_s = cls()
         mat_s.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -91,7 +98,8 @@ class RW_Material(RW_Section):
         )
 
         mat.struct = RW_Material_Struct.read(
-            parser, parent=mat
+            parser,
+            parent=mat,
         )
 
         if mat.struct.isTextured:

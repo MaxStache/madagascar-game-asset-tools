@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from typing import BinaryIO, override
 
-from tfbscript.ansi import keyword
 from madformats.lib.writer import write_u8
+from tfbscript.ansi import keyword
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.opcodes.enums import RelOp
 from tfbscript.payload import PayloadReader
@@ -20,7 +20,7 @@ class OpCheckMessage(Opcode):
     value: Rhs = field(default_factory=Rhs)
 
     _is_extended: bool = field(
-        default=False
+        default=False,
     )  # has sender_ref, rel_op, value determined if payload > 4
 
     @classmethod
@@ -75,5 +75,4 @@ class OpCheckMessage(Opcode):
         if self._is_extended:
             condition = f"value {self.rel_op} {self.value}"
             return f"{keyword('check message (')} {self.message_ref}, sent by: {self.sender_ref}, where: {condition} {keyword(')')}"
-        else:
-            return f"{keyword('check message (')} {self.message_ref} {keyword(')')}"
+        return f"{keyword('check message (')} {self.message_ref} {keyword(')')}"

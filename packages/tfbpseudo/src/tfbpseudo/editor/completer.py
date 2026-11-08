@@ -13,7 +13,7 @@ insertion and the last into a dismissal.
 
 from PySide6.QtCore import QModelIndex, QObject, QRect, QSize, Qt
 from PySide6.QtGui import QColor, QStandardItem, QStandardItemModel, QTextCursor
-from PySide6.QtWidgets import QCompleter, QStyledItemDelegate
+from PySide6.QtWidgets import QCompleter, QListView, QStyledItemDelegate
 
 from tfbpseudo.editor.completions import (
     KEY_CHARS,
@@ -109,30 +109,37 @@ class Completer(QObject):
         self.completer = QCompleter(self.model, self)
         self.completer.setWidget(editor)
         self.completer.setCompletionMode(
-            QCompleter.CompletionMode.UnfilteredPopupCompletion
+            QCompleter.CompletionMode.UnfilteredPopupCompletion,
         )
-        self.completer.activated[QModelIndex].connect(self.insert)
+        # The stubs miss SignalInstance.__getitem__, which picks an overload.
+        self.completer.activated[QModelIndex].connect(  # pyright: ignore[reportIndexIssue]
+            self.insert,
+        )
 
-        popup = self.completer.popup()
-        popup.setItemDelegate(ProposalDelegate(theme, popup))
+        # Our own QListView rather than the default popup: it is one anyway,
+        # but `popup()` is typed as QAbstractItemView, which lacks
+        # setUniformItemSizes.
+        self.popup = popup = QListView()
         popup.setUniformItemSizes(True)
+        self.completer.setPopup(popup)
+        popup.setItemDelegate(ProposalDelegate(theme, popup))
 
         editor.completer = self
         self.set_theme(theme)
 
     def set_theme(self, theme: Theme) -> None:
         self.theme = theme
-        popup = self.completer.popup()
+        popup = self.popup
         popup.setItemDelegate(ProposalDelegate(theme, popup))
         popup.setStyleSheet(style_sheet(theme))
 
     # ----- opening and closing -----
 
     def popup_visible(self) -> bool:
-        return self.completer.popup().isVisible()
+        return self.popup.isVisible()
 
     def hide(self) -> None:
-        self.completer.popup().hide()
+        self.popup.hide()
 
     def typed(self, text: str) -> None:
         """Called after a key has gone into the text.
@@ -167,7 +174,7 @@ class Completer(QObject):
 
         self.fill(found)
         self.completer.complete(self.rectangle(found.prefix))
-        self.completer.popup().setCurrentIndex(self.model.index(0, 0))
+        self.popup.setCurrentIndex(self.model.index(0, 0))
 
     # ----- the popup -----
 
@@ -184,13 +191,14 @@ class Completer(QObject):
 
     def rectangle(self, prefix: str) -> QRect:
         """Where to put the popup: under the start of what it would replace,
-        wide enough for the longest entry it holds."""
-        popup = self.completer.popup()
+        wide enough for the longest entry it holds.
+        """
+        popup = self.popup
 
         rect = self.editor.cursorRect()
         rect.translate(self.editor.viewport().pos())
         rect.setLeft(
-            rect.left() - self.editor.fontMetrics().horizontalAdvance(prefix)
+            rect.left() - self.editor.fontMetrics().horizontalAdvance(prefix),
         )
 
         width = popup.sizeHintForColumn(0) + popup.frameWidth() * 2
@@ -199,7 +207,7 @@ class Completer(QObject):
         rect.setWidth(max(width, 160))
 
         popup.setMaximumHeight(
-            MAX_VISIBLE * popup.sizeHintForRow(0) + popup.frameWidth() * 2
+            MAX_VISIBLE * popup.sizeHintForRow(0) + popup.frameWidth() * 2,
         )
 
         return rect
@@ -216,7 +224,8 @@ class Completer(QObject):
 
         cursor.beginEditBlock()
         cursor.setPosition(
-            cursor.position() - len(prefix), QTextCursor.MoveMode.KeepAnchor
+            cursor.position() - len(prefix),
+            QTextCursor.MoveMode.KeepAnchor,
         )
         cursor.insertText(proposal.text())
 
@@ -238,5 +247,6 @@ class Completer(QObject):
 
     def takes(self, event) -> bool:
         """Whether the popup is going to deal with this key itself, in which
-        case the editor has to leave it alone."""
+        case the editor has to leave it alone.
+        """
         return self.popup_visible() and event.key() in self.TAKES

@@ -1,7 +1,10 @@
+import sys
+
+from colorama import Fore, init
+
 from madformats.lib.rw_basics import RW_StreamFunc
 from madformats.stream.query import StreamQueryMixin
-from madformats.stream.verify import STREAM_VERIFY_STAGES
-from colorama import Fore, init
+from madformats.stream.verify import STREAM_VERIFY_STAGES, StreamVerifyError
 
 init(autoreset=True)
 
@@ -58,16 +61,12 @@ class StreamEditMixin(StreamQueryMixin):
         self._INTERNAL_PLACEMENT_DIRTY = False
 
     def verify(self, verbose: bool = False, label: str | None = None) -> None:
-        """Some simple checks to catch errors before the game crashes (;
-
-        Prints a single summary line, followed by any warnings.
-        `label` (e.g. the level name) is shown in the summary line.
-        """
+        """Some simple checks to catch errors before the game crashes (;"""
         prefix = f"[STREAM VERIFY] {label}:" if label else "[STREAM VERIFY]"
 
         if not self._INTERNAL_PLACEMENT_UPDATED and self._INTERNAL_PLACEMENT_DIRTY:
             raise ValueError(
-                "[STREAM VERIFY, SPE001] Stream was modified in length but never updated with 'stream.updatePlacementNew()' before verifying and saving, add 'stream.updatePlacementNew()' to resolve this error "
+                "[STREAM VERIFY, SPE001] Stream was modified in length but never updated with 'stream.updatePlacementNew()' before verifying and saving, add 'stream.updatePlacementNew()' to resolve this error ",
             )
 
         total = len(STREAM_VERIFY_STAGES)
@@ -75,10 +74,21 @@ class StreamEditMixin(StreamQueryMixin):
         for i, (name, stage) in enumerate(STREAM_VERIFY_STAGES):
             if verbose:
                 print(f"{prefix} stage {i + 1}/{total}: {name}")
-            warns.extend((name, w) for w in stage(self, verbose))  # type: ignore
+
+            try:
+                warns.extend((name, w) for w in stage(self, verbose))  # type: ignore
+            except StreamVerifyError as e:
+                print(
+                    Fore.RED
+                    + f"[STREAM VERIFY - {e.code}] {type(e).__qualname__}: {e!s}",
+                )
+                sys.exit(1)
 
         if warns:
-            print(Fore.YELLOW + f"{prefix} passed {total} checks, {len(warns)} warning(s)")
+            print(
+                Fore.YELLOW
+                + f"{prefix} passed {total} checks, {len(warns)} warning(s)",
+            )
             for name, w in warns:
                 print(Fore.YELLOW + f"  - [{name}] {w}")
         else:

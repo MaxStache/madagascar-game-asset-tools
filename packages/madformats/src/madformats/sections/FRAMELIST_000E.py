@@ -2,12 +2,17 @@ import io
 from dataclasses import dataclass, field
 from typing import override
 
-from madformats.lib.writer import write_u32
 from madformats.lib.parser import Parser
+from madformats.lib.rw_basics import (
+    RW_Frame,
+    RW_Section,
+    RWHeader,
+    expect_chunk_type_or_raise,
+)
 from madformats.lib.rwConstants import RWSectionType
-from madformats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise, RW_Frame
-
+from madformats.lib.writer import write_u32
 from madformats.sections.EXTENSION_0003 import RW_Extension
+
 
 @dataclass
 class RW_FrameList_Struct(RW_Section):
@@ -18,7 +23,9 @@ class RW_FrameList_Struct(RW_Section):
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_FrameList_Struct":
+    def read(
+        cls, parser: Parser, parent: RW_Section | None = None
+    ) -> "RW_FrameList_Struct":
         fl_struct = cls()
         fl_struct.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -50,6 +57,7 @@ class RW_FrameList_Struct(RW_Section):
         f.write(rw_header.pack())
         f.write(buf.getvalue())
 
+
 @dataclass
 class RW_FrameList(RW_Section):
     header: RWHeader = field(default_factory=RWHeader)
@@ -79,7 +87,7 @@ class RW_FrameList(RW_Section):
 
         if parser.tell() != section_end:
             raise ValueError(
-                f"RW_FrameList parsing ended at offset {parser.tell()}, expected {section_end}"
+                f"RW_FrameList parsing ended at offset {parser.tell()}, expected {section_end}",
             )
 
         return framelist

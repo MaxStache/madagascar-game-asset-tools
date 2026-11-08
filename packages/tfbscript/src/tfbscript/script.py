@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import BinaryIO
 
 from madformats.lib.parser import Parser
-from madformats.lib.writer import write_u32, write_u8
+from madformats.lib.writer import write_u8, write_u32
 from tfbscript import ansi
 from tfbscript.arena import arena_dwords
 from tfbscript.debug import DebugStore
@@ -21,7 +21,7 @@ class ScriptFile:
 
     magic_string: str = field(default="TFB Script")
     unk: bytes = field(
-        default=b"\x00\x00\x00\x00"
+        default=b"\x00\x00\x00\x00",
     )  # 4 unknown bytes after the magic string
 
     opcode_table: StringTable = field(default_factory=StringTable)
@@ -32,17 +32,18 @@ class ScriptFile:
 
     @classmethod
     def read(
-        cls, reader: Parser, debugOptions: dict[str, bool | int] | None = None
+        cls,
+        reader: Parser,
+        debugOptions: dict[str, bool | int] | None = None,
     ) -> "ScriptFile":
         """Read a ScriptFile from a binary reader."""
-
         if debugOptions is None:
             debugOptions = {}
 
         debug_store: DebugStore = DebugStore()
 
         magic_string = reader.readString(reader.readUint8())
-        #print(magic_string)
+        # print(magic_string)
         unk = reader.readBytes(4)
 
         opcode_table = StringTable.read(reader)
@@ -57,14 +58,17 @@ class ScriptFile:
         try:
             while instructions_read < instruction_count:
                 instruction = Opcode.read(
-                    reader, context, debug_store=debug_store, debugOptions=debugOptions
+                    reader,
+                    context,
+                    debug_store=debug_store,
+                    debugOptions=debugOptions,
                 )
                 instructions.append(instruction)
                 # Count the instruction and its descendants.
                 instructions_read += instruction.total_span()
         except Exception as error:
             raise ValueError(
-                f"Error reading instruction {instructions_read}: {error}"
+                f"Error reading instruction {instructions_read}: {error}",
             ) from error
 
         if debugOptions.get("listUnresolvedOps"):
@@ -84,7 +88,6 @@ class ScriptFile:
 
     def write(self, f: BinaryIO) -> None:
         """Write the ScriptFile to a binary file."""
-
         write_u8(f, len(self.magic_string))
         f.write(self.magic_string.encode("latin1"))
 
@@ -113,10 +116,11 @@ class ScriptFile:
 
     @classmethod
     def from_path(
-        cls, path: str | Path, debugOptions: dict[str, bool | int] | None = None
+        cls,
+        path: str | Path,
+        debugOptions: dict[str, bool | int] | None = None,
     ) -> "ScriptFile":
         """Read a ScriptFile from an .ai file on disk."""
-
         if debugOptions is None:
             debugOptions = {}
 
@@ -141,7 +145,7 @@ class ScriptFile:
 
             print(
                 f"  {ansi.number(f'{index:>3}')}: {'::'.join(parts)}"
-                + f"  {ansi.comment(f'[{metadata}]')}"
+                f"  {ansi.comment(f'[{metadata}]')}",
             )
 
     def print_tree(self) -> None:

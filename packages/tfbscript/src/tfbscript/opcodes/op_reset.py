@@ -34,7 +34,7 @@ class OpReset(Opcode):
                     "type": "ref",
                     "ref": self.target,
                 },
-            ]
+            ],
         }
 
     @override

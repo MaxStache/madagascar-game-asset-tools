@@ -1,12 +1,12 @@
 from dataclasses import dataclass, field
 from typing import BinaryIO, override
 
+from madformats.lib.writer import write_u8
 from tfbscript.ansi import (
     comparison,
     func_call,
     variable,
 )
-from madformats.lib.writer import write_u8
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.opcodes.enums import RelOp
 from tfbscript.payload import PayloadReader
@@ -41,9 +41,7 @@ class OpFindSubset(Opcode):
     def source_line(self, inline: bool = False) -> str:
         # Rendered as: set.filter(val <op> rhs )
         val = variable("val")
-        lambda_src = (
-            f"{val} {comparison(self.rel_op.symbol())} {self.rhs}"
-        )
+        lambda_src = f"{val} {comparison(self.rel_op.symbol())} {self.rhs}"
         set_ref_str = str(self.set_ref)
 
         return f"{set_ref_str}.{func_call('filter', lambda_src)}"

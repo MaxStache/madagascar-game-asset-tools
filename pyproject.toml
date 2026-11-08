@@ -18,8 +18,11 @@ dependencies = [
     "fonttools>=4.63.0",
     "madformats>=0.1.3",
     "madlysimple>=0.1.3",
+    "moderngl>=5.13.0",
+    "numpy>=2.5.1",
     "pillow>=12.3.0",
     "pymem>=1.14.0",
+    "pyside6>=6.11.2",
     "pyyaml>=6.0.3",
     "rich>=14.3.0",
     "tfbpseudo[editor]>=0.1.2",
@@ -63,3 +66,15 @@ madlysimple = { workspace = true }
 madformats = { workspace = true }
 tfbpseudo = { workspace = true }
 tfbscript = { workspace = true }
+
+[tool.pyright]
+include = ["src", "packages", "tests"]
+exclude = ["**/__pycache__", "**/.venv", "build", "dist"]
+ignore = ["generated"]
+
+[tool.ruff]
+src = ["src", "packages/*/src"]
+exclude = ["other"]
+
+[tool.ruff.lint]
+ignore = ["N999", "D101", "D102"]

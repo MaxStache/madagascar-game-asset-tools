@@ -3,8 +3,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, BinaryIO, TypeVar, override
 
-from tfbscript.ansi import builtin, keyword, variable, variable_global
 from madformats.lib.writer import write_u32
+from tfbscript.ansi import builtin, keyword, variable, variable_global
 from tfbscript.string_table import StringTable, StringTableEntry
 
 if TYPE_CHECKING:
@@ -23,7 +23,7 @@ _RESOLVING: set[int] = set()
 
 # Fields `raw` is composed from: assigning any of them re-runs update_raw.
 _RAW_INPUTS = frozenset(
-    {"index", "member", "scope", "sub", "kind", "builtin_kind", "slot"}
+    {"index", "member", "scope", "sub", "kind", "builtin_kind", "slot"},
 )
 
 
@@ -363,7 +363,8 @@ def member_field(type_name: str | None, index: int) -> dict[str, str] | None:
 @dataclass(frozen=True)
 class ResolvedType:
     """What a reference ultimately names: a type, and whether it is a whole
-    set of them or a single one."""
+    set of them or a single one.
+    """
 
     type: str | None  # None when it could not be resolved
     is_set: bool = False
@@ -495,7 +496,7 @@ class Reference:
             if not 0 <= value <= limit:
                 raise ValueError(
                     f"reference {name} {value:#x} does not fit its bit-field "
-                    + f"(0..{limit:#x})"
+                    f"(0..{limit:#x})",
                 )
 
         raw = (index << 14) | (member << 8) | (scope << 6) | sub
@@ -580,8 +581,10 @@ class Reference:
             local_refs: the script's 3rd string table (locals) for name resolution.
             context: the script's parser context, used to resolve the type of
                 some builtins (e.g. "[~subset]") from prior opcodes.
+
         Returns:
             A Reference with the decoded bit-fields and a resolved `name`.
+
         """
         if reader.remaining() < 4:
             raise ValueError("a reference is 4 bytes, not enough bytes remaining")
@@ -657,7 +660,7 @@ class Reference:
         if self.kind == ReferenceType.GLOBAL:
             assert self.entry is not None
             s = variable_global(
-                self.entry.name if SHOW_NAME_ONLY else self.entry.string
+                self.entry.name if SHOW_NAME_ONLY else self.entry.string,
             )
             if self.entry.category == "set":
                 s = f" [{s}]"
@@ -710,7 +713,8 @@ class Reference:
     def _get_sub_string(self) -> str:
         """The component `sub` picks out, named when whatever it applies to has
         a name for it -- the `a` of a tint colour, the `x` of a sprite's
-        location -- and the raw index when it does not."""
+        location -- and the raw index when it does not.
+        """
         try:
             applies_to = self.resolve_type(apply_sub=False).type
         except ValueError:
@@ -725,7 +729,8 @@ class Reference:
 
     def _selects_from_set(self) -> bool:
         """Whether what `scope` picks from is a set: the member it selects, or,
-        with no member, the reference's own target."""
+        with no member, the reference's own target.
+        """
         if self.member:
             my_field = member_field(self.get_resolved_type(), self.member)
             return my_field is not None and my_field.get("type") == "set"
@@ -759,42 +764,35 @@ class Reference:
                         ):
                             if type_ == "set":
                                 return f" [{label}]"
-                            else:
-                                return f" {label}"
-                        else:
-                            if type_ == "set":
-                                return f"'s [{label}]"
-                            else:
-                                return f"'s {label}"
-
-                    else:
+                            return f" {label}"
                         if type_ == "set":
-                            return f".[{label}]"
-                        else:
-                            return f".{label}"
-                else:
-                    if not suppressWarnings:
-                        print(
-                            "WARN: cant resolve binding for",
-                            my_type,
-                            "member",
-                            hex(self.member),
-                            "entry",
-                            self.entry,
-                            file=sys.stderr,
-                        )
+                            return f"'s [{label}]"
+                        return f"'s {label}"
 
-            else:
+                    if type_ == "set":
+                        return f".[{label}]"
+                    return f".{label}"
                 if not suppressWarnings:
                     print(
-                        "WARN: cant resolve bindings for type",
-                        '"' + my_type + '"',
+                        "WARN: cant resolve binding for",
+                        my_type,
+                        "member",
+                        hex(self.member),
                         "entry",
                         self.entry,
-                        "field",
-                        hex(self.member),
                         file=sys.stderr,
                     )
+
+            elif not suppressWarnings:
+                print(
+                    "WARN: cant resolve bindings for type",
+                    '"' + my_type + '"',
+                    "entry",
+                    self.entry,
+                    "field",
+                    hex(self.member),
+                    file=sys.stderr,
+                )
 
         return f".field[{self.member:#04x}]"
 
@@ -838,7 +836,8 @@ class Reference:
     def get_resolved_type(self) -> str | None:
         """The type of the target this reference starts at, *before* `member`,
         `scope` and `sub` are applied. Use `resolve_type` for the end of the
-        chain."""
+        chain.
+        """
         # A builtin resolves through the op that produced it, and that op's own
         # operand can be the same builtin again -- `control [~controlled]`
         # nested inside `control [~controlled]` resolves via
@@ -861,66 +860,63 @@ class Reference:
         if self.kind == ReferenceType.BUILTIN:
             if self.builtin_kind == BuiltinType.SELF:
                 return "actor"
-            elif self.builtin_kind == BuiltinType.SUBSET:
+            if self.builtin_kind == BuiltinType.SUBSET:
                 from tfbscript.opcodes import OpCheckFOV, OpFindSubset
 
                 producer = self._builtin_find_producer((OpCheckFOV, OpFindSubset))
 
                 if isinstance(producer, OpFindSubset):
                     return producer.set_ref.get_final_type(apply_sub=False)
-                else:
-                    return producer.target_ref.get_final_type()
+                return producer.target_ref.get_final_type()
 
-            elif self.builtin_kind == BuiltinType.MESSAGE_VALUE:
+            if self.builtin_kind == BuiltinType.MESSAGE_VALUE:
                 return "value"  # TODO: maybe we can resolve here??? seems kinda hard to do, since the message value is set by the sender and we don't have that context here
 
-            elif self.builtin_kind == BuiltinType.FOUND_VARIABLE:
+            if self.builtin_kind == BuiltinType.FOUND_VARIABLE:
                 # Not tested on real scripts cus couldnt find one
                 from tfbscript.opcodes import OpFindVariable
 
                 producer = self._builtin_find_producer(OpFindVariable)
                 return producer.var_ref.get_final_type()
 
-            elif self.builtin_kind == BuiltinType.EACH:
+            if self.builtin_kind == BuiltinType.EACH:
                 from tfbscript.opcodes import OpForEach
 
                 producer = self._builtin_find_producer(OpForEach)
                 return producer.set_ref.get_final_type()
 
-            elif self.builtin_kind == BuiltinType.CONTROLLED:
+            if self.builtin_kind == BuiltinType.CONTROLLED:
                 from tfbscript.opcodes import OpControl, OpSpawnActor
 
                 producer = self._builtin_find_producer((OpControl, OpSpawnActor))
 
                 if isinstance(producer, OpControl):
                     return producer.target.get_final_type()
-                else:
-                    return producer.clone_ref.get_final_type()
+                return producer.clone_ref.get_final_type()
 
-            else:
-                raise ValueError(
-                    f"Reference is a builtin of kind {self.builtin_kind} but has no type resolution implemented"
-                )
+            raise ValueError(
+                f"Reference is a builtin of kind {self.builtin_kind} but has no type resolution implemented",
+            )
 
         if self.kind in (ReferenceType.GLOBAL, ReferenceType.LOCAL):  # variable
             if self.entry is not None:
                 return self.entry.type
-            else:
-                raise ValueError("Reference has no entry to resolve type")
+            raise ValueError("Reference has no entry to resolve type")
 
         return None  # Should never reach here
 
     def _builtin_find_producer(
-        self, opcode_types: type[_OpcodeT] | tuple[type[_OpcodeT], ...]
+        self,
+        opcode_types: type[_OpcodeT] | tuple[type[_OpcodeT], ...],
     ):
         if self.context is None:
             raise ValueError(
-                f"Reference {self.builtin_kind} is a builtin (and a field on it is used) but has no context to resolve its type"
+                f"Reference {self.builtin_kind} is a builtin (and a field on it is used) but has no context to resolve its type",
             )
         producer = self.context.nearest_ancestor(opcode_types)
         if producer is None:
             raise ValueError(
-                f"Reference {self.builtin_kind} is a builtin (and a field on it is used) but has no enclosing op to resolve its type"
+                f"Reference {self.builtin_kind} is a builtin (and a field on it is used) but has no enclosing op to resolve its type",
             )
 
         return producer

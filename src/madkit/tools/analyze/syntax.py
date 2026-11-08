@@ -48,8 +48,7 @@ def _get_tokens(code: str):
     readline = io.StringIO(code).readline
 
     try:
-        for tok in tokenize.generate_tokens(readline):
-            toks.append(tok)
+        toks.extend(tokenize.generate_tokens(readline))
     except tokenize.TokenError:
         # Keep tokens before the incomplete part
         pass
@@ -126,7 +125,10 @@ def highlight(widget: tk.Text, code: str):
                 # subtraction and stays punctuation.
                 if prev_tok is None or (
                     prev_tok.type not in (tokenize.NUMBER, tokenize.STRING)
-                    and not (prev_tok.type == tokenize.NAME and not keyword.iskeyword(prev_tok.string))
+                    and not (
+                        prev_tok.type == tokenize.NAME
+                        and not keyword.iskeyword(prev_tok.string)
+                    )
                     and not (prev_tok.type == tokenize.OP and prev_tok.string in ")]}")
                 ):
                     tag = "number"

@@ -29,7 +29,8 @@ against Game.exe's ``parse`` return values all agree: set value 0x18, control
 0x10, check message 0x1c, send message 0x1c, cut-scene 0x0c.
 """
 
-from typing import TYPE_CHECKING, Iterator
+from collections.abc import Iterator
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from tfbscript.opcodes.base import Opcode

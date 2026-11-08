@@ -1,13 +1,12 @@
-from enum import Enum
 import io
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import BinaryIO, ClassVar, override
 
-from madformats.lib.writer import write_u32, write_s32, write_f32
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
-
+from madformats.lib.rwConstants import RWSectionType
+from madformats.lib.writer import write_f32, write_s32, write_u32
 from madformats.sections.TEXTURE_0006 import RW_Texture
 
 
@@ -27,8 +26,7 @@ class RW_MaterialEffectsPlugin_Variant(Enum):
 
 
 def _parent_is_atomic(parent: RW_Section | None) -> bool:
-    """
-    Whether the extension's parent chunk is an Atomic (or Atomic Sector).
+    """Whether the extension's parent chunk is an Atomic (or Atomic Sector).
 
     ``parent.header.type`` may be a raw ``int`` (a ``RWSectionType.*.value``) or an
     ``RWSectionType`` member, depending on the caller, so normalise to ``int``.
@@ -36,7 +34,7 @@ def _parent_is_atomic(parent: RW_Section | None) -> bool:
     if parent is None:
         return False
     assert hasattr(parent, "header")
-    return parent.header.type in ( # type: ignore
+    return parent.header.type in (  # type: ignore
         RWSectionType.rwID_ATOMICSECT.value,
         RWSectionType.rwID_ATOMIC.value,
     )
@@ -200,7 +198,8 @@ class RW_MatFXEffectUVTransform(RW_MaterialEffectsPlugin_Effect):
 
 
 _EFFECT_REGISTRY: dict[
-    RW_MaterialEffectsPlugin_EffectType, type[RW_MaterialEffectsPlugin_Effect]
+    RW_MaterialEffectsPlugin_EffectType,
+    type[RW_MaterialEffectsPlugin_Effect],
 ] = {
     RW_MaterialEffectsPlugin_EffectType.rwMATFXEFFECTNULL: RW_MatFXEffectNull,
     RW_MaterialEffectsPlugin_EffectType.rwMATFXEFFECTBUMPMAP: RW_MatFXEffectBumpMap,
@@ -212,8 +211,7 @@ _EFFECT_REGISTRY: dict[
 
 @dataclass
 class RW_MaterialEffectsPlugin(RW_Section):
-    """
-    Material Effects PLG (rwID_MATERIALEFFECTSPLUGIN, 0x0120).
+    """Material Effects PLG (rwID_MATERIALEFFECTSPLUGIN, 0x0120).
 
     This chunk appears as an extension on two different parents and its layout
     depends on which one:
@@ -232,7 +230,7 @@ class RW_MaterialEffectsPlugin(RW_Section):
     header: RWHeader = field(default_factory=RWHeader)
 
     variant: RW_MaterialEffectsPlugin_Variant = field(
-        default=RW_MaterialEffectsPlugin_Variant.MaterialExtension
+        default=RW_MaterialEffectsPlugin_Variant.MaterialExtension,
     )
 
     # --- Atomic extension (variant == AtomicExtension) ---
@@ -240,15 +238,17 @@ class RW_MaterialEffectsPlugin(RW_Section):
 
     # --- Material extension (variant == MaterialExtension) ---
     effectType: RW_MaterialEffectsPlugin_EffectType = field(
-        default=RW_MaterialEffectsPlugin_EffectType.rwMATFXEFFECTNULL
+        default=RW_MaterialEffectsPlugin_EffectType.rwMATFXEFFECTNULL,
     )  # uint32 - overall effect type header
     effects: list[RW_MaterialEffectsPlugin_Effect] = field(
-        default_factory=list
+        default_factory=list,
     )  # always two slots
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_MaterialEffectsPlugin":
+    def read(
+        cls, parser: Parser, parent: RW_Section | None = None
+    ) -> "RW_MaterialEffectsPlugin":
         matfx = cls()
         matfx.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -293,5 +293,4 @@ class RW_MaterialEffectsPlugin(RW_Section):
     def __repr__(self):
         if self.variant == RW_MaterialEffectsPlugin_Variant.AtomicExtension:
             return f"RW_MaterialEffectsPlugin(header={self.header!r},variant={self.variant!r}, matFXEnabled={self.matFXEnabled!r})"
-        else:
-            return f"RW_MaterialEffectsPlugin(header={self.header!r},variant={self.variant!r}, effectType={self.effectType!r},effects={self.effects!r})"
+        return f"RW_MaterialEffectsPlugin(header={self.header!r},variant={self.variant!r}, effectType={self.effectType!r},effects={self.effects!r})"

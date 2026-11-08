@@ -6,8 +6,8 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, BinaryIO, Self, TypeVar
 
+from madformats.lib.writer import write_u8, write_u32
 from tfbscript.ansi import flow_control, keyword
-from madformats.lib.writer import write_u32, write_u8
 from tfbscript.debug import DebugStore
 from tfbscript.payload import PayloadReader
 from tfbscript.string_table import StringTable
@@ -22,7 +22,7 @@ class InstructionFlags:
 
     flow_control: int = (
         0  # bits 0-2 -- flow-control value returned by tfb_walk_children (FUN_00431130)
-    ) 
+    )
     # 0: return - skip to end of script (block)
     # 1: continue - proceed normally
     # 2,3,4...: break - skip the rest of N-1 enclosing levels, then resume
@@ -67,12 +67,12 @@ class InstructionFlags:
     def print(self) -> None:
         print(
             "Flags: "
-            + f"flow_control={self.flow_control_str()}, "
-            + f"reserved_low={hex(self.reserved_low)} ({self.reserved_low}), "
-            + f"no_handler={self.no_handler}, "
-            + f"runtime_scratch={self.runtime_scratch}, "
-            + f"reserved_high={hex(self.reserved_high)} ({self.reserved_high}), "
-            + f"descendant_span={self.descendant_span}"
+            f"flow_control={self.flow_control_str()}, "
+            f"reserved_low={hex(self.reserved_low)} ({self.reserved_low}), "
+            f"no_handler={self.no_handler}, "
+            f"runtime_scratch={self.runtime_scratch}, "
+            f"reserved_high={hex(self.reserved_high)} ({self.reserved_high}), "
+            f"descendant_span={self.descendant_span}",
         )
 
 
@@ -100,10 +100,12 @@ class ParserContext:
     open_opcodes: list["Opcode"] = field(default_factory=list)
 
     def nearest_ancestor(
-        self, opcode_types: type[_OpcodeT] | tuple[type[_OpcodeT], ...]
+        self,
+        opcode_types: type[_OpcodeT] | tuple[type[_OpcodeT], ...],
     ) -> _OpcodeT | None:
         """The innermost currently-open opcode that is an instance of `opcode_types`
-        (a single opcode class, or a tuple of classes to match any of)."""
+        (a single opcode class, or a tuple of classes to match any of).
+        """
         for op in reversed(self.open_opcodes):
             if isinstance(op, opcode_types):
                 return op
@@ -116,7 +118,8 @@ OPCODE_REGISTRY: dict[str, type["Opcode"]] = {}
 
 
 def opcode(
-    name: str, description: str = ""
+    name: str,
+    description: str = "",
 ) -> Callable[[type[_OpcodeT]], type[_OpcodeT]]:
     """Class decorator that registers an Opcode subclass under its table name."""
 
@@ -213,27 +216,28 @@ class Opcode:
             if payload_reader.remaining() > 0 and opcode_class is not Opcode:
                 print(
                     f"Warning: {opcode_class.__name__} did not consume all payload bytes "
-                    + f"(opcode index {opcode_index}, name {opcode_name if opcode_name else 'control block'}): "
-                    + f"{payload_reader.remaining()} bytes remaining, "
-                    + f"{payload_reader.offset} bytes read "
-                    + f"-> {payload_reader.offset}/{len(payload_reader.data)} bytes read",
+                    f"(opcode index {opcode_index}, name {opcode_name or 'control block'}): "
+                    f"{payload_reader.remaining()} bytes remaining, "
+                    f"{payload_reader.offset} bytes read "
+                    f"-> {payload_reader.offset}/{len(payload_reader.data)} bytes read",
                     file=sys.stderr,
                 )
                 throwOnPayloadRemaining = debugOptions.get(
-                    "throwOnPayloadRemaining", False
+                    "throwOnPayloadRemaining",
+                    False,
                 )
                 if throwOnPayloadRemaining:
                     raise ValueError(
                         f"Opcode {opcode_class.__name__} did not consume all payload bytes "
-                        + f"(opcode index {opcode_index}, name {opcode_name if opcode_name else 'control block'}): "
-                        + f"{payload_reader.remaining()} bytes remaining, "
-                        + f"{payload_reader.offset} bytes read "
-                        + f"-> {payload_reader.offset}/{len(payload_reader.data)} bytes read"
+                        f"(opcode index {opcode_index}, name {opcode_name or 'control block'}): "
+                        f"{payload_reader.remaining()} bytes remaining, "
+                        f"{payload_reader.offset} bytes read "
+                        f"-> {payload_reader.offset}/{len(payload_reader.data)} bytes read",
                     )
         except Exception as e:
             print(
                 f"Error parsing payload for opcode {opcode_class.__name__} "
-                + f"(index {opcode_index}, name {opcode_name if opcode_name else 'control block'}): {e}",
+                f"(index {opcode_index}, name {opcode_name or 'control block'}): {e}",
                 file=sys.stderr,
             )
             instruction = Opcode()
@@ -286,12 +290,13 @@ class Opcode:
     @classmethod
     def parse_payload(cls, reader: PayloadReader) -> Self:
         """Parse this opcode's payload. Override in subclasses; the base
-        implementation is the generic fallback and parses nothing."""
+        implementation is the generic fallback and parses nothing.
+        """
         reader.readBytes(reader.remaining())  # consume all remaining bytes
         if cls is not Opcode:
             print(
                 f"Warning: parse_payload not implemented for {cls.__name__}. "
-                + "Returning empty instance.",
+                "Returning empty instance.",
                 file=sys.stderr,
             )
         return cls()
@@ -334,9 +339,9 @@ class Opcode:
                 if self.context is not None:
                     self.context.open_opcodes.pop()
 
-            if self.flags.flow_control != 1: # is not continue
+            if self.flags.flow_control != 1:  # is not continue
                 print(
-                    f"{'    ' * children_indent}{keyword('flow ')}{flow_control(self.flags.flow_control_str())}"
+                    f"{'    ' * children_indent}{keyword('flow ')}{flow_control(self.flags.flow_control_str())}",
                 )
             print(f"{'    ' * indent}{'}'}")
 
@@ -357,5 +362,5 @@ class Opcode:
                     "type": "label",
                     "content": self.source_line(),
                 },
-            ]
+            ],
         }

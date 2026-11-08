@@ -1,6 +1,7 @@
 # from tfbscript import ScriptFile
 # from tfbscript import open_editor, editor_from_filepath
 from tfbscript import editor_from_filepath
+
 # from contextlib import redirect_stdout
 
 # script = ScriptFile.from_path(
@@ -16,7 +17,7 @@ from tfbscript import editor_from_filepath
 #
 # open_editor(script)
 
-PATH = r"C:\Users\maxst\Projects\madagascar-tfbscript\example_scripts\lemurs\670_SL_LemurConvoy.ai"
+PATH = r"Levels/kingofny/557_ME_BAllo0ns_floating.ai"
 
 editor_from_filepath(PATH)
 

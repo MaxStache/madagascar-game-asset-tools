@@ -1,8 +1,8 @@
-import struct
-import os
-import sys
-import json
 import base64
+import json
+import os
+import struct
+import sys
 import uuid
 
 RW_CONTAINER = 1814     # strfunc_LoadEmbeddedAsset

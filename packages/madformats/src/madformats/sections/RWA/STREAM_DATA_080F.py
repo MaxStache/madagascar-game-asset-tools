@@ -2,8 +2,8 @@ from dataclasses import dataclass, field
 from typing import override
 
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
+from madformats.lib.rwConstants import RWSectionType
 
 
 @dataclass
@@ -20,7 +20,9 @@ class RWA_Stream_Data(RW_Section):
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RWA_Stream_Data":
+    def read(
+        cls, parser: Parser, parent: RW_Section | None = None
+    ) -> "RWA_Stream_Data":
         stream_data = cls()
         stream_data.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(

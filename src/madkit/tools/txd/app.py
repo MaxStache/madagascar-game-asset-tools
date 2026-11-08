@@ -1,10 +1,10 @@
 """Tkinter GUI that renders a texture dictionary as a grid of image previews."""
 
 import ctypes as ct
+import logging
 import sys
 import time
 import tkinter as tk
-import traceback
 from pathlib import Path
 from tkinter import ttk
 from tkinter.filedialog import askopenfilename
@@ -12,11 +12,12 @@ from tkinter.messagebox import showerror
 
 from PIL import Image, ImageTk
 
+from madformats.sections.TEXTURENATIVE_0015 import RW_TextureNative
 from madformats.stream import load_stream
 from madformats.txd import loads_txd
-from madformats.sections.TEXTURENATIVE_0015 import RW_TextureNative
-
 from madkit.tools.stream.theme import COLORS, configure_style
+
+logger = logging.getLogger(__name__)
 
 COLUMNS = 3
 THUMB = 192  # preview box, in pixels
@@ -146,7 +147,10 @@ class TextureCard(ttk.Frame):
         # measured in characters, so the size has to come from a frame with
         # propagation switched off.
         box = tk.Frame(
-            self, width=THUMB, height=THUMB, background=COLORS["panel_bg"]
+            self,
+            width=THUMB,
+            height=THUMB,
+            background=COLORS["panel_bg"],
         )
         box.pack_propagate(False)
         box.pack()
@@ -210,6 +214,7 @@ class TextureCard(ttk.Frame):
         try:
             self.image = _texture_image(self.tex)
         except Exception as exc:  # an unsupported encoding shouldn't kill the grid
+            logger.exception("Failed to decode texture")
             self.preview.configure(
                 text=f"decode failed\n{exc}",
                 foreground=COLORS["error"],
@@ -248,19 +253,28 @@ class TxdViewer:
         self.file_label.pack(side="left", padx=(12, 0))
 
         ttk.Button(
-            header, text="Open...", style="Header.TButton", command=self.open_dialog
+            header,
+            text="Open...",
+            style="Header.TButton",
+            command=self.open_dialog,
         ).pack(side="right")
 
         self.search = tk.StringVar()
         self.search.trace_add("write", lambda *_: self._layout())
         ttk.Entry(
-            header, textvariable=self.search, style="Search.TEntry", width=24
+            header,
+            textvariable=self.search,
+            style="Search.TEntry",
+            width=24,
         ).pack(side="right", padx=(0, 10))
 
         # Picks between the dictionaries a .stream carries; hidden for a
         # plain .txd, which only ever has one.
         self.source_picker = ttk.Combobox(
-            header, state="readonly", style="Filter.TCombobox", width=26
+            header,
+            state="readonly",
+            style="Filter.TCombobox",
+            width=26,
         )
         self.source_picker.bind(
             "<<ComboboxSelected>>",
@@ -272,7 +286,10 @@ class TxdViewer:
         body.pack(fill="both", expand=True)
 
         self.canvas = tk.Canvas(
-            body, background=COLORS["bg"], highlightthickness=0, borderwidth=0
+            body,
+            background=COLORS["bg"],
+            highlightthickness=0,
+            borderwidth=0,
         )
         scrollbar = ttk.Scrollbar(
             body,
@@ -287,7 +304,9 @@ class TxdViewer:
 
         self.grid = ttk.Frame(self.canvas, style="TFrame", padding=CARD_PAD)
         self.grid_window = self.canvas.create_window(
-            (0, 0), window=self.grid, anchor="nw"
+            (0, 0),
+            window=self.grid,
+            anchor="nw",
         )
 
         self.grid.bind(
@@ -308,7 +327,9 @@ class TxdViewer:
         status.pack(fill="x")
 
         self.status_label = ttk.Label(
-            status, text="No file loaded", style="Status.TLabel"
+            status,
+            text="No file loaded",
+            style="Status.TLabel",
         )
         self.status_label.pack(side="left")
 
@@ -362,7 +383,7 @@ class TxdViewer:
         try:
             self.sources = self._read_sources(file_path)
         except Exception as exc:
-            traceback.print_exc()
+            logger.exception("Failed to read %s", file_path)
             showerror("TXD Viewer", f"Failed to read {file_path}:\n\n{exc}")
             self.status_label.configure(text=f"Failed to read {file_path.name}")
             return
@@ -381,7 +402,7 @@ class TxdViewer:
         if not self.sources:
             self._clear_cards()
             self.status_label.configure(
-                text=f"{file_path.name} contains no texture dictionaries"
+                text=f"{file_path.name} contains no texture dictionaries",
             )
             return
 
@@ -405,7 +426,7 @@ class TxdViewer:
         try:
             txd = loads_txd(data)
         except Exception as exc:
-            traceback.print_exc()
+            logger.exception("Failed to parse %s", name)
             showerror("TXD Viewer", f"Failed to parse {name}:\n\n{exc}")
             self.status_label.configure(text=f"Failed to parse {name}")
             return

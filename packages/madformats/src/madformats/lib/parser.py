@@ -1,6 +1,6 @@
 import struct
-from typing import Any
 import uuid
+from typing import Any
 
 
 class Parser:
@@ -23,11 +23,11 @@ class Parser:
         size = struct.calcsize(fmt)
         if self.offset + size > len(self.data):
             raise EOFError("Attempt to read past end of buffer")
-    
+
         value = struct.unpack_from(fmt, self.data, self.offset)[0]
         self.offset += size
         return value
-    
+
     def _readTuple(self, fmt: str) -> tuple[Any, ...]:
         size = struct.calcsize(fmt)
         if self.offset + size > len(self.data):
@@ -38,8 +38,7 @@ class Parser:
         return value
 
     def read(self, size: int) -> bytes:
-        """
-        Equivalent to RwStreamRead(stream, buffer, size)
+        """Equivalent to RwStreamRead(stream, buffer, size)
         Returns bytes read (may be shorter only at EOF).
         """
         if self.offset + size > len(self.data):
@@ -156,20 +155,19 @@ class Parser:
         return b.decode(encoding)
 
     def readLengthPrefixedString(self, encoding="latin-1", removePadding=False) -> str:
-        """
-        u32 length prefix\n
+        """u32 length prefix\n
         char[length]\n
         non-null-terminated, but may be padded to 4 bytes\n
         """
         length = self.readUint32()
         b = self.readBytes(length)
-        
+
         if removePadding:
             # Remove null padding at the end
             b = b.rstrip(b"\x00")
             b = b.rstrip(b"\xbf")
             b = b.rstrip(b"\x00")
-            
+
         return b.decode(encoding)
 
     def readGUID(self):

@@ -105,13 +105,18 @@ from madformats.stream import RW_StreamFile
 
 ASSETS = Path(__file__).parent / "assets"
 
+
 @level("kingofny")
 def gold_coins(kingofny: RW_StreamFile) -> None:
-    kingofny.assetByName("DG_Coin_Collectable.AI").importFrom(ASSETS / "scripts/DG_Coin_Collectable.AI")
+    kingofny.assetByName("DG_Coin_Collectable.AI").importFrom(
+        ASSETS / "scripts/DG_Coin_Collectable.AI"
+    )
 
-@level("kingofny")          # stacked: runs once per level
+
+@level("kingofny")  # stacked: runs once per level
 @level("kingofny_regen")
 def bigger_coins(lvl): ...
+
 
 @level("street", "kingofny")  # several names: one call with all levels
 def alex_to_marty(street, kingofny): ...

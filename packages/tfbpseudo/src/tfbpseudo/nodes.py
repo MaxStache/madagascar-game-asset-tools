@@ -4,7 +4,6 @@ from dataclasses import dataclass, field
 
 from tfbpseudo.lexer import Token
 
-
 # Flow-control values, as stored in InstructionFlags.flow_control (3 bits).
 FLOW_END = 0
 FLOW_CONTINUE = 1
@@ -15,7 +14,8 @@ FLOW_MAX = 7
 @dataclass
 class Flow:
     """A block's trailing `flow ...`, the flow-control value the opcode owning
-    the block returns once the block is done."""
+    the block returns once the block is done.
+    """
 
     value: int  # 0 end, 1 continue, 2 and up break
     line: int = 0

@@ -18,9 +18,9 @@ class OpStartup(BlockOpcode):
                     "type": "block-label",
                     "value": "STRARTUP",
                 },
-            ]
+            ],
         }
 
     @override
     def write_payload(self, f: BinaryIO) -> None:
-        pass # Startup has no payload
+        pass  # Startup has no payload

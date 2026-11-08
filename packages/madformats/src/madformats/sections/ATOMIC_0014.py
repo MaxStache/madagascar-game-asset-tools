@@ -2,12 +2,12 @@ import io
 from dataclasses import dataclass, field
 from typing import override
 
-from madformats.lib.writer import write_u32
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import RW_Section, RWHeader, expect_chunk_type_or_raise
-
+from madformats.lib.rwConstants import RWSectionType
+from madformats.lib.writer import write_u32
 from madformats.sections.EXTENSION_0003 import RW_Extension
+
 
 @dataclass
 class RpAtomicFlags:
@@ -53,7 +53,9 @@ class RW_Atomic_Struct(RW_Section):
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_Atomic_Struct":
+    def read(
+        cls, parser: Parser, parent: RW_Section | None = None
+    ) -> "RW_Atomic_Struct":
         atomic_s = cls()
         atomic_s.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -85,6 +87,7 @@ class RW_Atomic_Struct(RW_Section):
         )
         f.write(rw_header.pack())
         f.write(buf.getvalue())
+
 
 @dataclass
 class RW_Atomic(RW_Section):

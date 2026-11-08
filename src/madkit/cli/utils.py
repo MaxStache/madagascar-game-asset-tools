@@ -1,18 +1,22 @@
+import re
 from collections.abc import Iterable, Iterator, Sized
+from pathlib import Path
+from typing import Annotated
+
+from cyclopts import Parameter, validators
 from rich.progress import (
-    Progress,
-    TextColumn,
     BarColumn,
-    TaskProgressColumn,
     MofNCompleteColumn,
+    Progress,
+    TaskProgressColumn,
+    TextColumn,
     TimeRemainingColumn,
 )
-import re
-from cyclopts import Parameter, validators
-from typing import Annotated
-from pathlib import Path
 
-from madformats.streamfuncs.stringfuncs.sf_LoadEmbeddedAsset import RW_sf_LoadEmbeddedAsset
+from madformats.streamfuncs.stringfuncs.sf_LoadEmbeddedAsset import (
+    RW_sf_LoadEmbeddedAsset,
+)
+
 
 def progress[T](
     iterable: Iterable[T],
@@ -35,9 +39,11 @@ def progress[T](
             yield item
             p.advance(task)
 
+
 def sanitize_filename(file_name: str) -> str:
     """Make a filename valid on Windows."""
     return re.sub(r'[<>:"/\\|?*]', "_", file_name)
+
 
 ValidatedExistingPath = Annotated[
     Path,
@@ -82,7 +88,7 @@ def loadEmbeddedAssets_to_file_name(sec: RW_sf_LoadEmbeddedAsset) -> str:
     elif sec.type == "KFset":
         file_name += ".lpa"
     elif sec.type == "TEXT":
-        file_name += ".txt" # NOT CONFIRMED EXTENSION
+        file_name += ".txt"  # NOT CONFIRMED EXTENSION
     else:
         file_name += Path(sec.name).suffix
 

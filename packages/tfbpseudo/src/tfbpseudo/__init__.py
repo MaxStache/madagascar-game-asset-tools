@@ -5,8 +5,9 @@ from .lexer import Token, tokenize
 from .nodes import Behavior, Block, Flow, Prescript, Script, Statement, Variable
 from .parser import Parser
 
+# isort: split
 # Imported for its side effect: it declares every opcode in both directions.
-from . import methods  # noqa: E402,F401  isort:skip
+from . import methods  # type: ignore  # noqa: F401
 
 __all__ = [
     "Behavior",
@@ -14,8 +15,8 @@ __all__ = [
     "CompileError",
     "Compiler",
     "DecompileError",
-    "Flow",
     "Decompiler",
+    "Flow",
     "ParseError",
     "Parser",
     "Prescript",

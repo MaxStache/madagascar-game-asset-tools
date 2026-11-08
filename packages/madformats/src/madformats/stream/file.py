@@ -7,14 +7,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import BinaryIO
 
-from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import DEFAULT_VERSION_STAMP
-from madformats.lib.rw_basics import RW_StreamFunc, RWHeader
-from madformats.streamfuncs import STRFUNC_REGISTRY
+from colorama import Fore, init
 
+from madformats.lib.parser import Parser
+from madformats.lib.rw_basics import RW_StreamFunc, RWHeader
+from madformats.lib.rwConstants import DEFAULT_VERSION_STAMP
 from madformats.stream.edit import StreamEditMixin
 from madformats.stream.log import StreamLogMixin
-from colorama import Fore, init
+from madformats.streamfuncs import STRFUNC_REGISTRY
 
 init(autoreset=True)
 
@@ -38,7 +38,7 @@ class RW_StreamFile(StreamEditMixin, StreamLogMixin):
             if stream_func_class is None:
                 raise ValueError(
                     f"Unknown stream function type {hex(peeked_header.type)} "
-                    + f"at offset {hex(parser.offset)}"
+                    f"at offset {hex(parser.offset)}",
                 )
 
             streamf.contents.append(stream_func_class.read(parser))
@@ -55,6 +55,7 @@ class RW_StreamFile(StreamEditMixin, StreamLogMixin):
 
         Returns:
             Parsed Stream File.
+
         """
         opener = gzip.open if gzipped else open
 
@@ -79,7 +80,7 @@ class RW_StreamFile(StreamEditMixin, StreamLogMixin):
         if not self._INTERNAL_DID_VERFY:
             print(
                 Fore.LIGHTRED_EX
-                + "WARN: STREAM WAS NEVER VERIFIES, we recomment running a few quick checks by running 'level_stream.verify()' before save"
+                + "WARN: STREAM WAS NEVER VERIFIES, we recomment running a few quick checks by running 'level_stream.verify()' before save",
             )
         with open(filepath, "wb") as f:
             self.write(f, DEFAULT_VERSION_STAMP)
@@ -96,6 +97,7 @@ def load_stream(filepath: str | Path, gzipped: bool = False) -> RW_StreamFile:
 
     Returns:
         Parsed Stream File.
+
     """
     opener = gzip.open if gzipped else open
 

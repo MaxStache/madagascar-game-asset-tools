@@ -10,10 +10,12 @@ uuids from the .stream file it finds, and refuses to trust a bad walk.
 
     python -m madkit.tools.livescan [path-to-stream]
 """
+
 import sys
-import uuid
+from typing import Protocol, cast
 
 import pymem
+from pymem.exception import MemoryReadError
 
 IMAGE_BASE = 0x400000
 ENTITY_LIST_HEAD = 0x0062FEA8
@@ -22,21 +24,35 @@ OFF_NEXT = 0x18
 MAX_NODES = 100_000
 
 
-def walk(pm, head_addr):
-    """Yield (node_addr, uuid_bytes). Tries head as a pointer, then as a node."""
+class ProcessMemory(Protocol):
+    """The slice of ``pymem.Pymem`` that ``walk`` needs (pymem ships no types)."""
+
+    def read_uint(self, address: int) -> int: ...
+    def read_bytes(self, address: int, length: int) -> bytes: ...
+
+
+def walk(
+    pm: ProcessMemory,
+    head_addr: int,
+) -> tuple[list[tuple[int, bytes]], bool | None]:
+    """Return ([(node_addr, uuid_bytes)], deref). Tries head as a pointer, then as a node."""
     for deref in (True, False):
-        nodes, seen, addr = [], set(), head_addr
+        nodes: list[tuple[int, bytes]] = []
+        seen: set[int] = set()
+        addr = head_addr
         if deref:
             try:
                 addr = pm.read_uint(head_addr)
-            except Exception:
-                continue
+            except MemoryReadError:
+                addr = (
+                    0  # head is not a readable pointer: skip to treating it as a node
+                )
         while addr and addr not in seen and len(nodes) < MAX_NODES:
             seen.add(addr)
             try:
                 raw = pm.read_bytes(addr + OFF_UUID, 16)
                 nxt = pm.read_uint(addr + OFF_NEXT)
-            except Exception:
+            except MemoryReadError:
                 break
             nodes.append((addr, raw))
             addr = nxt
@@ -46,10 +62,14 @@ def walk(pm, head_addr):
 
 
 def main():
-    stream_path = sys.argv[1] if len(sys.argv) > 1 else \
-        "C:/Users/maxst/Desktop/Madagascar/Game/Levels/banquet.stream"
+    stream_path = (
+        sys.argv[1]
+        if len(sys.argv) > 1
+        else "C:/Users/maxst/Desktop/Madagascar/Game/Levels/banquet.stream"
+    )
 
     from madformats.stream import load_stream
+
     lvl = load_stream(stream_path)
     file_ents = {e.entityID.bytes_le: e for e in lvl.entities()}
     print(f"{stream_path}\n  {len(file_ents)} entities in the file")
@@ -59,33 +79,40 @@ def main():
     head = base + (ENTITY_LIST_HEAD - IMAGE_BASE)
     print(f"  Game.exe base 0x{base:08x}, list head 0x{head:08x}")
 
-    nodes, deref = walk(pm, head)
+    # pymem's inferred return types include raw ctypes; at runtime they are int/bytes
+    nodes, deref = walk(cast("ProcessMemory", pm), head)
     if not nodes:
         print("  !! could not walk the list - offsets are wrong or no level is loaded")
         return
 
     live = {raw for _, raw in nodes}
     hit = live & set(file_ents)
-    print(f"  walked {len(nodes)} nodes (head {'is a pointer' if deref else 'is the node'})")
+    print(
+        f"  walked {len(nodes)} nodes (head {'is a pointer' if deref else 'is the node'})"
+    )
     print(f"  {len(hit)} of them match a uuid from the file")
 
     if len(hit) < len(file_ents) * 0.5:
-        print("  !! fewer than half matched - do NOT trust these offsets; "
-              "the walk is landing on the wrong structure")
+        print(
+            "  !! fewer than half matched - do NOT trust these offsets; "
+            "the walk is landing on the wrong structure"
+        )
         return
 
     missing = [e for raw, e in file_ents.items() if raw not in live]
     print(f"\n  {len(file_ents) - len(missing)} created, {len(missing)} NOT created")
 
-    clones = [e for e in file_ents.values() if e.tfbGetName().startswith("MODDED")]
+    clones = [
+        e for e in file_ents.values() if (e.tfbGetName() or "").startswith("MODDED")
+    ]
     if clones:
         print("\n  clones:")
-        for e in sorted(clones, key=lambda e: e.tfbGetName()):
+        for e in sorted(clones, key=lambda e: e.tfbGetName() or ""):
             state = "LIVE " if e.entityID.bytes_le in live else "ABSENT"
-            print(f"    {state}  {e.tfbGetName():<14} {e.entityID}")
+            print(f"    {state}  {e.tfbGetName() or '':<14} {e.entityID}")
 
     if missing:
-        by_behaviour = {}
+        by_behaviour: dict[str, int] = {}
         for e in missing:
             by_behaviour[e.behaviour] = by_behaviour.get(e.behaviour, 0) + 1
         print("\n  missing entities by behaviour:")

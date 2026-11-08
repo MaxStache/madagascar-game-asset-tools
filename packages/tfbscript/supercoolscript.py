@@ -1,6 +1,5 @@
-from tfbscript import ScriptFile
-from tfbscript import open_editor
-from tfbscript.opcodes import OpPrescript, OpStartup, OpShutdown
+from tfbscript import ScriptFile, open_editor
+from tfbscript.opcodes import OpPrescript, OpShutdown, OpStartup
 from tfbscript.opcodes.enums import CombineMode, MembershipCombiner
 from tfbscript.opcodes.op_behavior_implementation import OpBehaviorImplementation
 from tfbscript.opcodes.op_change_membership import OpChangeMembership
@@ -87,36 +86,34 @@ script.instructions.append(i_behv_idle)
 # ---- CONTROLLER CHECK1 ---
 i_behv_idle_check_controller_1 = OpCheckValue(0x00)
 i_behv_idle_check_controller_1.lhs = Reference.createSimple_local(
-    script.local_refs, slot=5
+    script.local_refs,
+    slot=5,
 )
-<<<<<<< HEAD
 i_behv_idle_check_controller_1.flags.flow_control = 1  # Flow CONTINUE
 
 i_behv_idle_check_controller_1.rhs = Rhs()
 i_behv_idle_check_controller_1.rhs.kind = "int"
 i_behv_idle_check_controller_1.rhs.value = 0x01
 
-=======
-i_behv_idle_check_controller_1.rhs = Rhs.createSimple(
-    
-)
->>>>>>> 05cd749 (wip)
 i_behv_idle_check_controller_1.lhs.member = 0x01
 i_behv_idle.children.append(i_behv_idle_check_controller_1)
 # -----
 
 # ---- CONTROLLER CHECK1 - CHILDREN ---
 i_behv_idle_check_controller_1_set_behav = OpSetBehavior(0x01)
-i_behv_idle_check_controller_1_set_behav.behavior = Reference.createSimple_local(script.local_refs, slot=1)
+i_behv_idle_check_controller_1_set_behav.behavior = Reference.createSimple_local(
+    script.local_refs, slot=1
+)
 i_behv_idle_check_controller_1.children.append(i_behv_idle_check_controller_1_set_behav)
-# ----- 
+# -----
 # endregion
 
 # region CONTROLLER CHECK2
 # ---- CONTROLLER CHECK2 ---
 i_behv_idle_check_controller_1 = OpCheckValue(0x00)
 i_behv_idle_check_controller_1.lhs = Reference.createSimple_local(
-    script.local_refs, slot=5
+    script.local_refs,
+    slot=5,
 )
 i_behv_idle_check_controller_1.flags.flow_control = 1  # Flow CONTINUE
 
@@ -130,7 +127,9 @@ i_behv_idle.children.append(i_behv_idle_check_controller_1)
 
 # ---- CONTROLLER CHECK2 - CHILDREN ---
 i_behv_idle_check_controller_1_set_behav = OpSetBehavior(0x01)
-i_behv_idle_check_controller_1_set_behav.behavior = Reference.createSimple_local(script.local_refs, slot=2)
+i_behv_idle_check_controller_1_set_behav.behavior = Reference.createSimple_local(
+    script.local_refs, slot=2
+)
 i_behv_idle_check_controller_1.children.append(i_behv_idle_check_controller_1_set_behav)
 
 i_spawn_projectile = OpSpawnActor(0x02)
@@ -161,14 +160,15 @@ i_displace_projectile.pitch.kind = "float"
 i_displace_projectile.pitch.value = 60
 
 i_spawn_projectile.children.append(i_displace_projectile)
-# ----- 
+# -----
 # endregion
 
 # region CONTROLLER CHECK3
 # ---- CONTROLLER CHECK3 ---
 i_behv_idle_check_controller_1 = OpCheckValue(0x00)
 i_behv_idle_check_controller_1.lhs = Reference.createSimple_local(
-    script.local_refs, slot=5
+    script.local_refs,
+    slot=5,
 )
 i_behv_idle_check_controller_1.flags.flow_control = 1  # Flow CONTINUE
 
@@ -182,16 +182,19 @@ i_behv_idle.children.append(i_behv_idle_check_controller_1)
 
 # ---- CONTROLLER CHECK3 - CHILDREN ---
 i_behv_idle_check_controller_1_set_behav = OpSetBehavior(0x01)
-i_behv_idle_check_controller_1_set_behav.behavior = Reference.createSimple_local(script.local_refs, slot=3)
+i_behv_idle_check_controller_1_set_behav.behavior = Reference.createSimple_local(
+    script.local_refs, slot=3
+)
 i_behv_idle_check_controller_1.children.append(i_behv_idle_check_controller_1_set_behav)
-# ----- 
+# -----
 # endregion
 
 # region CONTROLLER CHECK4
 # ---- CONTROLLER CHECK4 ---
 i_behv_idle_check_controller_1 = OpCheckValue(0x00)
 i_behv_idle_check_controller_1.lhs = Reference.createSimple_local(
-    script.local_refs, slot=5
+    script.local_refs,
+    slot=5,
 )
 i_behv_idle_check_controller_1.flags.flow_control = 1  # Flow CONTINUE
 
@@ -205,9 +208,11 @@ i_behv_idle.children.append(i_behv_idle_check_controller_1)
 
 # ---- CONTROLLER CHECK4 - CHILDREN ---
 i_behv_idle_check_controller_1_set_behav = OpSetBehavior(0x01)
-i_behv_idle_check_controller_1_set_behav.behavior = Reference.createSimple_local(script.local_refs, slot=4)
+i_behv_idle_check_controller_1_set_behav.behavior = Reference.createSimple_local(
+    script.local_refs, slot=4
+)
 i_behv_idle_check_controller_1.children.append(i_behv_idle_check_controller_1_set_behav)
-# ----- 
+# -----
 # endregion
 
 

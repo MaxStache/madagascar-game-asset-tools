@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from typing import BinaryIO, override
 
-from tfbscript.ansi import func_call
 from madformats.lib.writer import write_f32, write_u8
+from tfbscript.ansi import func_call
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.opcodes.enums import CamTransitionInMode, CamTransitionOutMode
 from tfbscript.payload import PayloadReader
@@ -18,7 +18,7 @@ class OpUseCamera(Opcode):
     trans_in_duration: float = field(default=0.0)
 
     trans_out_mode: CamTransitionOutMode = field(
-        default=CamTransitionOutMode.no_transition
+        default=CamTransitionOutMode.no_transition,
     )
     trans_out_duration: float | None = field(default=None)
 
@@ -52,7 +52,7 @@ class OpUseCamera(Opcode):
 
         write_u8(f, self.trans_out_mode)
         if self.trans_out_mode != CamTransitionOutMode.no_transition:
-            assert self.trans_out_duration is not None # Should never assert
+            assert self.trans_out_duration is not None  # Should never assert
             write_f32(f, self.trans_out_duration)
 
     @override
@@ -65,4 +65,3 @@ class OpUseCamera(Opcode):
             if self.trans_out_mode != CamTransitionOutMode.no_transition
             else f"trans_out: {self.trans_out_mode}",
         )
-

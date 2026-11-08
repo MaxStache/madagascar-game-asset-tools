@@ -1,10 +1,8 @@
 from dataclasses import dataclass, field
-from typing import override
+from typing import BinaryIO, override
 
-from typing import BinaryIO
-
-from tfbscript.ansi import func_call
 from madformats.lib.writer import write_u32
+from tfbscript.ansi import func_call
 from tfbscript.opcodes.base import Opcode, opcode
 from tfbscript.payload import PayloadReader
 from tfbscript.reference import Reference

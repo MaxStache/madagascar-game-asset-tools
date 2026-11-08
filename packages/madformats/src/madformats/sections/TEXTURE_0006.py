@@ -20,7 +20,9 @@ class RW_Texture_Struct(RW_Section):
 
     @classmethod
     @override
-    def read(cls, parser: Parser, parent: RW_Section | None = None) -> "RW_Texture_Struct":
+    def read(
+        cls, parser: Parser, parent: RW_Section | None = None
+    ) -> "RW_Texture_Struct":
         texture_s = cls()
         texture_s.header = RWHeader.read(parser)
         expect_chunk_type_or_raise(
@@ -84,7 +86,7 @@ class RW_Texture(RW_Section):
         texture.extension = RW_Extension.read(parser, parent=texture)
 
         return texture
-    
+
     @override
     def write(self, f: BinaryIO, stamp: int, parent: RW_Section | None = None):
         buf = io.BytesIO()

@@ -1,18 +1,18 @@
 import io
 import struct
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any, BinaryIO, override
-from collections.abc import Sequence
 
 from madformats.lib.parser import Parser
-from madformats.lib.rwConstants import RWSectionType
 from madformats.lib.rw_basics import (
     RW_Section,
     RW_Triangle,
     RWHeader,
+    RwV3d,
     expect_chunk_type_or_raise,
-    Vector3,
 )
+from madformats.lib.rwConstants import RWSectionType
 
 
 @dataclass
@@ -82,7 +82,11 @@ class RpCollSector:
 
     def pack(self) -> bytes:
         return struct.pack(
-            "<BBHf", self.collsec_type, self.contents, self.index, self.value
+            "<BBHf",
+            self.collsec_type,
+            self.contents,
+            self.index,
+            self.value,
         )
 
 
@@ -158,7 +162,11 @@ class _CollTreeBuilder:
 
     # -- GetClipStats -----------------------------------------------------
     def _clip_stats(
-        self, off: int, cnt: int, axis: int, value: float
+        self,
+        off: int,
+        cnt: int,
+        axis: int,
+        value: float,
     ) -> tuple[int, int, float, float, list[int]]:
         verts = self.verts
         vflag = self.vflag
@@ -257,7 +265,10 @@ class _CollTreeBuilder:
                 if quant_value != last_quant:
                     self._set_clip_codes(sortv, axis, try_value)
                     n_l, n_r, l_val, r_val, _ = self._clip_stats(
-                        off, cnt, axis, try_value
+                        off,
+                        cnt,
+                        axis,
+                        try_value,
                     )
                     if n_l and n_r:
                         score = (
@@ -278,7 +289,7 @@ class _CollTreeBuilder:
         return best
 
     # -- BuildTreeGenerate ------------------------------------------------
-    def generate( # type: ignore
+    def generate(  # type: ignore
         self,
         off: int,
         cnt: int,
@@ -312,7 +323,7 @@ class _CollTreeBuilder:
         else:
             raise ValueError(
                 f"rpCOLLTREE_MAXDEPTH reached with {cnt} triangles remaining "
-                + f"(max {rpCOLLSECTOR_CONTENTS_MAXCOUNT} per leaf)"
+                f"(max {rpCOLLSECTOR_CONTENTS_MAXCOUNT} per leaf)",
             )
 
         left_sup = list(sup)
@@ -325,16 +336,16 @@ class _CollTreeBuilder:
             axis,
             l_val,
             r_val,
-            self.generate(off, n_l, inf, left_sup, depth + 1), # type: ignore
-            self.generate(off + n_l, n_r, right_inf, sup, depth + 1), # type: ignore
+            self.generate(off, n_l, inf, left_sup, depth + 1),  # type: ignore
+            self.generate(off + n_l, n_r, right_inf, sup, depth + 1),  # type: ignore
         )
 
 
-def _flatten(root: tuple) -> list[RpCollSplit]: # type: ignore
+def _flatten(root: tuple) -> list[RpCollSplit]:  # type: ignore
     """CreateCollTreeFromBuildTree() - pre-order, left subtree before right."""
     splits: list[RpCollSplit] = []
 
-    def emit(node: tuple) -> int: # type: ignore
+    def emit(node: tuple) -> int:  # type: ignore
         idx = len(splits)
         splits.append(RpCollSplit())
         _, axis, l_val, r_val, left, right = node
@@ -349,22 +360,22 @@ def _flatten(root: tuple) -> list[RpCollSplit]: # type: ignore
             r_contents, r_index = rpCOLLSECTOR_CONTENTS_SPLIT, None
 
         if l_index is None:
-            l_index = emit(left) # type: ignore
+            l_index = emit(left)  # type: ignore
         if r_index is None:
-            r_index = emit(right) # type: ignore
+            r_index = emit(right)  # type: ignore
 
         splits[idx] = RpCollSplit(
             leftSector=RpCollSector(
-                collsec_type=_AXIS_TYPE[axis] | rpCOLLSECTOR_TYPE_NEG, # type: ignore
-                contents=l_contents, # type: ignore
-                index=l_index, # type: ignore
-                value=l_val, # type: ignore
+                collsec_type=_AXIS_TYPE[axis] | rpCOLLSECTOR_TYPE_NEG,  # type: ignore
+                contents=l_contents,  # type: ignore
+                index=l_index,  # type: ignore
+                value=l_val,  # type: ignore
             ),
             rightSector=RpCollSector(
-                collsec_type=_AXIS_TYPE[axis], # type: ignore
-                contents=r_contents, # type: ignore
-                index=r_index, # type: ignore
-                value=r_val, # type: ignore
+                collsec_type=_AXIS_TYPE[axis],  # type: ignore
+                contents=r_contents,  # type: ignore
+                index=r_index,  # type: ignore
+                value=r_val,  # type: ignore
             ),
         )
         return idx
@@ -382,8 +393,8 @@ class RW_CollTreeStruct(RW_Section):
 
     flags: RW_CollTreeFlags = field(default_factory=RW_CollTreeFlags)
 
-    boxInf: Vector3 = field(default_factory=Vector3)
-    boxSup: Vector3 = field(default_factory=Vector3)
+    boxInf: RwV3d = field(default_factory=RwV3d)
+    boxSup: RwV3d = field(default_factory=RwV3d)
 
     numEntries: int = field(default=0)
     numSplits: int = field(default=0)
@@ -400,13 +411,13 @@ class RW_CollTreeStruct(RW_Section):
     @classmethod
     def build(
         cls,
-        vertices: Sequence[Vector3],
+        vertices: Sequence[RwV3d],
         triangles: Sequence[RW_Triangle],
         sort_triangles: bool = True,
     ) -> "RW_CollTreeStruct":
         """Generate a collision tree from a triangle list.
 
-        vertices  -- Vector3 / (x, y, z) sequence, in the same space the tree
+        vertices  -- RwV3d / (x, y, z) sequence, in the same space the tree
                      will be queried in (geometry: model space, world sector:
                      world space).
         triangles -- index triples, or objects with vertex1/2/3.
@@ -430,7 +441,7 @@ class RW_CollTreeStruct(RW_Section):
         sup = [max(v[a] for v in verts) for a in range(3)]
 
         builder = _CollTreeBuilder(verts, tris)
-        root = builder.generate(0, len(tris), inf, sup, 0) # type: ignore
+        root = builder.generate(0, len(tris), inf, sup, 0)  # type: ignore
         splits = _flatten(root)
 
         if len(splits) > 0xFFFF:
@@ -438,8 +449,8 @@ class RW_CollTreeStruct(RW_Section):
 
         s = cls()
         s.flags = RW_CollTreeFlags(rpCOLLTREE_USEMAP=not sort_triangles)
-        s.boxInf = Vector3(x=inf[0], y=inf[1], z=inf[2])
-        s.boxSup = Vector3(x=sup[0], y=sup[1], z=sup[2])
+        s.boxInf = RwV3d(x=inf[0], y=inf[1], z=inf[2])
+        s.boxSup = RwV3d(x=sup[0], y=sup[1], z=sup[2])
         s.numEntries = len(tris)
         s.numSplits = len(splits)
         s.splits = splits
@@ -457,7 +468,9 @@ class RW_CollTreeStruct(RW_Section):
     @classmethod
     @override
     def read(
-        cls, parser: Parser, parent: RW_Section | None = None
+        cls,
+        parser: Parser,
+        parent: RW_Section | None = None,
     ) -> "RW_CollTreeStruct":
         colltree_s = cls()
         colltree_s.header = RWHeader.read(parser)
@@ -468,8 +481,8 @@ class RW_CollTreeStruct(RW_Section):
         )
 
         colltree_s.flags = RW_CollTreeFlags.decode(parser.readUint32())  # flags
-        colltree_s.boxInf = Vector3.read(parser)  # bbox inf
-        colltree_s.boxSup = Vector3.read(parser)  # bbox sup
+        colltree_s.boxInf = RwV3d.read(parser)  # bbox inf
+        colltree_s.boxSup = RwV3d.read(parser)  # bbox sup
         colltree_s.numEntries = parser.readUint32()  # numEntries
         colltree_s.numSplits = parser.readUint32()  # numSplits
 
@@ -491,12 +504,12 @@ class RW_CollTreeStruct(RW_Section):
     def pack_body(self) -> bytes:
         if len(self.splits) != self.numSplits:
             raise ValueError(
-                f"numSplits ({self.numSplits}) != len(splits) ({len(self.splits)})"
+                f"numSplits ({self.numSplits}) != len(splits) ({len(self.splits)})",
             )
         if self.flags.rpCOLLTREE_USEMAP and len(self.map) != self.numEntries:
             raise ValueError(
                 f"rpCOLLTREE_USEMAP set but map has {len(self.map)} entries, "
-                + f"expected {self.numEntries}"
+                f"expected {self.numEntries}",
             )
 
         buf = io.BytesIO()
@@ -510,7 +523,7 @@ class RW_CollTreeStruct(RW_Section):
                 self.boxSup.x,
                 self.boxSup.y,
                 self.boxSup.z,
-            )
+            ),
         )
         buf.write(struct.pack("<II", self.numEntries, self.numSplits))
 
@@ -544,13 +557,15 @@ class RW_CollTree(RW_Section):
     @classmethod
     def build(
         cls,
-        vertices: Sequence[Vector3],
+        vertices: Sequence[RwV3d],
         triangles: Sequence[RW_Triangle],
         sort_triangles: bool = True,
     ) -> "RW_CollTree":
         colltree = cls()
         colltree.struct = RW_CollTreeStruct.build(
-            vertices, triangles, sort_triangles=sort_triangles
+            vertices,
+            triangles,
+            sort_triangles=sort_triangles,
         )
         return colltree
 

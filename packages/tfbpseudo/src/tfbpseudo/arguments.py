@@ -15,7 +15,7 @@ one back out, and everything after an absent argument is absent too.
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, override
 
 from tfbpseudo.errors import CompileError, DecompileError
 from tfbpseudo.lexer import Token, synth_token
@@ -26,6 +26,7 @@ from tfbscript.opcodes.enums import RelOp
 if TYPE_CHECKING:
     from tfbpseudo.compiler import Compiler
     from tfbpseudo.decompiler import Decompiler
+
 
 @dataclass(frozen=True)
 class Argument:
@@ -39,12 +40,16 @@ class Argument:
     present_if: Callable[[Opcode], bool] | None = None
 
     def read(
-        self, tokens: list[Token], compiler: "Compiler"
+        self,
+        tokens: list[Token],
+        compiler: "Compiler",
     ) -> dict[str, object]:  # pragma: no cover - overridden
         raise NotImplementedError
 
     def write(
-        self, opcode: Opcode, decompiler: "Decompiler"
+        self,
+        opcode: Opcode,
+        decompiler: "Decompiler",
     ) -> list[Token]:  # pragma: no cover - overridden
         raise NotImplementedError
 
@@ -83,9 +88,11 @@ class Ref(Argument):
 
     expects: str | None = None
 
+    @override
     def read(self, tokens: list[Token], compiler: "Compiler") -> dict[str, object]:
         return {self.name: compiler.get_ref_by_tokens(tokens)}
 
+    @override
     def write(self, opcode: Opcode, decompiler: "Decompiler") -> list[Token]:
         return decompiler.ref_tokens(getattr(opcode, self.name))
 
@@ -94,9 +101,11 @@ class Ref(Argument):
 class Value(Argument):
     """A right-hand side: an immediate, a reference, or an expression."""
 
+    @override
     def read(self, tokens: list[Token], compiler: "Compiler") -> dict[str, object]:
         return {self.name: compiler.get_rhs_by_tokens(tokens)}
 
+    @override
     def write(self, opcode: Opcode, decompiler: "Decompiler") -> list[Token]:
         return decompiler.rhs_tokens(getattr(opcode, self.name))
 
@@ -108,14 +117,17 @@ class Condition(Argument):
     rel_op_name: str = "rel_op"
     rhs_name: str = "rhs"
 
+    @override
     def read(self, tokens: list[Token], compiler: "Compiler") -> dict[str, object]:
         lhs, rel_op, rhs = compiler.get_condition_by_tokens(tokens)
         return {self.name: lhs, self.rel_op_name: rel_op, self.rhs_name: rhs}
 
+    @override
     def absent(self) -> dict[str, object]:
         # All three fields keep whatever the opcode's dataclass defaults are.
         return {}
 
+    @override
     def write(self, opcode: Opcode, decompiler: "Decompiler") -> list[Token]:
         return decompiler.condition_tokens(
             getattr(opcode, self.name),
@@ -128,12 +140,14 @@ class Condition(Argument):
 class Comparison(Argument):
     """A bare relational operator, for the ops that carry one on its own."""
 
+    @override
     def read(self, tokens: list[Token], compiler: "Compiler") -> dict[str, object]:
         if len(tokens) != 1 or tokens[0].value not in REL_OP_BY_TOKEN:
             raise self.error(tokens, f"expected one of {' '.join(REL_OP_BY_TOKEN)}")
 
         return {self.name: REL_OP_BY_TOKEN[tokens[0].value]}
 
+    @override
     def write(self, opcode: Opcode, decompiler: "Decompiler") -> list[Token]:
         rel_op: RelOp = getattr(opcode, self.name)
         return [synth_token("OP", rel_op.symbol())]
@@ -142,10 +156,12 @@ class Comparison(Argument):
 @dataclass(frozen=True)
 class Choice(Argument):
     """One of an enum's members, written by name -- `slow_move`, `randomly` --
-    or by its raw number when a file has one the enum has no name for."""
+    or by its raw number when a file has one the enum has no name for.
+    """
 
     enum: type[IntEnum] = RelOp
 
+    @override
     def read(self, tokens: list[Token], compiler: "Compiler") -> dict[str, object]:
         if len(tokens) != 1 or tokens[0].kind not in ("NAME", "NUMBER", "STRING"):
             raise self.error(tokens, f"expected one of {self.choices()}")
@@ -157,7 +173,8 @@ class Choice(Argument):
                 return {self.name: self.enum(int(token.value, 0))}
             except ValueError:
                 raise self.error(
-                    tokens, f"{token.value} is not a {self.enum.__name__} value"
+                    tokens,
+                    f"{token.value} is not a {self.enum.__name__} value",
                 ) from None
 
         folded = token.value.casefold()
@@ -166,9 +183,11 @@ class Choice(Argument):
                 return {self.name: member}
 
         raise self.error(
-            tokens, f"{token.value!r} is not one of {self.choices()}"
+            tokens,
+            f"{token.value!r} is not one of {self.choices()}",
         )
 
+    @override
     def write(self, opcode: Opcode, decompiler: "Decompiler") -> list[Token]:
         value = getattr(opcode, self.name)
 
@@ -188,9 +207,11 @@ class Choice(Argument):
 class Text(Argument):
     """A quoted string the opcode stores verbatim."""
 
+    @override
     def read(self, tokens: list[Token], compiler: "Compiler") -> dict[str, object]:
         return {self.name: self.one_token(tokens, "STRING", "a quoted string").value}
 
+    @override
     def write(self, opcode: Opcode, decompiler: "Decompiler") -> list[Token]:
         return [synth_token("STRING", getattr(opcode, self.name))]
 
@@ -201,6 +222,7 @@ class Number(Argument):
 
     is_float: bool = False
 
+    @override
     def read(self, tokens: list[Token], compiler: "Compiler") -> dict[str, object]:
         negative = False
         rest = tokens
@@ -221,6 +243,7 @@ class Number(Argument):
 
         return {self.name: -value if negative else value}
 
+    @override
     def write(self, opcode: Opcode, decompiler: "Decompiler") -> list[Token]:
         value = getattr(opcode, self.name)
         text = float_text(float(value)) if self.is_float else str(int(value))
@@ -235,7 +258,8 @@ def read_arguments(
     compiler: "Compiler",
 ) -> None:
     """Read each argument into `opcode`'s fields, filling in the ones that were
-    left out with their defaults."""
+    left out with their defaults.
+    """
     for index, argument in enumerate(spec):
         if index < len(arguments):
             fields = argument.read(arguments[index], compiler)
@@ -247,10 +271,13 @@ def read_arguments(
 
 
 def write_arguments(
-    spec: list[Argument], opcode: Opcode, decompiler: "Decompiler"
+    spec: list[Argument],
+    opcode: Opcode,
+    decompiler: "Decompiler",
 ) -> list[list[Token]]:
     """Write `opcode`'s fields back out, stopping at the first optional
-    argument that is not there -- nothing after it can be written either."""
+    argument that is not there -- nothing after it can be written either.
+    """
     out: list[list[Token]] = []
 
     for argument in spec:
@@ -263,9 +290,7 @@ def write_arguments(
         if not argument.optional:
             raise DecompileError(
                 f"`{argument.name}` is not optional but comes after an argument "
-                + "that is missing, so this opcode cannot be written out"
+                "that is missing, so this opcode cannot be written out",
             )
 
     return out
-
-

@@ -1,3 +1,3 @@
-from tfbscript.editor.app import open_editor, editor_from_filepath
+from tfbscript.editor.app import editor_from_filepath, open_editor
 
-__all__ = ["open_editor", "editor_from_filepath"]
+__all__ = ["editor_from_filepath", "open_editor"]

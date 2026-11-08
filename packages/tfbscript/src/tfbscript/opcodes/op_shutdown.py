@@ -18,9 +18,9 @@ class OpShutdown(BlockOpcode):
                     "type": "block-label",
                     "value": "SHUTDOWN",
                 },
-            ]
+            ],
         }
 
     @override
     def write_payload(self, f: BinaryIO) -> None:
-        pass # Shutdown has no payload
+        pass  # Shutdown has no payload

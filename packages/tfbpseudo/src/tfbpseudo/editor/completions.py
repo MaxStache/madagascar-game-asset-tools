@@ -87,7 +87,7 @@ KEY_CHARS = "!"
 # part of one -- an operator, a bracket, a quote. A builtin is one word, and
 # a bare "@" counts as the start of one so that typing it narrows to those.
 PREFIX = re.compile(
-    r"([" + KEY_CHARS + r"]|@[A-Za-z0-9_]*|[A-Za-z_][A-Za-z0-9_ ]*)$"
+    r"([" + KEY_CHARS + r"]|@[A-Za-z0-9_]*|[A-Za-z_][A-Za-z0-9_ ]*)$",
 )
 
 # The two declaration blocks, kept apart: which one a variable is in says
@@ -96,7 +96,7 @@ DECLARATION_BLOCK = re.compile(r"\b(globals|locals)\s*\{([^}]*)\}", re.DOTALL)
 DECLARATION_OPEN = re.compile(r"\b(?:globals|locals)\s*\{")
 QUOTED = re.compile(r'"([^"\n]*)"')
 # A behavior block's name, which the compiler declares as a local of its own.
-BEHAVIOR = re.compile(r'\bbehavior\s+(?:"([^"\n]*)"|(' + NAME + r'))\s*\{')
+BEHAVIOR = re.compile(r'\bbehavior\s+(?:"([^"\n]*)"|(' + NAME + r"))\s*\{")
 # The `flow` a mode word has to follow.
 AFTER_FLOW = re.compile(r"\b" + FLOW_WORD + r"$")
 
@@ -109,7 +109,7 @@ class Proposal:
     detail: str = ""  # dimmed, on the right: a type, a signature, a kind
     insert: str | None = None  # what is typed for it, when not the label
     back: int = 0  # how far back into it the cursor lands, i.e. inside ()
-    key: str | None = None # a key that shows the proposal at top when matches EXACTLY
+    key: str | None = None  # a key that shows the proposal at top when matches EXACTLY
 
     def text(self) -> str:
         return self.label if self.insert is None else self.insert
@@ -165,7 +165,11 @@ def enum_members() -> list[str]:
     names: set[str] = set()
 
     for value in vars(enums).values():
-        if isinstance(value, type) and issubclass(value, IntEnum) and value is not IntEnum:
+        if (
+            isinstance(value, type)
+            and issubclass(value, IntEnum)
+            and value is not IntEnum
+        ):
             names.update(member.name for member in value)
 
     return sorted(names, key=len, reverse=True)
@@ -286,7 +290,8 @@ def open_block_stack(head: str) -> list[OpenBlock]:
 
     def add(char: str) -> None:
         """Take a character into the header being built, remembering where
-        that header started."""
+        that header started.
+        """
         nonlocal current_at
         if not current:
             current_at = at
@@ -333,7 +338,8 @@ def open_block_stack(head: str) -> list[OpenBlock]:
 
 def _open_block(chars: list[str], first_at: int) -> OpenBlock:
     """The header those characters spell and where it really starts -- the
-    leading whitespace comes off both together."""
+    leading whitespace comes off both together.
+    """
     text = "".join(chars)
     return OpenBlock(text.strip(), first_at + len(text) - len(text.lstrip()))
 
@@ -377,7 +383,8 @@ def producer_of(source: str, position: int, token: str) -> tuple[str, int] | Non
 
 def call_parts(header: str) -> tuple[str, list[str]] | None:
     """A block header read as a call: `forEach(@subset, forward)` becomes
-    ("forEach", ["@subset", "forward"])."""
+    ("forEach", ["@subset", "forward"]).
+    """
     opened = header.find("(")
     if opened < 0:
         return None
@@ -414,7 +421,10 @@ def call_parts(header: str) -> tuple[str, list[str]] | None:
 
 
 def builtin_type(
-    source: str, head: str, token: str, seen: tuple[str, ...] = ()
+    source: str,
+    head: str,
+    token: str,
+    seen: tuple[str, ...] = (),
 ) -> str | None:
     """What a builtin names, where the cursor is.
 
@@ -435,14 +445,20 @@ def builtin_type(
         for producer, index in PRODUCERS.get(token, ()):
             if method == producer and index < len(arguments):
                 return argument_type(
-                    source, head, arguments[index], (*seen, token)
+                    source,
+                    head,
+                    arguments[index],
+                    (*seen, token),
                 )
 
     return None
 
 
 def argument_type(
-    source: str, head: str, text: str, seen: tuple[str, ...] = ()
+    source: str,
+    head: str,
+    text: str,
+    seen: tuple[str, ...] = (),
 ) -> str | None:
     """The type of the thing an argument starts at.
 
@@ -525,7 +541,7 @@ def variables(source: str) -> list[Variable]:
                     category,
                     scope,
                     source.count("\n", 0, at) + 1,
-                )
+                ),
             )
 
     for block in DECLARATION_BLOCK.finditer(source):
@@ -554,7 +570,8 @@ def variables(source: str) -> list[Variable]:
 
 def variable_type(source: str, spelling: str) -> str | None:
     """The type of the variable written as `spelling` -- its bare name, or the
-    whole "name::category::type" string the ambiguous ones are written as."""
+    whole "name::category::type" string the ambiguous ones are written as.
+    """
     for variable in variables(source):
         if spelling in (variable.name, variable.text):
             return variable.type
@@ -564,7 +581,8 @@ def variable_type(source: str, spelling: str) -> str | None:
 
 def in_declarations(head: str) -> bool:
     """Whether the cursor is inside a globals or locals block, where the only
-    thing that can be written is a quoted declaration."""
+    thing that can be written is a quoted declaration.
+    """
     opens = list(DECLARATION_OPEN.finditer(head))
     return bool(opens) and "}" not in head[opens[-1].end() :]
 
@@ -638,7 +656,9 @@ def signature(spec: MethodSpec) -> str:
 
 
 def values(
-    source: str, expects: str | None = None, calls: bool = False
+    source: str,
+    expects: str | None = None,
+    calls: bool = False,
 ) -> list[Proposal]:
     """What can stand where a reference or a value is expected.
 
@@ -699,7 +719,8 @@ def arguments(source: str, method: str, index: int) -> tuple[list[Proposal], boo
 
 def statements() -> list[Proposal]:
     """What can start a line: a method call, or one of the words that frame
-    the script."""
+    the script.
+    """
     proposals = [
         Proposal(name, signature(spec), insert=f"{name}()", back=1)
         for name, spec in sorted(METHOD_OPCODE_TABLE.items())
@@ -712,7 +733,8 @@ def statements() -> list[Proposal]:
 
 def context(source: str, head: str, before: str) -> tuple[list[Proposal], bool]:
     """The proposals for a cursor with `before` to its left on its line, and
-    whether they are a closed list."""
+    whether they are a closed list.
+    """
     if in_declarations(head):
         return [], True  # the entries there are quoted strings, not names
 
@@ -753,8 +775,8 @@ prescript {
             "Basic Layout",
             insert=basic_layout,
             detail="Preset",
-            key="!"
-        )
+            key="!",
+        ),
     )
 
     behavior_preset = """behavior BEHAVIOR_NAME {
@@ -764,8 +786,8 @@ prescript {
             "Behavior",
             insert=behavior_preset,
             detail="Preset",
-            key="behav"
-        )
+            key="behav",
+        ),
     )
 
     return proposals, False
@@ -773,7 +795,8 @@ prescript {
 
 def ranked(prefix: str, proposals: list[Proposal]) -> list[Proposal]:
     """The proposals `prefix` matches: the ones starting with it first, then
-    the ones merely containing it, i.e. `speed` finding `ground top speed`."""
+    the ones merely containing it, i.e. `speed` finding `ground top speed`.
+    """
     if not prefix:
         return proposals
 
@@ -845,7 +868,7 @@ def variable_help(variable: Variable) -> str:
             variable.name,
             f"{variable.scope} {variable.kind()}".strip(),
             f"declared on line {variable.line}",
-        ]
+        ],
     )
 
 

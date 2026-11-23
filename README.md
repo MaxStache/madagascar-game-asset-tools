@@ -1,3 +1,5 @@
+# ⚠️ These tools are outdated, i am working on updating and rewriting them.
+
 # Madagascar Asset Tools
 
 ![Python >= 3.12](https://img.shields.io/badge/python-%3E%3D3.12-blue)
